@@ -9,7 +9,7 @@ import py
 import tempfile
 from glob import glob
 
-import xgcm
+import xmitgcm
 
 _TESTDATA_FILENAME = 'testdata.tar.gz'
 _TESTDATA_ITERS = [39600, ]
@@ -162,7 +162,7 @@ def llc_mds_datadirs(tmpdir_factory, request):
 def test_parse_meta(tmpdir):
     """Check the parsing of MITgcm .meta into python dictionary."""
 
-    from xgcm.models.mitgcm.utils import parse_meta_file
+    from xmitgcm.utils import parse_meta_file
     p = tmpdir.join("XC.meta")
     p.write(_xc_meta_content)
     fname = str(p)
@@ -182,7 +182,7 @@ def test_parse_meta(tmpdir):
 def test_read_raw_data(tmpdir):
     """Check our utility for reading raw data."""
 
-    from xgcm.models.mitgcm.utils import read_raw_data
+    from xmitgcm.utils import read_raw_data
     shape = (2, 4)
     for dtype in [np.dtype('f8'), np.dtype('f4'), np.dtype('i4')]:
         # create some test data
@@ -224,7 +224,7 @@ def test_read_mds(all_mds_datadirs):
 
     dirname, expected = all_mds_datadirs
 
-    from xgcm.models.mitgcm.utils import read_mds
+    from xmitgcm.utils import read_mds
 
     prefix = 'XC'
     basename = os.path.join(dirname, prefix)
@@ -260,7 +260,7 @@ def test_open_mdsdataset_minimal(all_mds_datadirs):
 
     dirname, expected = all_mds_datadirs
 
-    ds = xgcm.models.mitgcm.mds_store.open_mdsdataset(
+    ds = xmitgcm.open_mdsdataset(
             dirname, iters=None, read_grid=False,
             geometry=expected['geometry'])
 
@@ -301,7 +301,7 @@ def test_open_mdsdataset_minimal(all_mds_datadirs):
 def test_read_grid(all_mds_datadirs):
     """Make sure we read all the grid variables."""
     dirname, expected = all_mds_datadirs
-    ds = xgcm.models.mitgcm.mds_store.open_mdsdataset(
+    ds = xmitgcm.open_mdsdataset(
                 dirname, iters=None, read_grid=True,
                 geometry=expected['geometry'])
 
@@ -317,11 +317,11 @@ def test_values_and_endianness(all_mds_datadirs):
         pytest.xfail("LLC value tests require fixed dask")
 
     # default endianness
-    ds = xgcm.models.mitgcm.mds_store.open_mdsdataset(
+    ds = xmitgcm.open_mdsdataset(
                 dirname, iters=None, read_grid=True,
                 geometry=expected['geometry'])
     # now reverse endianness
-    ds_le = xgcm.models.mitgcm.mds_store.open_mdsdataset(
+    ds_le = xmitgcm.open_mdsdataset(
                 dirname, iters=None, read_grid=True, endian='<',
                 geometry=expected['geometry'])
 
@@ -341,11 +341,11 @@ def test_swap_dims(all_mds_datadirs):
 
     if expected['geometry'] == 'llc':
         with pytest.raises(ValueError) as excinfo:
-            ds = xgcm.models.mitgcm.mds_store.open_mdsdataset(
+            ds = xmitgcm.open_mdsdataset(
                         dirname, geometry=expected['geometry'],
                         iters=None, read_grid=True, swap_dims=True)
     else:
-        ds = xgcm.models.mitgcm.mds_store.open_mdsdataset(
+        ds = xmitgcm.open_mdsdataset(
                     dirname, geometry=expected['geometry'],
                     iters=None, read_grid=True, swap_dims=True)
 
@@ -367,7 +367,7 @@ def test_prefixes(all_mds_datadirs):
     dirname, expected = all_mds_datadirs
     prefixes = ['U', 'V', 'W', 'T', 'S', 'PH']  # , 'PHL', 'Eta']
     iters = [expected['test_iternum']]
-    ds = xgcm.models.mitgcm.mds_store.open_mdsdataset(
+    ds = xmitgcm.open_mdsdataset(
                 dirname, iters=iters, prefix=prefixes,
                 read_grid=False, geometry=expected['geometry'])
 
@@ -380,14 +380,14 @@ def test_multiple_iters(multidim_mds_datadirs):
 
     dirname, expected = multidim_mds_datadirs
     # first try specifying the iters
-    ds = xgcm.models.mitgcm.mds_store.open_mdsdataset(
+    ds = xmitgcm.open_mdsdataset(
         dirname, read_grid=False, geometry=expected['geometry'],
         iters=expected['all_iters'],
         prefix=expected['prefixes'])
     assert list(ds.iter.values) == expected['all_iters']
 
     # now infer the iters, should be the same
-    ds2 = xgcm.models.mitgcm.mds_store.open_mdsdataset(
+    ds2 = xmitgcm.open_mdsdataset(
         dirname, read_grid=False, iters='all', geometry=expected['geometry'],
         prefix=expected['prefixes'])
     assert ds.equals(ds2)
@@ -398,7 +398,7 @@ def test_multiple_iters(multidim_mds_datadirs):
     # (Need to specify iters because there is some diagnostics output with
     # weird iterations numbers present in some experiments.)
     with pytest.raises(IOError):
-        ds = xgcm.models.mitgcm.mds_store.open_mdsdataset(
+        ds = xmitgcm.open_mdsdataset(
             dirname, read_grid=False, iters=expected['all_iters'],
             geometry=expected['geometry'])
 
@@ -406,7 +406,7 @@ def test_multiple_iters(multidim_mds_datadirs):
     missing_files = [os.path.basename(f)
                      for f in glob(os.path.join(dirname, 'PH*.0*data'))]
     with hide_file(dirname, *missing_files):
-        ds = xgcm.models.mitgcm.mds_store.open_mdsdataset(
+        ds = xmitgcm.open_mdsdataset(
             dirname, read_grid=False, iters=expected['all_iters'],
             geometry=expected['geometry'])
 
@@ -415,7 +415,7 @@ def test_date_parsing(mds_datadirs_with_refdate):
     """Verify that time information is decoded properly."""
     dirname, expected = mds_datadirs_with_refdate
 
-    ds = xgcm.open_mdsdataset(dirname, iters='all', prefix=['S'],
+    ds = xmitgcm.open_mdsdataset(dirname, iters='all', prefix=['S'],
                               ref_date=expected['ref_date'], read_grid=False,
                               delta_t=expected['delta_t'],
                               geometry=expected['geometry'])
@@ -426,7 +426,7 @@ def test_date_parsing(mds_datadirs_with_refdate):
 
 def test_parse_diagnostics(all_mds_datadirs):
     """Make sure we can parse the available_diagnostics.log file."""
-    from xgcm.models.mitgcm.utils import parse_available_diagnostics
+    from xmitgcm.utils import parse_available_diagnostics
     dirname, expected = all_mds_datadirs
     diagnostics_fname = os.path.join(dirname, 'available_diagnostics.log')
     ad = parse_available_diagnostics(diagnostics_fname)
@@ -454,7 +454,7 @@ def test_diagnostics(mds_datadirs_with_diagnostics):
     dirname, expected = mds_datadirs_with_diagnostics
 
     diag_prefix, expected_diags = expected['diagnostics']
-    ds = xgcm.models.mitgcm.mds_store.open_mdsdataset(dirname,
+    ds = xmitgcm.open_mdsdataset(dirname,
                                               read_grid=False,
                                               iters=expected['test_iternum'],
                                               prefix=[diag_prefix],
@@ -470,7 +470,7 @@ def test_diagnostics(mds_datadirs_with_diagnostics):
 def test_layers_diagnostics(layers_mds_datadirs):
     """Try reading dataset with layers output."""
     dirname, expected = layers_mds_datadirs
-    ds = xgcm.models.mitgcm.mds_store.open_mdsdataset(dirname, iters='all',
+    ds = xmitgcm.open_mdsdataset(dirname, iters='all',
                             geometry=expected['geometry'])
     layer_name = list(expected['layers'].keys())[0]
     layer_id = 'l' + layer_name[0]
@@ -492,7 +492,7 @@ def test_layers_diagnostics(layers_mds_datadirs):
 def test_llc_dims(llc_mds_datadirs):
     """Check that the LLC file dimensions are correct."""
     dirname, expected = llc_mds_datadirs
-    ds = xgcm.models.mitgcm.mds_store.open_mdsdataset(dirname,
+    ds = xmitgcm.open_mdsdataset(dirname,
                             iters=expected['test_iternum'],
                             geometry=expected['geometry'])
 
