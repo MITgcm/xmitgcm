@@ -14,11 +14,11 @@ VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 QUALIFIER = ''
 
 
-DISTNAME = 'xgcm'
+DISTNAME = 'xmitgcm'
 LICENSE = 'Apache'
-AUTHOR = 'xgcm Developers'
+AUTHOR = 'Ryan Abernathey'
 AUTHOR_EMAIL = 'rpa@ldeo.columbia.edu'
-URL = 'https://github.com/xgcm/xgcm'
+URL = 'https://github.com/xmitgcm/xmitgcm'
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
     'License :: OSI Approved :: Apache Software License',
@@ -34,14 +34,11 @@ CLASSIFIERS = [
     'Topic :: Scientific/Engineering',
 ]
 
-INSTALL_REQUIRES = ['xray']
+INSTALL_REQUIRES = ['xarray >= 0.8.2', 'dask >= 0.11.1']
 SETUP_REQUIRES = ['pytest-runner']
 TESTS_REQUIRE = ['pytest >= 2.8', 'coverage']
 
-if sys.version_info[:2] < (2, 7):
-    TESTS_REQUIRE += ["unittest2 == 0.5.1"]
-
-DESCRIPTION = "General circulation model analysis in python with xray"
+DESCRIPTION = "Read MITgcm mds binary files into xarray"
 LONG_DESCRIPTION = """To be written.
 """
 
