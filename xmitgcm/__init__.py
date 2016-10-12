@@ -1,1 +1,1 @@
-from mds_store import open_mdsdataset
+from .mds_store import open_mdsdataset
