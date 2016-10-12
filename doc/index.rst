@@ -1,50 +1,62 @@
-.. xgcm documentation master file, created by
-   sphinx-quickstart on Sat Aug 29 00:18:20 2015.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+xmitgcm
+=======
 
-xgcm: General Circulation Model Postprocessing with xarray
-==========================================================
+xmitgcm is a python package for reading MITgcm_ binary MDS files into
+xarray_ data structures. By storing data in dask_ arrays, xmitgcm enables
+parallel, out-of-core_ analysis of MITgcm output data.
 
-**xgcm** aims to become a general purpose tool for processing GCM output in
-python. xgcm is built on top of xarray_, which provides most of the core data
-model, indexing, and (via dask_) parallel, out-of-core array computation. On
-top of this, xgcm adds an understanding of the finite volume `Arakawa Grids`_
-commonly used in ocean and atmospheric models, differential and integral
-operators suited to these grids, and a toolbox of common analysis functions.
+Installation
+------------
 
-**xgcm** was motivated by the rapid growth in the numerical resolution of
-ocean, atmosphere, and climate models. While highly parallel supercomputers can
-now easily generate tera- and petascale datasets, common post-processing
-workflows struggle with these volumes. Furthermore, we believe that a flexible,
-evoliving, open-source, python-based framework for GCM analysis will enhance
-the productivity of the field as a whole, accelerating the rate of discovery in
-climate science.
+Requirements
+^^^^^^^^^^^^
+
+xmitgcm is compatible with python 3 and python 2.7. It requires xarray_
+(>= version 0.8.2) and dask_ (>= version 0.11.2).
+These packages are most reliably installed via the
+`conda <http://conda.pydata.org/docs/>`_ package / environment management
+system, which is part of the Anaconda_ python distribution. Assuming you have
+conda available on your system, the dependencies can be installed with the
+command::
+
+    conda install xarray dask
+
+If you are using earlier versions of these packages, you should update before
+installing xmitgcm.
+
+Installation via pip
+^^^^^^^^^^^^^^^^^^^^
+
+If you just want to use xmitgcm, the easiest way is to install via pip::
+
+    pip install xmitgcm
+
+This will automatically install the latest release from
+`pypi <https://pypi.python.org/pypi>`_.
+
+Installation from github
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+xmitgcm is under active development. To obtain the latest development version,
+you may clone the `source repository <https://github.com/xgcm/xmitgcm>`_
+and install it::
+
+    git clone https://github.com/xgcm/xmitgcm.git
+    cd xmitgcm
+    python setup.py install
+
+Users are encouraged to `fork <https://help.github.com/articles/fork-a-repo/>`_
+xmitgcm and submit pull requests.
+
+Quick Start
+-----------
+
+
+
+
 
 .. _dask: http://dask.pydata.org
 .. _xarray: http://xarray.pydata.org
-.. _Arakawa Grids: https://en.wikipedia.org/wiki/Arakawa_grids
-
-Contents
---------
-
-.. toctree::
-   :maxdepth: 1
-
-   installing
-   examples
-   supported-models
-   grids
-   fluxes
-   budgets
-   coordinate-transformation
-   api
-   faq
-   contributing
-
-Indices and tables
-------------------
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. _MITgcm: http://mitgcm.org/public/r2_manual/latest/online_documents/node277.html
+.. _out-of-core: https://en.wikipedia.org/wiki/Out-of-core_algorithm
+.. _Anaconda: https://www.continuum.io/downloads

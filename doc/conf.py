@@ -14,7 +14,7 @@
 
 import sys
 import os
-import xgcm
+import xmitgcm
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -43,7 +43,7 @@ extensions = [
 ]
 
 # link to github issues
-extlinks = {'issue': ('https://github.com/xgcm/xgcm/issues/%s', 'GH')}
+extlinks = {'issue': ('https://github.com/xgcm/xmitgcm/issues/%s', 'GH')}
 
 autosummary_generate = True
 numpydoc_class_members_toctree = True
@@ -222,8 +222,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'xgcm.tex', u'xgcm Documentation',
-   u'xgcm developers', 'manual'),
+  ('index', 'xmitgcm.tex', u'xmitgcm Documentation',
+   u'Ryan Abernathey', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -266,8 +266,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'xgcm', u'xgcm Documentation',
-   u'xgcm developers', 'xgcm', 'One line description of project.',
+  ('index', 'xmitgcm', u'xmitgcm Documentation',
+   u'Ryan Abernathey', 'xmitgcm', 'Read MITgcm mds binary files into xarray.',
    'Miscellaneous'),
 ]
 
