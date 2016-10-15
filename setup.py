@@ -6,7 +6,7 @@ import warnings
 
 from setuptools import setup, find_packages
 
-VERSION = '0.2.0'
+VERSION = '0.0.0'
 DISTNAME = 'xmitgcm'
 LICENSE = 'Apache'
 AUTHOR = 'Ryan Abernathey'
