@@ -6,14 +6,7 @@ import warnings
 
 from setuptools import setup, find_packages
 
-MAJOR = 0
-MINOR = 0
-MICRO = 0
-ISRELEASED = False
-VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
-QUALIFIER = ''
-
-
+VERSION = '0.1.0'
 DISTNAME = 'xmitgcm'
 LICENSE = 'Apache'
 AUTHOR = 'Ryan Abernathey'
