@@ -29,7 +29,7 @@ LLC_FACE_DIMNAME = 'face'
 def open_mdsdataset(dirname, iters='all', prefix=None, read_grid=True,
                     delta_t=1, ref_date=None, calendar='gregorian',
                     geometry='sphericalpolar',
-                    grid_vars_to_coords=True, swap_dims=False,
+                    grid_vars_to_coords=True, swap_dims=None,
                     endian=">", chunks=None,
                     ignore_unknown_vars=False,):
     """Open MITgcm-style mds (.data / .meta) file output as xarray datset.
@@ -40,23 +40,26 @@ def open_mdsdataset(dirname, iters='all', prefix=None, read_grid=True,
         Path to the directory where the mds .data and .meta files are stored
     iters : list, optional
         The iterations numbers of the files to be read. If `None`, no data
-        files will be read.
+        files will be read. If `all` (default), all iterations will be read.
     prefix : list, optional
-        List of different filename prefixes to read. Default is to read all
-        available files.
+        List of different filename prefixes to read. Default (`None`) is to
+        read all available files.
     read_grid : bool, optional
         Whether to read the grid data
-    deltaT : number, optional
+    delta_t : number, optional
         The timestep used in the model. (Can't be inferred.)
     ref_date : string, optional
-        A date string corresponding to the zero timestep. E.g. "1990-1-1 0:0:0".
-        See CF conventions [1]_
+        An iSO date string corresponding to the zero timestep,
+        e.g. "1990-1-1 0:0:0" (See CF conventions [1]_)
     calendar : string, optional
         A calendar allowed by CF conventions [1]_
     geometry : {'sphericalpolar', 'cartesian', 'llc'}
-        MITgcm grid geometry specifier.
+        MITgcm grid geometry specifier
+    grid_vars_to_coords : boolean, optional
+        Whether to promote grid variables to coordinate status
     swap_dims : boolean, optional
-        Whether to swap the logical dimensions for physical ones.
+        Whether to swap the logical dimensions for physical ones. If `None`,
+        will be set to `False` for `geometry==llc` and `True` otherwise.
     endian : {'=', '>', '<'}, optional
         Endianness of variables. Default for MITgcm is ">" (big endian)
     chunks : int or dict, optional
@@ -150,6 +153,11 @@ def open_mdsdataset(dirname, iters='all', prefix=None, read_grid=True,
                           ignore_unknown_vars=ignore_unknown_vars)
     ds = xr.Dataset.load_store(store)
 
+    if swap_dims is None:
+        if read_grid == False:
+            swap_dims = False
+        else:
+            swap_dims = False if geometry=='llc' else True
     if swap_dims:
         ds = _swap_dimensions(ds, geometry)
 

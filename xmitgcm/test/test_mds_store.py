@@ -261,7 +261,7 @@ def test_open_mdsdataset_minimal(all_mds_datadirs):
     dirname, expected = all_mds_datadirs
 
     ds = xmitgcm.open_mdsdataset(
-            dirname, iters=None, read_grid=False,
+            dirname, iters=None, read_grid=False, swap_dims=False,
             geometry=expected['geometry'])
 
     # the expected dimensions of the dataset
@@ -318,11 +318,12 @@ def test_values_and_endianness(all_mds_datadirs):
 
     # default endianness
     ds = xmitgcm.open_mdsdataset(
-                dirname, iters=None, read_grid=True,
+                dirname, iters=None, read_grid=True, swap_dims=False,
                 geometry=expected['geometry'])
     # now reverse endianness
     ds_le = xmitgcm.open_mdsdataset(
                 dirname, iters=None, read_grid=True, endian='<',
+                swap_dims=False,
                 geometry=expected['geometry'])
 
     for vname, (idx, val) in expected['expected_values'].items():
@@ -338,13 +339,21 @@ def test_swap_dims(all_mds_datadirs):
     """See if we can swap dimensions."""
 
     dirname, expected = all_mds_datadirs
+    kwargs = dict(iters=None, read_grid=True, geometry=expected['geometry'])
 
+    # make sure we never swap if not reading grid
+    assert 'i' in xmitgcm.open_mdsdataset(dirname,
+        iters=None, read_grid=False, geometry=expected['geometry'])
     if expected['geometry'] == 'llc':
+        # make sure swapping is not the default
+        assert 'i' in xmitgcm.open_mdsdataset(dirname, **kwargs)
+        # and is impossible
         with pytest.raises(ValueError) as excinfo:
             ds = xmitgcm.open_mdsdataset(
-                        dirname, geometry=expected['geometry'],
-                        iters=None, read_grid=True, swap_dims=True)
+                        dirname, swap_dims=True, **kwargs)
     else:
+        # make sure swapping *IS* the default
+        assert 'i' not in xmitgcm.open_mdsdataset(dirname, **kwargs)
         ds = xmitgcm.open_mdsdataset(
                     dirname, geometry=expected['geometry'],
                     iters=None, read_grid=True, swap_dims=True)
@@ -470,7 +479,7 @@ def test_diagnostics(mds_datadirs_with_diagnostics):
 def test_layers_diagnostics(layers_mds_datadirs):
     """Try reading dataset with layers output."""
     dirname, expected = layers_mds_datadirs
-    ds = xmitgcm.open_mdsdataset(dirname, iters='all',
+    ds = xmitgcm.open_mdsdataset(dirname, iters='all', swap_dims=False,
                             geometry=expected['geometry'])
     layer_name = list(expected['layers'].keys())[0]
     layer_id = 'l' + layer_name[0]
