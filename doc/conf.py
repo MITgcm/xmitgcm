@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# xgcm documentation build configuration file, created by
+# xmitgcm documentation build configuration file, created by
 # sphinx-quickstart on Sat Aug 29 00:18:20 2015.
 #
 # This file is execfile()d with the current directory set to its
@@ -62,8 +62,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'xgcm'
-copyright = u'2016, xgcm developers'
+project = u'xmitgcm'
+copyright = u'2016, xmitgcm developers'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -202,7 +202,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'xgcmdoc'
+htmlhelp_basename = 'xmitgcmdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -252,8 +252,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'xgcm', u'xgcm Documentation',
-     [u'xgcm developers'], 1)
+    ('index', 'xmitgcm', u'xmitgcm Documentation',
+     [u'xmitgcm developers'], 1)
 ]
 
 # If true, show URL addresses after external links.

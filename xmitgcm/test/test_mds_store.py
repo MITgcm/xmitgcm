@@ -479,7 +479,7 @@ def test_diagnostics(mds_datadirs_with_diagnostics):
 def test_layers_diagnostics(layers_mds_datadirs):
     """Try reading dataset with layers output."""
     dirname, expected = layers_mds_datadirs
-    ds = xmitgcm.open_mdsdataset(dirname, iters='all',
+    ds = xmitgcm.open_mdsdataset(dirname, iters='all', swap_dims=False,
                             geometry=expected['geometry'])
     layer_name = list(expected['layers'].keys())[0]
     layer_id = 'l' + layer_name[0]
