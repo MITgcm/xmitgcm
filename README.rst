@@ -73,6 +73,21 @@ This will create a directory called ``global_oce_latlon`` which we will use
 for the rest of these examples. If you have your own data, replace this with
 the path to your mitgcm files.
 
+To opean MITgcm MDS data as an xarray.Dataset, do the following in python::
+
+    from xmitgcm import open_mdsdataset
+    data_dir = './global_oce_latlon'
+    ds = open_mdsdataset(data_dir)
+
+``data_dir``, should be the path (absolute or relative) to an
+MITgcm run directory. xmitgcm will automatically scan this directory and
+try to determine the file prefixes and iteration numbers to read. In some
+configurations, the ``open_mdsdataset`` function may work without further
+keyword arguments. In most cases, you will have to specify further details.
+
+Consult the `online documentation <http://xmitgcm.readthedocs.org>`_ for
+more details.
+
 .. |DOI| image:: https://zenodo.org/badge/14957/pyqg/pyqg.svg
    :target: https://zenodo.org/badge/latestdoi/14957/pyqg/pyqg
 .. |Build Status| image:: https://travis-ci.org/xgcm/xmitgcm.svg?branch=master
