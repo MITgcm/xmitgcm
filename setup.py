@@ -11,7 +11,7 @@ DISTNAME = 'xmitgcm'
 LICENSE = 'Apache'
 AUTHOR = 'Ryan Abernathey'
 AUTHOR_EMAIL = 'rpa@ldeo.columbia.edu'
-URL = 'https://github.com/xmitgcm/xmitgcm'
+URL = 'https://github.com/xgcm/xmitgcm'
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
     'License :: OSI Approved :: Apache Software License',
@@ -32,8 +32,9 @@ SETUP_REQUIRES = ['pytest-runner']
 TESTS_REQUIRE = ['pytest >= 2.8', 'coverage']
 
 DESCRIPTION = "Read MITgcm mds binary files into xarray"
-LONG_DESCRIPTION = """To be written.
-"""
+def readme():
+    with open('README.rst') as f:
+        return f.read()
 
 setup(name=DISTNAME,
       version=VERSION,
@@ -42,7 +43,7 @@ setup(name=DISTNAME,
       author_email=AUTHOR_EMAIL,
       classifiers=CLASSIFIERS,
       description=DESCRIPTION,
-      long_description=LONG_DESCRIPTION,
+      long_description=readme(),
       install_requires=INSTALL_REQUIRES,
       setup_requires=SETUP_REQUIRES,
       tests_require=TESTS_REQUIRE,
