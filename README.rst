@@ -76,10 +76,10 @@ the path to your mitgcm files.
 .. |DOI| image:: https://zenodo.org/badge/14957/pyqg/pyqg.svg
    :target: https://zenodo.org/badge/latestdoi/14957/pyqg/pyqg
 .. |Build Status| image:: https://travis-ci.org/xgcm/xmitgcm.svg?branch=master
-   :target: https://travis-ci.org/pyqg/pyqg
+   :target: https://travis-ci.org/xgcm/xmitgcm
    :alt: travis-ci build status
 .. |codecov| image:: https://codecov.io/github/xgcm/xmitgcm/coverage.svg?branch=master
-   :target: https://codecov.io/github/pyqg/pyqg?branch=master
+   :target: https://codecov.io/github/xgcm/xmitgcm?branch=master
    :alt: code coverage
 .. |pypi| image:: https://badge.fury.io/py/xmitgcm.svg
    :target: https://badge.fury.io/py/xmitgcm
