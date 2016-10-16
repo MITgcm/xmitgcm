@@ -89,7 +89,7 @@ Consult the `online documentation <http://xmitgcm.readthedocs.org>`_ for
 more details.
 
 .. |DOI| image:: https://zenodo.org/badge/14957/pyqg/pyqg.svg
-   :target: https://zenodo.org/badge/latestdoi/14957/pyqg/pyqg
+   :target: https://zenodo.org/badge/latestdoi/14957/xgcm/xmitgcm
 .. |Build Status| image:: https://travis-ci.org/xgcm/xmitgcm.svg?branch=master
    :target: https://travis-ci.org/xgcm/xmitgcm
    :alt: travis-ci build status
