@@ -55,7 +55,7 @@ and install it::
     python setup.py install
 
 Users are encouraged to `fork <https://help.github.com/articles/fork-a-repo/>`_
-xmitgcm and submit issues_ _ and `pull requests`_.
+xmitgcm and submit issues_ and `pull requests`_.
 
 Quick Start
 -----------
