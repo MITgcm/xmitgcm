@@ -84,6 +84,13 @@ def open_mdsdataset(dirname, iters='all', prefix=None, read_grid=True,
     del arg_values['frame']
     function_name = inspect.getframeinfo(frame)[2]
 
+    # auto-detect whether to swap dims
+    if swap_dims is None:
+        if read_grid == False:
+            swap_dims = False
+        else:
+            swap_dims = False if geometry=='llc' else True
+    
     # some checks for argument consistency
     if swap_dims and not read_grid:
         raise ValueError("If swap_dims==True, read_grid must be True.")
@@ -127,7 +134,7 @@ def open_mdsdataset(dirname, iters='all', prefix=None, read_grid=True,
                         read_grid=False, swap_dims=False,
                         prefix=prefix, ref_date=ref_date, calendar=calendar,
                         geometry=geometry,
-                        grid_vars_to_coords=grid_vars_to_coords,
+                        grid_vars_to_coords=False,
                         endian=endian, chunks=chunks,
                         ignore_unknown_vars=ignore_unknown_vars)
                     for iternum in iters]
@@ -138,13 +145,15 @@ def open_mdsdataset(dirname, iters='all', prefix=None, read_grid=True,
                         read_grid=True, swap_dims=False,
                         prefix=prefix, ref_date=ref_date, calendar=calendar,
                         geometry=geometry,
-                        grid_vars_to_coords=grid_vars_to_coords,
+                        grid_vars_to_coords=False,
                         endian=endian, chunks=chunks,
                         ignore_unknown_vars=ignore_unknown_vars))
                 # apply chunking
                 ds = xr.auto_combine(datasets)
                 if swap_dims:
                     ds = _swap_dimensions(ds, geometry)
+                if grid_vars_to_coords:
+                    ds = _set_coords(ds)
                 return ds
 
     store = _MDSDataStore(dirname, iternum, delta_t, read_grid,
@@ -153,22 +162,10 @@ def open_mdsdataset(dirname, iters='all', prefix=None, read_grid=True,
                           ignore_unknown_vars=ignore_unknown_vars)
     ds = xr.Dataset.load_store(store)
 
-    if swap_dims is None:
-        if read_grid == False:
-            swap_dims = False
-        else:
-            swap_dims = False if geometry=='llc' else True
     if swap_dims:
         ds = _swap_dimensions(ds, geometry)
-
     if grid_vars_to_coords:
         ds = _set_coords(ds)
-
-    # turn all the auxilliary grid variables into coordinates
-    # if grid_vars_to_coords:
-    #     for k in _grid_variables:
-    #         ds.set_coords(k, inplace=True)
-    #     ds.set_coords('iter', inplace=True)
 
     if ref_date:
         ds = xr.decode_cf(ds)
@@ -203,6 +200,9 @@ def _swap_dimensions(ds, geometry, drop_old=True):
     """
     # TODO: handle metadata correctly such that the new dimension attributes
     # still conform to comodo conventions
+
+    # this fixes problems
+    ds = ds.reset_coords()
 
     if geometry.lower() == 'llc':
         raise ValueError("Can't swap dimensions if `geometry` is `llc`")
