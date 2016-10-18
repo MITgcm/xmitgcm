@@ -356,7 +356,8 @@ def test_swap_dims(all_mds_datadirs):
         assert 'i' not in xmitgcm.open_mdsdataset(dirname, **kwargs)
         ds = xmitgcm.open_mdsdataset(
                     dirname, geometry=expected['geometry'],
-                    iters=None, read_grid=True, swap_dims=True)
+                    iters=None, read_grid=True, swap_dims=True,
+                    grid_vars_to_coords=True)
 
         expected_dims = ['XC', 'XG', 'YC', 'YG', 'Z', 'Zl', 'Zp1', 'Zu']
 
