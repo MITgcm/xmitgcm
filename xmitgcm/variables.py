@@ -357,6 +357,18 @@ state_variables = OrderedDict(
                 units="K m s-1")),
 )
 
+for n in range(1,100):
+   trname = 'PTRACER%02d' % n
+   state_variables[trname] = dict(dims=['k','j','i'],
+       attrs=dict(standard_name='%s_concentration' % trname,
+                  long_name="Concentration of %s" % trname,
+                  units="kg m-3")
+   ) 
+# Nptracers=99
+# _ptracers = { 'PTRACER%02d' % n :
+#                (dims=['k','j','i'], 'PTRACER%02d Concentration' % n, "tracer units/m^3")
+#                for n in range(Nptracers)}
+
 # these variable names have hyphens and need a different syntax
 # state_variables['GM_Kwx-T'] = dict(
 #     dims=['k_l','j','i'], attrs=dict(
