@@ -26,7 +26,8 @@ from .utils import parse_meta_file, read_mds, parse_available_diagnostics
 LLC_NUM_FACES = 13
 LLC_FACE_DIMNAME = 'face'
 
-def open_mdsdataset(dirname, iters='all', prefix=None, read_grid=True,
+def open_mdsdataset(data_dir, grid_dir=None,
+                    iters='all', prefix=None, read_grid=True,
                     delta_t=1, ref_date=None, calendar='gregorian',
                     geometry='sphericalpolar',
                     grid_vars_to_coords=True, swap_dims=None,
@@ -37,8 +38,11 @@ def open_mdsdataset(dirname, iters='all', prefix=None, read_grid=True,
 
     Parameters
     ----------
-    dirname : string
+    data_dir : string
         Path to the directory where the mds .data and .meta files are stored
+    grid_dir : string, optional
+        Path to the directory where the mds .data and .meta files are stored, if
+        different from ``data_dir``.
     iters : list, optional
         The iterations numbers of the files to be read. If ``None``, no data
         files will be read. If ``'all'`` (default), all iterations will be read.
@@ -97,7 +101,7 @@ def open_mdsdataset(dirname, iters='all', prefix=None, read_grid=True,
             swap_dims = False
         else:
             swap_dims = False if geometry=='llc' else True
-    
+
     # some checks for argument consistency
     if swap_dims and not read_grid:
         raise ValueError("If swap_dims==True, read_grid must be True.")
@@ -105,7 +109,7 @@ def open_mdsdataset(dirname, iters='all', prefix=None, read_grid=True,
     # We either have a single iter, in which case we create a fresh store,
     # or a list of iters, in which case we combine.
     if iters == 'all':
-        iters = _get_all_iternums(dirname, file_prefixes=prefix)
+        iters = _get_all_iternums(data_dir, file_prefixes=prefix)
     if iters is None:
         iternum = None
     else:
@@ -119,10 +123,10 @@ def open_mdsdataset(dirname, iters='all', prefix=None, read_grid=True,
                 # We have to check to make sure we have the same prefixes at
                 # each timestep...otherwise we can't combine the datasets.
                 first_prefixes = prefix or _get_all_matching_prefixes(
-                                                        dirname, iters[0])
+                                                        data_dir, iters[0])
                 for iternum in iters:
                     these_prefixes = _get_all_matching_prefixes(
-                        dirname, iternum, prefix
+                        data_dir, iternum, prefix
                     )
                     # don't care about order
                     if set(these_prefixes) != set(first_prefixes):
@@ -136,28 +140,24 @@ def open_mdsdataset(dirname, iters='all', prefix=None, read_grid=True,
                 chunks = chunks or {}
 
                 # recursively open each dataset at a time
+                kwargs = dict(
+                    grid_dir=grid_dir, delta_t=delta_t, swap_dims=False,
+                    prefix=prefix, ref_date=ref_date, calendar=calendar,
+                    geometry=geometry,
+                    grid_vars_to_coords=False,
+                    endian=endian, chunks=chunks,
+                    ignore_unknown_vars=ignore_unknown_vars,
+                    default_dtype=default_dtype,
+                    nx=nx, ny=ny, nz=nz)
                 datasets = [open_mdsdataset(
-                        dirname, iters=iternum, delta_t=delta_t,
-                        read_grid=False, swap_dims=False,
-                        prefix=prefix, ref_date=ref_date, calendar=calendar,
-                        geometry=geometry,
-                        grid_vars_to_coords=False,
-                        endian=endian, chunks=chunks,
-                        ignore_unknown_vars=ignore_unknown_vars,
-                        default_dtype=default_dtype)
+
+                        data_dir, iters=iternum, read_grid=False, **kwargs)
                     for iternum in iters]
                 # now add the grid
                 if read_grid:
-                    datasets.insert(0, open_mdsdataset(
-                        dirname, iters=None, delta_t=delta_t,
-                        read_grid=True, swap_dims=False,
-                        prefix=prefix, ref_date=ref_date, calendar=calendar,
-                        geometry=geometry,
-                        grid_vars_to_coords=False,
-                        endian=endian, chunks=chunks,
-                        ignore_unknown_vars=ignore_unknown_vars,
-                        default_dtype=default_dtype,
-                        nx=nx, ny=ny, nz=nz))
+                    datasets.insert(0,
+                        open_mdsdataset(data_dir, iters=None, read_grid=True,
+                                        *kwargs))
                 # apply chunking
                 ds = xr.auto_combine(datasets)
                 if swap_dims:
@@ -166,7 +166,7 @@ def open_mdsdataset(dirname, iters='all', prefix=None, read_grid=True,
                     ds = _set_coords(ds)
                 return ds
 
-    store = _MDSDataStore(dirname, iternum, delta_t, read_grid,
+    store = _MDSDataStore(data_dir, grid_dir, iternum, delta_t, read_grid,
                           prefix, ref_date, calendar,
                           geometry, endian,
                           ignore_unknown_vars=ignore_unknown_vars,
@@ -243,7 +243,8 @@ def _swap_dimensions(ds, geometry, drop_old=True):
 class _MDSDataStore(xr.backends.common.AbstractDataStore):
     """Representation of MITgcm mds binary file storage format for a specific
     model instance and a specific timestep iteration number."""
-    def __init__(self, dirname, iternum=None, delta_t=1, read_grid=True,
+    def __init__(self, data_dir, grid_dir=None,
+                 iternum=None, delta_t=1, read_grid=True,
                  file_prefixes=None, ref_date=None, calendar=None,
                  geometry='sphericalpolar',
                  endian='>', ignore_unknown_vars=False,
@@ -269,7 +270,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                              allowed_geometries)
 
         # the directory where the files live
-        self.dirname = dirname
+        self.data_dir = data_dir
+        self.grid_dir = grid_dir if (grid_dir is not None) else data_dir
         self._ignore_unknown_vars = ignore_unknown_vars
 
         # The endianness of the files
@@ -305,8 +307,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         else:
             # have to peek at the grid file metadata
             self.nz, self.nface, self.ny, self.nx = (
-                _guess_model_dimensions(dirname, self.llc))
-        self.layers = _guess_layers(dirname)
+                _guess_model_dimensions(self.grid_dir, self.llc))
+        self.layers = _guess_layers(data_dir)
 
         if self.llc:
             nyraw = self.nx*self.nface
@@ -390,7 +392,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         # build lookup tables for variable metadata
         self._all_grid_variables = _get_all_grid_variables(self.geometry,
                                                            self.layers)
-        self._all_data_variables = _get_all_data_variables(self.dirname,
+        self._all_data_variables = _get_all_data_variables(self.data_dir,
                                                            self.layers)
 
         # The rest of the data has to be read from disk.
@@ -404,7 +406,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         # add data files
         prefixes = (prefixes +
                     _get_all_matching_prefixes(
-                                               dirname,
+                                               data_dir,
                                                iternum,
                                                file_prefixes))
 
@@ -447,10 +449,12 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             # some grid variables have a different filename than their varname
             if 'filename' in self._all_grid_variables[prefix]:
                 fname_base = self._all_grid_variables[prefix]['filename']
+            ddir = self.grid_dir
         else:
             assert iternum is not None
+            ddir = self.data_dir
 
-        basename = os.path.join(self.dirname, fname_base)
+        basename = os.path.join(ddir, fname_base)
         try:
             vardata = read_mds(basename, iternum, endian=self.endian)
         except IOError as ioe:
@@ -540,9 +544,9 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             del self._variables['var']
 
 
-def _guess_model_dimensions(dirname, is_llc=False):
+def _guess_model_dimensions(data_dir, is_llc=False):
     try:
-        rc_meta = parse_meta_file(os.path.join(dirname, 'RC.meta'))
+        rc_meta = parse_meta_file(os.path.join(data_dir, 'RC.meta'))
         if len(rc_meta['dimList']) == 2:
             nz = 1
         else:
@@ -550,7 +554,7 @@ def _guess_model_dimensions(dirname, is_llc=False):
     except IOError:
         raise IOError("Couldn't find RC.meta file to infer nz.")
     try:
-        xc_meta = parse_meta_file(os.path.join(dirname, 'XC.meta'))
+        xc_meta = parse_meta_file(os.path.join(data_dir, 'XC.meta'))
         nx = xc_meta['dimList'][0][0]
         ny = xc_meta['dimList'][1][0]
     except IOError:
@@ -563,9 +567,9 @@ def _guess_model_dimensions(dirname, is_llc=False):
     return nz, nface, ny, nx
 
 
-def _guess_layers(dirname):
+def _guess_layers(data_dir):
     """Return a dict matching layers suffixes to dimension length."""
-    layers_files = glob(os.path.join(dirname, 'layers*.meta'))
+    layers_files = glob(os.path.join(data_dir, 'layers*.meta'))
     all_layers = {}
     for fname in layers_files:
         # make sure to exclude filenames such as
@@ -626,11 +630,11 @@ def _recursively_replace(item, search, replace):
         return item
 
 
-def _get_all_data_variables(dirname, layers):
+def _get_all_data_variables(data_dir, layers):
     """"Put all the relevant data metadata into one big dictionary."""
     allvars = [state_variables]
     # add others from available_diagnostics.log
-    fname = os.path.join(dirname, 'available_diagnostics.log')
+    fname = os.path.join(data_dir, 'available_diagnostics.log')
     if os.path.exists(fname):
         available_diags = parse_available_diagnostics(fname, layers)
         allvars.append(available_diags)
@@ -656,10 +660,10 @@ def _concat_dicts(list_of_dicts):
     return result
 
 
-def _get_all_iternums(dirname, file_prefixes=None):
+def _get_all_iternums(data_dir, file_prefixes=None):
     """Scan a directory for all iteration number suffixes."""
     iternums = set()
-    all_datafiles = glob(os.path.join(dirname, '*.??????????.data'))
+    all_datafiles = glob(os.path.join(data_dir, '*.??????????.data'))
     for f in all_datafiles:
         iternum = int(f[-15:-5])
         prefix = os.path.split(f[:-16])[-1]
@@ -672,13 +676,13 @@ def _get_all_iternums(dirname, file_prefixes=None):
     return iterlist
 
 
-def _get_all_matching_prefixes(dirname, iternum, file_prefixes=None):
+def _get_all_matching_prefixes(data_dir, iternum, file_prefixes=None):
     """Scan a directory and return all file prefixes matching a certain
     iteration number."""
     if iternum is None:
         return []
     prefixes = set()
-    all_datafiles = glob(os.path.join(dirname, '*.%010d.data' % iternum))
+    all_datafiles = glob(os.path.join(data_dir, '*.%010d.data' % iternum))
     for f in all_datafiles:
         iternum = int(f[-15:-5])
         prefix = os.path.split(f[:-16])[-1]

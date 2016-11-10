@@ -46,7 +46,7 @@ def hide_file(origdir, *basenames):
         oldpath.rename(newpath)
 
     try:
-        yield
+        yield str(tmpdir)
     finally:
         # move them back
         for oldpath, newpath in zip(oldpaths, newpaths):
@@ -327,7 +327,6 @@ def test_open_mdsdataset_minimal(all_mds_datadirs):
     ds_expected = xr.Dataset(coords=coords)
     assert ds_expected.equals(ds)
 
-
 def test_read_grid(all_mds_datadirs):
     """Make sure we read all the grid variables."""
     dirname, expected = all_mds_datadirs
@@ -456,6 +455,20 @@ def test_prefixes(all_mds_datadirs):
     for p in prefixes:
         assert p in ds
 
+def test_separate_grid_dir(all_mds_datadirs):
+    """Make sure we can have the grid files in a separate directory."""
+
+    dirname, expected = all_mds_datadirs
+    prefixes = ['U', 'V', 'W', 'T', 'S', 'PH']  # , 'PHL', 'Eta']
+    iters = [expected['test_iternum']]
+
+    with hide_file(dirname,
+                    *['XC.meta', 'XC.data', 'RC.meta', 'RC.data']) as grid_dir:
+        ds = xmitgcm.open_mdsdataset(
+                dirname, grid_dir=grid_dir, iters=iters, prefix=prefixes,
+                read_grid=False, geometry=expected['geometry'])
+        for p in prefixes:
+            assert p in ds
 
 def test_multiple_iters(multidim_mds_datadirs):
     """Test ability to load multiple iters into a single dataset."""
