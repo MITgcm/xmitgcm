@@ -27,7 +27,7 @@ CLASSIFIERS = [
     'Topic :: Scientific/Engineering',
 ]
 
-INSTALL_REQUIRES = ['xarray >= 0.8.2', 'dask >= 0.11.1']
+INSTALL_REQUIRES = ['xarray >= 0.8.2', 'dask >= 0.12']
 SETUP_REQUIRES = ['pytest-runner']
 TESTS_REQUIRE = ['pytest >= 2.8', 'coverage']
 
