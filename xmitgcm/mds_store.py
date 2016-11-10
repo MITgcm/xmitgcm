@@ -536,8 +536,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         return self._dimensions
 
     def close(self):
-        pass
-        # do we actually need to close the memmaps?
+        for var in list(self._variables):
+            del self._variables['var']
 
 
 def _guess_model_dimensions(dirname, is_llc=False):
