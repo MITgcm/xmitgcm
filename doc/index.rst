@@ -266,11 +266,12 @@ By default, `open_mdsdataset` will read the grid files which describe the
 geometry of the computational domain. If these files are not present in
 ``datadir``, this behavior can be turned off by setting ``read_grid=False``.
 
-.. warning::
-    Even when ``read_grid=False``, ``open_mdsdataset`` needs to peek at the
-    metadata in two grid files: ``XC.meta`` and ``RC.meta``. This step is
-    necessary to determine the dimensions of the model domain. If these files
-    are not present in ``datadir``, the command will fail.
+In order to determine the dimensions of the model domain ``open_mdsdataset``
+needs to peek at the metadata in two grid files: ``XC.meta`` and ``RC.meta``.
+(even when ``read_grid=False``). If these files are not available, you have the
+option to manually specify the parameters ``nx``, ``ny``, and ``nz`` as keyword
+arguments to ``open_mdsdataset``. (``ny`` is not required for
+``geometry='llc'``).
 
 By default, ``open_mdsdataset`` attempts to read all the data files in
 ``datadir``. The files and iteration numbers to read are determined in the
