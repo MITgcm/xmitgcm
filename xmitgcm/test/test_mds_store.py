@@ -45,11 +45,12 @@ def hide_file(origdir, *basenames):
     for oldpath, newpath in zip(oldpaths, newpaths):
         oldpath.rename(newpath)
 
-    yield
-
-    # move them back
-    for oldpath, newpath in zip(oldpaths, newpaths):
-        newpath.rename(oldpath)
+    try:
+        yield
+    finally:
+        # move them back
+        for oldpath, newpath in zip(oldpaths, newpaths):
+            newpath.rename(oldpath)
 
 
 # parameterized fixture are complicated
@@ -362,6 +363,26 @@ def test_values_and_endianness(all_mds_datadirs):
         if ds[vname].dtype.byteorder=='>':
             val_le = ds[vname].values.newbyteorder('<')[idx]
             np.testing.assert_allclose(ds_le[vname].values[idx], val_le)
+
+def test_open_dataset_no_meta(all_mds_datadirs):
+    """Make sure we read all the grid variables."""
+    dirname, expected = all_mds_datadirs
+
+    it = expected['test_iternum']
+    # a 3D file
+    with hide_file(dirname, 'T.%010d.meta' % it):
+        ds = xmitgcm.open_mdsdataset(
+                    dirname, prefix='T', iters=it,
+                    geometry=expected['geometry'],
+                    read_grid=False, swap_dims=False,
+                    default_dtype=expected['dtype'])
+    # a 2D file
+    with hide_file(dirname, 'Eta.%010d.meta' % it):
+        ds = xmitgcm.open_mdsdataset(
+                    dirname, prefix='Eta', iters=it,
+                    geometry=expected['geometry'],
+                    read_grid=False, swap_dims=False,
+                    default_dtype=expected['dtype'])
 
 
 def test_swap_dims(all_mds_datadirs):

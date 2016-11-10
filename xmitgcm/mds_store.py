@@ -31,7 +31,7 @@ def open_mdsdataset(dirname, iters='all', prefix=None, read_grid=True,
                     geometry='sphericalpolar',
                     grid_vars_to_coords=True, swap_dims=None,
                     endian=">", chunks=None,
-                    ignore_unknown_vars=False,):
+                    ignore_unknown_vars=False, default_dtype=None):
     """Open MITgcm-style mds (.data / .meta) file output as xarray datset.
 
     Parameters
@@ -67,6 +67,8 @@ def open_mdsdataset(dirname, iters='all', prefix=None, read_grid=True,
     ignore_unknown_vars : boolean, optional
         Don't raise an error if unknown variables are encountered while reading
         the dataset.
+    default_dtype : numpy.dtype, optional
+        A datatype to fall back on if the metadata can't be read.
 
     Returns
     -------
@@ -136,7 +138,8 @@ def open_mdsdataset(dirname, iters='all', prefix=None, read_grid=True,
                         geometry=geometry,
                         grid_vars_to_coords=False,
                         endian=endian, chunks=chunks,
-                        ignore_unknown_vars=ignore_unknown_vars)
+                        ignore_unknown_vars=ignore_unknown_vars,
+                        default_dtype=default_dtype)
                     for iternum in iters]
                 # now add the grid
                 if read_grid:
@@ -147,7 +150,8 @@ def open_mdsdataset(dirname, iters='all', prefix=None, read_grid=True,
                         geometry=geometry,
                         grid_vars_to_coords=False,
                         endian=endian, chunks=chunks,
-                        ignore_unknown_vars=ignore_unknown_vars))
+                        ignore_unknown_vars=ignore_unknown_vars,
+                        default_dtype=default_dtype))
                 # apply chunking
                 ds = xr.auto_combine(datasets)
                 if swap_dims:
@@ -159,7 +163,8 @@ def open_mdsdataset(dirname, iters='all', prefix=None, read_grid=True,
     store = _MDSDataStore(dirname, iternum, delta_t, read_grid,
                           prefix, ref_date, calendar,
                           geometry, endian,
-                          ignore_unknown_vars=ignore_unknown_vars)
+                          ignore_unknown_vars=ignore_unknown_vars,
+                          default_dtype=default_dtype)
     ds = xr.Dataset.load_store(store)
 
     if swap_dims:
@@ -234,7 +239,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
     def __init__(self, dirname, iternum=None, delta_t=1, read_grid=True,
                  file_prefixes=None, ref_date=None, calendar=None,
                  geometry='sphericalpolar',
-                 endian='>', ignore_unknown_vars=False):
+                 endian='>', ignore_unknown_vars=False,
+                 default_dtype=np.dtype('f4')):
         """
         This is not a user-facing class. See open_mdsdataset for argument
         documentation. The only ones which are distinct are.
@@ -263,6 +269,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         if endian not in ['>', '<', '=']:
             raise ValueError("Invalid byte order (endian=%s)" % endian)
         self.endian = endian
+        self.default_dtype = default_dtype
 
         # storage dicts for variables and attributes
         self._variables = xr.core.pycompat.OrderedDict()
@@ -280,6 +287,13 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         self.nz, self.nface, self.ny, self.nx = (
             _guess_model_dimensions(dirname, self.llc))
         self.layers = _guess_layers(dirname)
+
+        if self.llc:
+            nyraw = self.nx*self.nface
+        else:
+            nyraw = self.ny
+        self.default_shape_3D = (self.nz, nyraw, self.nx)
+        self.default_shape_2D = (1, nyraw, self.nx)
 
         # Now set up the corresponding coordinates.
         # Rather than assuming the dimension names, we use Comodo conventions
@@ -416,9 +430,23 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         else:
             assert iternum is not None
 
-        # get a dict of variables and their data
-        vardata = read_mds(os.path.join(self.dirname, fname_base), iternum,
-                           endian=self.endian)
+        basename = os.path.join(self.dirname, fname_base)
+        try:
+            vardata = read_mds(basename, iternum, endian=self.endian)
+        except IOError as ioe:
+            # that might have failed because there was no meta file present
+            # we can try to get around this by specifying the shape and dtype
+            try:
+                # first try with the full shape (3D)
+                vardata = read_mds(basename, iternum, endian=self.endian,
+                               dtype=self.default_dtype,
+                               shape=self.default_shape_3D)
+            except IOError as ioe2:
+                # finally try excluding the first dimension (nz) and
+                # looking for 2D data
+                vardata = read_mds(basename, iternum, endian=self.endian,
+                               dtype=self.default_dtype,
+                               shape=self.default_shape_2D)
         for vname, data in vardata.items():
             # we now have to revert to the original prefix once the file is read
             if fname_base != prefix:
