@@ -365,24 +365,46 @@ def test_values_and_endianness(all_mds_datadirs):
             np.testing.assert_allclose(ds_le[vname].values[idx], val_le)
 
 def test_open_dataset_no_meta(all_mds_datadirs):
-    """Make sure we read all the grid variables."""
+    """Make sure we read  variables with no .meta files."""
     dirname, expected = all_mds_datadirs
 
+    shape = expected['shape']
+    ny,nx = shape[-2:]
+    if len(shape)==4:
+        # we have an llc
+        nz, nface = shape[:2]
+        ny = nx*nface
+    else:
+        nz = shape[0]
+
     it = expected['test_iternum']
+    kwargs = dict(iters=it, geometry=expected['geometry'], read_grid=False,
+                  swap_dims=False, default_dtype=expected['dtype'])
+
     # a 3D file
-    with hide_file(dirname, 'T.%010d.meta' % it):
-        ds = xmitgcm.open_mdsdataset(
-                    dirname, prefix='T', iters=it,
-                    geometry=expected['geometry'],
-                    read_grid=False, swap_dims=False,
-                    default_dtype=expected['dtype'])
+    to_hide = ['T.%010d.meta' % it, 'Eta.%010d.meta' % it]
+    with hide_file(dirname, *to_hide):
+        ds = xmitgcm.open_mdsdataset(dirname, prefix='T', **kwargs)
     # a 2D file
-    with hide_file(dirname, 'Eta.%010d.meta' % it):
-        ds = xmitgcm.open_mdsdataset(
-                    dirname, prefix='Eta', iters=it,
-                    geometry=expected['geometry'],
-                    read_grid=False, swap_dims=False,
-                    default_dtype=expected['dtype'])
+    with hide_file(dirname, *to_hide):
+        ds = xmitgcm.open_mdsdataset(dirname, prefix='Eta', **kwargs)
+
+    # now get rid of the variables used to infer dimensions
+    with hide_file(dirname, 'XC.meta', 'RC.meta'):
+        with pytest.raises(IOError):
+            ds = xmitgcm.open_mdsdataset(dirname, prefix=['T', 'Eta'], **kwargs)
+        if expected['geometry']=='llc':
+            ds = xmitgcm.open_mdsdataset(dirname, prefix=['T', 'Eta'],
+                                         nx=nx, nz=nz, **kwargs)
+            with hide_file(dirname, *to_hide):
+                ds = xmitgcm.open_mdsdataset(dirname, prefix=['T', 'Eta'],
+                                             nx=nx, nz=nz, **kwargs)
+        else:
+            ds = xmitgcm.open_mdsdataset(dirname, prefix=['T', 'Eta'],
+                                         nx=nx, ny=ny, nz=nz, **kwargs)
+            with hide_file(dirname, *to_hide):
+                ds = xmitgcm.open_mdsdataset(dirname, prefix=['T', 'Eta'],
+                                             nx=nx, ny=ny, nz=nz, **kwargs)
 
 
 def test_swap_dims(all_mds_datadirs):

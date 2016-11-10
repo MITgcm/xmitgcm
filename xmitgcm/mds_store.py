@@ -31,7 +31,8 @@ def open_mdsdataset(dirname, iters='all', prefix=None, read_grid=True,
                     geometry='sphericalpolar',
                     grid_vars_to_coords=True, swap_dims=None,
                     endian=">", chunks=None,
-                    ignore_unknown_vars=False, default_dtype=None):
+                    ignore_unknown_vars=False, default_dtype=None,
+                    nx=None, ny=None, nz=None):
     """Open MITgcm-style mds (.data / .meta) file output as xarray datset.
 
     Parameters
@@ -39,10 +40,10 @@ def open_mdsdataset(dirname, iters='all', prefix=None, read_grid=True,
     dirname : string
         Path to the directory where the mds .data and .meta files are stored
     iters : list, optional
-        The iterations numbers of the files to be read. If `None`, no data
-        files will be read. If `all` (default), all iterations will be read.
+        The iterations numbers of the files to be read. If ``None``, no data
+        files will be read. If ``'all'`` (default), all iterations will be read.
     prefix : list, optional
-        List of different filename prefixes to read. Default (`None`) is to
+        List of different filename prefixes to read. Default (``None``) is to
         read all available files.
     read_grid : bool, optional
         Whether to read the grid data
@@ -58,8 +59,8 @@ def open_mdsdataset(dirname, iters='all', prefix=None, read_grid=True,
     grid_vars_to_coords : boolean, optional
         Whether to promote grid variables to coordinate status
     swap_dims : boolean, optional
-        Whether to swap the logical dimensions for physical ones. If `None`,
-        will be set to `False` for `geometry==llc` and `True` otherwise.
+        Whether to swap the logical dimensions for physical ones. If ``None``,
+        will be set to ``False`` for ``geometry==llc`` and ``True`` otherwise.
     endian : {'=', '>', '<'}, optional
         Endianness of variables. Default for MITgcm is ">" (big endian)
     chunks : int or dict, optional
@@ -69,6 +70,10 @@ def open_mdsdataset(dirname, iters='all', prefix=None, read_grid=True,
         the dataset.
     default_dtype : numpy.dtype, optional
         A datatype to fall back on if the metadata can't be read.
+    nx, ny, nz : int, optional
+        The numerical dimensions of the model. These will be inferred from
+        ``XC.meta`` and ``RC.meta`` if they are not specified. If
+        ``geometry==llc``, ``ny`` does not have to specified.
 
     Returns
     -------
@@ -151,7 +156,8 @@ def open_mdsdataset(dirname, iters='all', prefix=None, read_grid=True,
                         grid_vars_to_coords=False,
                         endian=endian, chunks=chunks,
                         ignore_unknown_vars=ignore_unknown_vars,
-                        default_dtype=default_dtype))
+                        default_dtype=default_dtype,
+                        nx=nx, ny=ny, nz=nz))
                 # apply chunking
                 ds = xr.auto_combine(datasets)
                 if swap_dims:
@@ -164,7 +170,8 @@ def open_mdsdataset(dirname, iters='all', prefix=None, read_grid=True,
                           prefix, ref_date, calendar,
                           geometry, endian,
                           ignore_unknown_vars=ignore_unknown_vars,
-                          default_dtype=default_dtype)
+                          default_dtype=default_dtype,
+                          nx=nx, ny=ny, nz=nz)
     ds = xr.Dataset.load_store(store)
 
     if swap_dims:
@@ -240,7 +247,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                  file_prefixes=None, ref_date=None, calendar=None,
                  geometry='sphericalpolar',
                  endian='>', ignore_unknown_vars=False,
-                 default_dtype=np.dtype('f4')):
+                 default_dtype=np.dtype('f4'),
+                 nx=None, ny=None, nz=None):
         """
         This is not a user-facing class. See open_mdsdataset for argument
         documentation. The only ones which are distinct are.
@@ -282,10 +290,22 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
 
         # TODO: and maybe here a check for the presence of layers?
 
+        # we don't need to know ny if using llc
+        if self.llc and (nx is not None):
+            ny = nx
+
         # Now we need to figure out the dimensions of the numerical domain,
-        # i.e. nx, ny, nz. We do this by peeking at the grid file metadata
-        self.nz, self.nface, self.ny, self.nx = (
-            _guess_model_dimensions(dirname, self.llc))
+        # nx, ny, nz
+        # nface is the number of llc faces
+        if (nz is not None) and (ny is not None) and (nz is not None):
+            # we have been passed enough information to determine the
+            # dimensions without reading any files
+            self.nz, self.ny, self.nx = nz, ny, nx
+            self.nface = LLC_NUM_FACES if self.llc else None
+        else:
+            # have to peek at the grid file metadata
+            self.nz, self.nface, self.ny, self.nx = (
+                _guess_model_dimensions(dirname, self.llc))
         self.layers = _guess_layers(dirname)
 
         if self.llc:
