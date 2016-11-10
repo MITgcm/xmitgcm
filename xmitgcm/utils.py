@@ -49,8 +49,8 @@ def parse_meta_file(fname):
     return flds
 
 
-def read_mds(fname, iternum=None, use_mmap=True,
-             force_dict=True, endian='>'):
+def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
+             shape=None, dtype=None):
     """Read an MITgcm .meta / .data file pair"""
 
     if iternum is None:
@@ -62,25 +62,31 @@ def read_mds(fname, iternum=None, use_mmap=True,
     metafile = fname + istr + '.meta'
 
     # get metadata
-    meta = parse_meta_file(metafile)
-    # why does the .meta file contain so much repeated info?
-    # just get the part we need
-    # and reverse order (numpy uses C order, mds is fortran)
-    shape = [g[0] for g in meta['dimList']][::-1]
-    assert len(shape) == meta['nDims']
-    # now add an extra for number of recs
-    nrecs = meta['nrecords']
-    shape.insert(0, nrecs)
-
-    # load and shape data
-    dtype = meta['dataprec'].newbyteorder(endian)
-    d = read_raw_data(datafile, dtype, shape, use_mmap=use_mmap)
-
-    if nrecs == 1:
+    try:
+        meta = parse_meta_file(metafile)
+        # why does the .meta file contain so much repeated info?
+        # just get the part we need
+        # and reverse order (numpy uses C order, mds is fortran)
+        shape = [g[0] for g in meta['dimList']][::-1]
+        assert len(shape) == meta['nDims']
+        # now add an extra for number of recs
+        nrecs = meta['nrecords']
+        shape.insert(0, nrecs)
+        dtype = meta['dataprec'].newbyteorder(endian)
         if 'fldList' in meta:
             name = meta['fldList'][0]
         else:
             name = meta['basename']
+    except IOError as e:
+        if (shape is None) or (dtype is None):
+            raise e
+        else:
+            nrecs = 1
+            name = os.path.basename(fname)
+
+    d = read_raw_data(datafile, dtype, shape, use_mmap=use_mmap)
+
+    if nrecs == 1:
         if force_dict:
             return {name: d[0]}
         else:

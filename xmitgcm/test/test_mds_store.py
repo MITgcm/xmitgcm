@@ -45,11 +45,12 @@ def hide_file(origdir, *basenames):
     for oldpath, newpath in zip(oldpaths, newpaths):
         oldpath.rename(newpath)
 
-    yield
-
-    # move them back
-    for oldpath, newpath in zip(oldpaths, newpaths):
-        newpath.rename(oldpath)
+    try:
+        yield str(tmpdir)
+    finally:
+        # move them back
+        for oldpath, newpath in zip(oldpaths, newpaths):
+            newpath.rename(oldpath)
 
 
 # parameterized fixture are complicated
@@ -60,6 +61,7 @@ _experiments = {
     'global_oce_latlon': {'geometry': 'sphericalpolar',
                           'shape': (15, 40, 90), 'test_iternum': 39600,
                           'expected_values': {'XC': ((0,0), 2)},
+                          'dtype': np.dtype('f4'),
                           'layers': {'1RHO': 31},
                           'diagnostics': ('DiagGAD-T',
                               ['TOTTTEND', 'ADVr_TH', 'ADVx_TH', 'ADVy_TH',
@@ -67,11 +69,13 @@ _experiments = {
                                'UTHMASS', 'VTHMASS', 'WTHMASS'])},
     'barotropic_gyre': {'geometry': 'cartesian',
                         'shape': (1, 60, 60), 'test_iternum': 10,
+                        'dtype': np.dtype('f4'),
                           'expected_values': {'XC': ((0,0), 10000.0)},
                         'all_iters': [0, 10],
                         'prefixes': ['T', 'S', 'Eta', 'U', 'V', 'W']},
     'internal_wave': {'geometry': 'sphericalpolar',
                       'shape': (20, 1, 30), 'test_iternum': 100,
+                      'dtype': np.dtype('f8'),
                       'expected_values': {'XC': ((0,0), 109.01639344262296)},
                       'all_iters': [0, 100, 200],
                       'ref_date': "1990-1-1",
@@ -90,6 +94,7 @@ _experiments = {
                              (0, np.datetime64('1948-01-01T12:00:00.000000000')),
                              (1, np.datetime64('1948-01-01T20:00:00.000000000'))],
                          'shape': (50, 13, 90, 90), 'test_iternum': 8,
+                         'dtype': np.dtype('f4'),
                          'expected_values': {'XC': ((2,3,5), -32.5)},
                          'diagnostics': ('state_2d_set1', ['ETAN', 'SIarea',
                             'SIheff', 'SIhsnow', 'DETADT2', 'PHIBOT',
@@ -254,6 +259,31 @@ def test_read_mds(all_mds_datadirs):
     res = read_mds(basename, iternum=iternum)
     assert prefix in res
 
+def test_read_mds_no_meta(all_mds_datadirs):
+    from xmitgcm.utils import read_mds
+    dirname, expected = all_mds_datadirs
+    shape = expected['shape']
+    ny,nx = shape[-2:]
+    if len(shape)==4:
+        # we have an llc
+        nz, nface = shape[:2]
+        ny = nx*nface
+    else:
+        nz = shape[0]
+    dtype = expected['dtype']
+
+    prefix = 'XC'
+    basename = os.path.join(dirname, prefix)
+
+    with hide_file(dirname, prefix + '.meta'):
+        # can't read without specifying shape and dtype
+        with pytest.raises(IOError) as ioe:
+            res = read_mds(basename)
+        res = read_mds(basename, shape=(ny,nx), dtype=dtype)
+        assert isinstance(res, dict)
+        assert prefix in res
+        # should be memmap by default
+        assert isinstance(res[prefix], np.memmap)
 
 def test_open_mdsdataset_minimal(all_mds_datadirs):
     """Create a minimal xarray object with only dimensions in it."""
@@ -297,7 +327,6 @@ def test_open_mdsdataset_minimal(all_mds_datadirs):
     ds_expected = xr.Dataset(coords=coords)
     assert ds_expected.equals(ds)
 
-
 def test_read_grid(all_mds_datadirs):
     """Make sure we read all the grid variables."""
     dirname, expected = all_mds_datadirs
@@ -333,6 +362,48 @@ def test_values_and_endianness(all_mds_datadirs):
         if ds[vname].dtype.byteorder=='>':
             val_le = ds[vname].values.newbyteorder('<')[idx]
             np.testing.assert_allclose(ds_le[vname].values[idx], val_le)
+
+def test_open_dataset_no_meta(all_mds_datadirs):
+    """Make sure we read  variables with no .meta files."""
+    dirname, expected = all_mds_datadirs
+
+    shape = expected['shape']
+    ny,nx = shape[-2:]
+    if len(shape)==4:
+        # we have an llc
+        nz, nface = shape[:2]
+        ny = nx*nface
+    else:
+        nz = shape[0]
+
+    it = expected['test_iternum']
+    kwargs = dict(iters=it, geometry=expected['geometry'], read_grid=False,
+                  swap_dims=False, default_dtype=expected['dtype'])
+
+    # a 3D file
+    to_hide = ['T.%010d.meta' % it, 'Eta.%010d.meta' % it]
+    with hide_file(dirname, *to_hide):
+        ds = xmitgcm.open_mdsdataset(dirname, prefix='T', **kwargs)
+    # a 2D file
+    with hide_file(dirname, *to_hide):
+        ds = xmitgcm.open_mdsdataset(dirname, prefix='Eta', **kwargs)
+
+    # now get rid of the variables used to infer dimensions
+    with hide_file(dirname, 'XC.meta', 'RC.meta'):
+        with pytest.raises(IOError):
+            ds = xmitgcm.open_mdsdataset(dirname, prefix=['T', 'Eta'], **kwargs)
+        if expected['geometry']=='llc':
+            ds = xmitgcm.open_mdsdataset(dirname, prefix=['T', 'Eta'],
+                                         nx=nx, nz=nz, **kwargs)
+            with hide_file(dirname, *to_hide):
+                ds = xmitgcm.open_mdsdataset(dirname, prefix=['T', 'Eta'],
+                                             nx=nx, nz=nz, **kwargs)
+        else:
+            ds = xmitgcm.open_mdsdataset(dirname, prefix=['T', 'Eta'],
+                                         nx=nx, ny=ny, nz=nz, **kwargs)
+            with hide_file(dirname, *to_hide):
+                ds = xmitgcm.open_mdsdataset(dirname, prefix=['T', 'Eta'],
+                                             nx=nx, ny=ny, nz=nz, **kwargs)
 
 
 def test_swap_dims(all_mds_datadirs):
@@ -384,6 +455,20 @@ def test_prefixes(all_mds_datadirs):
     for p in prefixes:
         assert p in ds
 
+def test_separate_grid_dir(all_mds_datadirs):
+    """Make sure we can have the grid files in a separate directory."""
+
+    dirname, expected = all_mds_datadirs
+    prefixes = ['U', 'V', 'W', 'T', 'S', 'PH']  # , 'PHL', 'Eta']
+    iters = [expected['test_iternum']]
+
+    with hide_file(dirname,
+                    *['XC.meta', 'XC.data', 'RC.meta', 'RC.data']) as grid_dir:
+        ds = xmitgcm.open_mdsdataset(
+                dirname, grid_dir=grid_dir, iters=iters, prefix=prefixes,
+                read_grid=False, geometry=expected['geometry'])
+        for p in prefixes:
+            assert p in ds
 
 def test_multiple_iters(multidim_mds_datadirs):
     """Test ability to load multiple iters into a single dataset."""
