@@ -9,7 +9,7 @@ import os
 import re
 import numpy as np
 import warnings
-from io import BytesIO
+from io import StringIO
 import inspect
 import xarray as xr
 import dask.array as da
@@ -643,7 +643,7 @@ def _get_all_data_variables(data_dir, layers):
         warnings.warn("Couldn't find available_diagnostics.log "
                       "in %s. Using default version." % data_dir)
         from .default_diagnostics import diagnostics
-        diag_file = BytesIO(diagnostics)
+        diag_file = StringIO(diagnostics)
     available_diags = parse_available_diagnostics(diag_file, layers)
     allvars.append(available_diags)
     metadata = _concat_dicts(allvars)

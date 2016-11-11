@@ -1,5 +1,7 @@
 # from the LLC90 run
-diagnostics=""" Total Nb of available Diagnostics: ndiagt=   296
+# needs to be unicode for python 2/3 reasons
+# io.StringIO needs a unicode string 
+diagnostics=u""" Total Nb of available Diagnostics: ndiagt=   296
 ------------------------------------------------------------------------------------
   Num  |<-Name->|Levs|  mate |<- code ->|<--  Units   -->|<- Tile (max=80c)
 ------------------------------------------------------------------------------------
