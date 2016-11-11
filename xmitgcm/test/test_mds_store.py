@@ -272,18 +272,23 @@ def test_read_mds_no_meta(all_mds_datadirs):
         nz = shape[0]
     dtype = expected['dtype']
 
-    prefix = 'XC'
-    basename = os.path.join(dirname, prefix)
+    shape_2d = (ny, nx)
+    shape_3d = shape_2d if nz==1 else (nz,) + shape_2d
 
-    with hide_file(dirname, prefix + '.meta'):
-        # can't read without specifying shape and dtype
-        with pytest.raises(IOError) as ioe:
-            res = read_mds(basename)
-        res = read_mds(basename, shape=(ny,nx), dtype=dtype)
-        assert isinstance(res, dict)
-        assert prefix in res
-        # should be memmap by default
-        assert isinstance(res[prefix], np.memmap)
+    prefixes = {'XC': shape_2d, 'hFacC': shape_3d}
+
+    for prefix, shape in prefixes.items():
+        basename = os.path.join(dirname, prefix)
+        with hide_file(dirname, prefix + '.meta'):
+            # can't read without specifying shape and dtype
+            with pytest.raises(IOError) as ioe:
+                res = read_mds(basename)
+            res = read_mds(basename, shape=shape, dtype=dtype)
+            assert isinstance(res, dict)
+            assert prefix in res
+            # should be memmap by default
+            assert isinstance(res[prefix], np.memmap)
+            assert res[prefix].shape == shape
 
 def test_open_mdsdataset_minimal(all_mds_datadirs):
     """Create a minimal xarray object with only dimensions in it."""
@@ -368,13 +373,17 @@ def test_open_dataset_no_meta(all_mds_datadirs):
     dirname, expected = all_mds_datadirs
 
     shape = expected['shape']
-    ny,nx = shape[-2:]
-    if len(shape)==4:
-        # we have an llc
-        nz, nface = shape[:2]
-        ny = nx*nface
-    else:
-        nz = shape[0]
+
+    nz = shape[0]
+    ny, nx = shape[-2:]
+    shape_2d = shape[1:]
+    dims_2d = ('j', 'i')
+    if expected['geometry']=='llc':
+        dims_2d = ('face',) + dims_2d
+        ny = nx*shape[-3]
+    dims_3d = dims_2d if nz==1 else ('k',) + dims_2d
+    dims_2d = ('time',) + dims_2d
+    dims_3d = ('time',) + dims_3d
 
     it = expected['test_iternum']
     kwargs = dict(iters=it, geometry=expected['geometry'], read_grid=False,
@@ -383,10 +392,9 @@ def test_open_dataset_no_meta(all_mds_datadirs):
     # a 3D file
     to_hide = ['T.%010d.meta' % it, 'Eta.%010d.meta' % it]
     with hide_file(dirname, *to_hide):
-        ds = xmitgcm.open_mdsdataset(dirname, prefix='T', **kwargs)
-    # a 2D file
-    with hide_file(dirname, *to_hide):
-        ds = xmitgcm.open_mdsdataset(dirname, prefix='Eta', **kwargs)
+        ds = xmitgcm.open_mdsdataset(dirname, prefix=['T', 'Eta'], **kwargs)
+        assert ds['T'].dims == dims_3d
+        assert ds['Eta'].dims == dims_2d
 
     # now get rid of the variables used to infer dimensions
     with hide_file(dirname, 'XC.meta', 'RC.meta'):

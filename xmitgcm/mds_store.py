@@ -315,7 +315,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         else:
             nyraw = self.ny
         self.default_shape_3D = (self.nz, nyraw, self.nx)
-        self.default_shape_2D = (1, nyraw, self.nx)
+        self.default_shape_2D = (nyraw, self.nx)
 
         # Now set up the corresponding coordinates.
         # Rather than assuming the dimension names, we use Comodo conventions
@@ -461,16 +461,16 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             # that might have failed because there was no meta file present
             # we can try to get around this by specifying the shape and dtype
             try:
-                # first try with the full shape (3D)
-                vardata = read_mds(basename, iternum, endian=self.endian,
-                               dtype=self.default_dtype,
-                               shape=self.default_shape_3D)
-            except IOError as ioe2:
-                # finally try excluding the first dimension (nz) and
-                # looking for 2D data
+                # first try looking for 2D data
                 vardata = read_mds(basename, iternum, endian=self.endian,
                                dtype=self.default_dtype,
                                shape=self.default_shape_2D)
+            except IOError as ioe2:
+                # finally try looking for 3D data
+                vardata = read_mds(basename, iternum, endian=self.endian,
+                               dtype=self.default_dtype,
+                               shape=self.default_shape_3D)
+
         for vname, data in vardata.items():
             # we now have to revert to the original prefix once the file is read
             if fname_base != prefix:
