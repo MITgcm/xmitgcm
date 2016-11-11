@@ -569,6 +569,23 @@ def test_diagnostics(mds_datadirs_with_diagnostics):
             mate = ds[diagname].attrs['mate']
             assert ds[mate].attrs['mate'] == diagname
 
+def test_default_diagnostics(mds_datadirs_with_diagnostics):
+    """Try reading dataset with diagnostics output."""
+    dirname, expected = mds_datadirs_with_diagnostics
+
+    diag_prefix, expected_diags = expected['diagnostics']
+    with hide_file(dirname, 'available_diagnostics.log'):
+        ds = xmitgcm.open_mdsdataset(dirname,
+                                              read_grid=False,
+                                              iters=expected['test_iternum'],
+                                              prefix=[diag_prefix],
+                                              geometry=expected['geometry'])
+    for diagname in expected_diags:
+        assert diagname in ds
+        # check vector mates
+        if 'mate' in ds[diagname].attrs:
+            mate = ds[diagname].attrs['mate']
+            assert ds[mate].attrs['mate'] == diagname
 
 def test_layers_diagnostics(layers_mds_datadirs):
     """Try reading dataset with layers output."""

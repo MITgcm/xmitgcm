@@ -8,6 +8,8 @@ from glob import glob
 import os
 import re
 import numpy as np
+import warnings
+from StringIO import StringIO
 import inspect
 import xarray as xr
 import dask.array as da
@@ -636,8 +638,14 @@ def _get_all_data_variables(data_dir, layers):
     # add others from available_diagnostics.log
     fname = os.path.join(data_dir, 'available_diagnostics.log')
     if os.path.exists(fname):
-        available_diags = parse_available_diagnostics(fname, layers)
-        allvars.append(available_diags)
+        diag_file = fname
+    else:
+        warnings.warn("Couldn't find available_diagnostics.log "
+                      "in %s. Using default version." % data_dir)
+        from .default_diagnostics import diagnostics
+        diag_file = StringIO(diagnostics)
+    available_diags = parse_available_diagnostics(diag_file, layers)
+    allvars.append(available_diags)
     metadata = _concat_dicts(allvars)
 
     # Now add the suffix '-T' to every diagnostic. This is a somewhat hacky
