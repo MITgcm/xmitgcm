@@ -684,7 +684,14 @@ def _get_all_iternums(data_dir, file_prefixes=None):
     return iterlist
 
 
-def _get_all_matching_prefixes(data_dir, iternum, file_prefixes=None):
+def _is_pickup_prefix(prefix):
+    if len(prefix)>=6:
+        if prefix[:6] == 'pickup':
+            return True
+    return False
+
+def _get_all_matching_prefixes(data_dir, iternum, file_prefixes=None,
+                               ignore_pickup=True):
     """Scan a directory and return all file prefixes matching a certain
     iteration number."""
     if iternum is None:
@@ -695,7 +702,8 @@ def _get_all_matching_prefixes(data_dir, iternum, file_prefixes=None):
         iternum = int(f[-15:-5])
         prefix = os.path.split(f[:-16])[-1]
         if file_prefixes is None:
-            prefixes.add(prefix)
+            if not (ignore_pickup and _is_pickup_prefix(prefix)):
+                prefixes.add(prefix)
         else:
             if prefix in file_prefixes:
                 prefixes.add(prefix)
