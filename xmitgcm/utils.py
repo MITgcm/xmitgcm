@@ -82,6 +82,8 @@ def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
             raise e
         else:
             nrecs = 1
+            shape = list(shape)
+            shape.insert(0, nrecs)
             name = os.path.basename(fname)
 
     d = read_raw_data(datafile, dtype, shape, use_mmap=use_mmap)
