@@ -130,8 +130,8 @@ def parse_available_diagnostics(fname, layers={}):
 
     PARAMETERS
     ----------
-    fname : str
-        the path to the diagnostics file
+    fname : str or buffer
+        the path to the diagnostics file or a file buffer
     layers : dict (optional)
         dictionary mapping layers names to dimension sizes
 
@@ -151,9 +151,10 @@ def parse_available_diagnostics(fname, layers={}):
     ycoords = {'U': 'j', 'V': 'j_g', 'M': 'j', 'Z': 'j_g'}
     rcoords = {'M': 'k', 'U': 'k_u', 'L': 'k_l'}
 
-    with open(fname) as f:
-        # will automatically skip first four header lines
+    # need to be able to accept string filename or buffer
+    def process_buffer(f):
         for l in f:
+            # will automatically skip first four header lines
             c = re.split('\|', l)
             if len(c) == 7 and c[0].strip() != 'Num':
                 # parse the line to extract the relevant variables
@@ -205,6 +206,12 @@ def parse_available_diagnostics(fname, layers={}):
                                       attrs={'standard_name': key,
                                              'long_name': desc,
                                              'units': units})
+    try:
+        with open(fname) as f:
+            process_buffer(f)
+    except TypeError:
+        process_buffer(fname)
+
     # add mate information
     for key, mate_id in mate_lookup.items():
         all_diags[key]['attrs']['mate'] = diag_id_lookup[mate_id]
