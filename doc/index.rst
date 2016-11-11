@@ -304,8 +304,18 @@ files in the form of issues_ and `pull requests`_.
 
 To determine the variable metadata, xmitgcm is able to parse the
 model's ``available_diagnostics.log`` file. If you use diagnostic output,
-the ``available_diagnostics.log`` file must be present in ``datadir``. For
-non-diagnostic output (e.g. default "state" or "timeave" output), xmitgcm
+the ``available_diagnostics.log`` file corresponding with your model run should
+be present in ``datadir``.
+
+.. note::
+    If the ``available_diagnostics.log`` file can't be found, a
+    `default version <https://github.com/xgcm/xmitgcm/blob/master/xmitgcm/variables.py>`_
+    will be used. This could lead to problems, since you may have custom
+    diagnostics enabled in your run that are not present in the default.
+    The default ``available_diagnostics.log`` file was taken from the ECCOv4
+    ``global_oce_llc90`` experiment.
+
+For non-diagnostic output (e.g. default "state" or "timeave" output), xmitgcm
 assigns the variable metadata based on filenames. The additional metadata
 makes the internal represtation of the model variables more verbose and
 ensures compliance with `CF Conventions`_.
