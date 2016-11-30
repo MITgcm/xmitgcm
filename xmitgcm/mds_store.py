@@ -157,9 +157,13 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     for iternum in iters]
                 # now add the grid
                 if read_grid:
+                    if 'iters' in kwargs:
+                        kwargs.remove('iters')
+                    if 'read_grid' in kwargs:
+                        kwargs.remove('read_grid')
                     datasets.insert(0,
                         open_mdsdataset(data_dir, iters=None, read_grid=True,
-                                        *kwargs))
+                                        **kwargs))
                 # apply chunking
                 ds = xr.auto_combine(datasets)
                 if swap_dims:
