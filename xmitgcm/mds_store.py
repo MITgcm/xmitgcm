@@ -17,6 +17,7 @@ import dask.array as da
 # we keep the metadata in its own module to keep this one cleaner
 from .variables import dimensions, \
     horizontal_coordinates_spherical, horizontal_coordinates_cartesian, \
+    horizontal_coordinates_curvcart, \
     vertical_coordinates, horizontal_grid_variables, vertical_grid_variables, \
     volume_grid_variables, state_variables
 # would it be better to import mitgcm_variables and then automate the search
@@ -60,7 +61,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
         e.g. "1990-1-1 0:0:0" (See CF conventions [1]_)
     calendar : string, optional
         A calendar allowed by CF conventions [1]_
-    geometry : {'sphericalpolar', 'cartesian', 'llc'}
+    geometry : {'sphericalpolar', 'cartesian', 'llc', 'curvilinear'}
         MITgcm grid geometry specifier
     grid_vars_to_coords : boolean, optional
         Whether to promote grid variables to coordinate status
@@ -269,7 +270,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         """
 
         self.geometry = geometry.lower()
-        allowed_geometries = ['cartesian', 'sphericalpolar', 'llc']
+        allowed_geometries = ['cartesian', 'sphericalpolar', 'llc', 'curvilinear']
         if self.geometry not in allowed_geometries:
             raise ValueError('Unexpected value for parameter `geometry`. '
                              'It must be one of the following: %s' %
@@ -591,8 +592,12 @@ def _guess_layers(data_dir):
 
 def _get_all_grid_variables(geometry, layers={}):
     """"Put all the relevant grid metadata into one big dictionary."""
-    hcoords = (horizontal_coordinates_cartesian if geometry == 'cartesian' else
-               horizontal_coordinates_spherical)
+    if geometry == "cartesian":
+        hcoords = horizontal_coordinates_cartesian
+    elif geometry == "curvilinear":
+        hcoords = horizontal_coordinates_curvcart
+    else:
+        hcoords = horizontal_coordinates_spherical
     allvars = [hcoords, vertical_coordinates, horizontal_grid_variables,
                vertical_grid_variables, volume_grid_variables]
 
