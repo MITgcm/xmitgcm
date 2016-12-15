@@ -8,6 +8,7 @@ from contextlib import contextmanager
 import py
 import tempfile
 from glob import glob
+from shutil import copyfile
 
 import xmitgcm
 
@@ -620,3 +621,14 @@ def test_llc_dims(llc_mds_datadirs):
     assert ds.rA.dims == ('face', 'j', 'i')
     assert ds.U.dims == ('time', 'k', 'face', 'j', 'i_g')
     assert ds.V.dims == ('time', 'k', 'face', 'j_g', 'i')
+
+def test_drc_length(all_mds_datadirs):
+    """Test that open_mdsdataset is adding an extra level to drC if it has length nr"""
+    dirname, expected = all_mds_datadirs
+    #Only older versions of the gcm have len(drC) = nr, so force len(drC) = nr for the test
+    copyfile(os.path.join(dirname, 'DRF.data'), os.path.join(dirname, 'DRC.data'))
+    copyfile(os.path.join(dirname, 'DRF.meta'), os.path.join(dirname, 'DRC.meta'))
+    ds = xmitgcm.open_mdsdataset(
+                dirname, iters=None, read_grid=True,
+                geometry=expected['geometry'])
+    assert len(ds.drC)==(len(ds.drF)+1)

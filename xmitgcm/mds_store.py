@@ -179,7 +179,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
                           default_dtype=default_dtype,
                           nx=nx, ny=ny, nz=nz)
     ds = xr.Dataset.load_store(store)
-
+    
     if swap_dims:
         ds = _swap_dimensions(ds, geometry)
     if grid_vars_to_coords:
@@ -408,21 +408,37 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         prefixes = []
         if read_grid:
             prefixes = prefixes + list(self._all_grid_variables.keys())
-
+            
         # add data files
         prefixes = (prefixes +
                     _get_all_matching_prefixes(
                                                data_dir,
                                                iternum,
                                                file_prefixes))
-
+    
         for p in prefixes:
             # use a generator to loop through the variables in each file
             for (vname, dims, data, attrs) in self.load_from_prefix(p, iternum):
                 # print(vname, dims, data.shape)
+                #Sizes of grid variables can vary between mitgcm versions. Check for
+                #such inconsistency and correct if so
+                (vname, dims, data, attrs) = self.fix_inconsistent_variables(vname, dims, data, attrs) 
+
                 thisvar = xr.Variable(dims, data, attrs)
                 self._variables[vname] = thisvar
                 # print(type(data), type(thisvar._data), thisvar._in_memory)
+
+    def fix_inconsistent_variables(self, vname, dims, data, attrs):
+        if vname == 'drC':
+            #check to see if the drC variable has the wrong length
+            if len(data)==self.nz:
+                #create a new array which will replace it
+                drc_data = np.zeros(self.nz + 1)
+                drc_data[:-1] = data
+                #fill in the missing value
+                drc_data[-1] = 0.5 * data[-1]
+                data = drc_data
+        return vname, dims, data, attrs
 
     def load_from_prefix(self, prefix, iternum=None):
         """Read data and look up metadata for grid variable `name`.
