@@ -179,7 +179,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
                           default_dtype=default_dtype,
                           nx=nx, ny=ny, nz=nz)
     ds = xr.Dataset.load_store(store)
-
+    
     if swap_dims:
         ds = _swap_dimensions(ds, geometry)
     if grid_vars_to_coords:
@@ -415,19 +415,20 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                                                data_dir,
                                                iternum,
                                                file_prefixes))
-    #In some older versions of mitgcm len(drC)=nr rather than nr+1
-    #Define a function to change it to the newer format if len(drC)=nr
-    #and apply it to the data before it is added to the xarray variable below
-    def fix_inconsistent_variables(data):
-        # check if the drC variable has the wrong length
-        if len(data)==self.nz:
-            # create a new array which will replace it
-            drc_data = np.zeros(self.nz + 1)
-            drc_data[:-1] = data
-            # fill in the missing value
-            drc_data[-1] = 0.5 * data[-1]
-            data = drc_data
-        return data
+    
+        #In some older versions of mitgcm len(drC)=nr rather than nr+1
+        #Define a function to change it to the newer format if len(drC)=nr
+        #and apply it to the data before it is added to the xarray variable below
+        def fix_inconsistent_variables(data):
+            # check if the drC variable has the wrong length
+            if len(data)==self.nz:
+                # create a new array which will replace it
+                drc_data = np.zeros(self.nz + 1)
+                drc_data[:-1] = data
+                # fill in the missing value
+                drc_data[-1] = 0.5 * data[-1]
+                data = drc_data
+            return data
     
         for p in prefixes:
             # use a generator to loop through the variables in each file
