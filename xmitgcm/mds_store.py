@@ -153,7 +153,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     nx=nx, ny=ny, nz=nz)
                 datasets = [open_mdsdataset(
 
-                        data_dir, iters=iternum, read_grid=True, **kwargs)
+                        data_dir, iters=iternum, read_grid=False, **kwargs)
                     for iternum in iters]
                 # now add the grid
                 if read_grid:
@@ -416,30 +416,29 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                                                iternum,
                                                file_prefixes))
     
-        #In some older versions of mitgcm len(drC)=nr rather than nr+1
-        #Define a function to change it to the newer format if len(drC)=nr
-        #and apply it to the data before it is added to the xarray variable below
-        def fix_inconsistent_variables(data):
-            # check if the drC variable has the wrong length
-            if len(data)==self.nz:
-                # create a new array which will replace it
-                drc_data = np.zeros(self.nz + 1)
-                drc_data[:-1] = data
-                # fill in the missing value
-                drc_data[-1] = 0.5 * data[-1]
-                data = drc_data
-            return data
-    
         for p in prefixes:
             # use a generator to loop through the variables in each file
             for (vname, dims, data, attrs) in self.load_from_prefix(p, iternum):
                 # print(vname, dims, data.shape)
-                if vname == 'drC':
-                    data = fix_inconsistent_variables(data)
+                #Sizes of grid variables can vary between mitgcm versions. Check for
+                #such inconsistency and correct if so
+                (vname, dims, data, attrs) = self.fix_inconsistent_variables(vname, dims, data, attrs) 
 
                 thisvar = xr.Variable(dims, data, attrs)
                 self._variables[vname] = thisvar
                 # print(type(data), type(thisvar._data), thisvar._in_memory)
+
+    def fix_inconsistent_variables(self, vname, dims, data, attrs):
+        if vname == 'drC':
+            #check to see if the drC variable has the wrong length
+            if len(data)==self.nz:
+                #create a new array which will replace it
+                drc_data = np.zeros(self.nz + 1)
+                drc_data[:-1] = data
+                #fill in the missing value
+                drc_data[-1] = 0.5 * data[-1]
+                data = drc_data
+        return vname, dims, data, attrs
 
     def load_from_prefix(self, prefix, iternum=None):
         """Read data and look up metadata for grid variable `name`.
