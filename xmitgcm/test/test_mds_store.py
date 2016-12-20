@@ -9,6 +9,8 @@ import py
 import tempfile
 from glob import glob
 from shutil import copyfile
+import dask
+import dask.array as dsa
 
 import xmitgcm
 
@@ -237,19 +239,20 @@ def test_read_mds(all_mds_datadirs):
     res = read_mds(basename)
     assert isinstance(res, dict)
     assert prefix in res
-    # should be memmap by default
-    assert isinstance(res[prefix], np.memmap)
+    # should be dask by default
+    assert isinstance(res[prefix], dask.array.core.Array)
 
     # try some options
-    res = read_mds(basename, force_dict=False)
+    res = read_mds(basename, force_dict=False, dask_delayed=False)
     assert isinstance(res, np.memmap)
-    res = read_mds(basename, force_dict=False, use_mmap=False)
+    res = read_mds(basename, force_dict=False, use_mmap=False,
+                   dask_delayed=False)
     assert isinstance(res, np.ndarray)
 
     # make sure endianness works
     testval = res.newbyteorder('<')[0,0]
     res_endian = read_mds(basename, force_dict=False, use_mmap=False,
-                          endian='<')
+                          endian='<', dask_delayed=False)
     val_endian = res_endian[0,0]
     np.testing.assert_allclose(testval, val_endian)
 
@@ -287,8 +290,8 @@ def test_read_mds_no_meta(all_mds_datadirs):
             res = read_mds(basename, shape=shape, dtype=dtype)
             assert isinstance(res, dict)
             assert prefix in res
-            # should be memmap by default
-            assert isinstance(res[prefix], np.memmap)
+            # should be dask by default
+            assert isinstance(res[prefix], dask.array.core.Array)
             assert res[prefix].shape == shape
 
 def test_open_mdsdataset_minimal(all_mds_datadirs):

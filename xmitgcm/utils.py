@@ -9,6 +9,8 @@ import os
 import numpy as np
 import warnings
 from functools import reduce
+from dask import delayed
+import dask.array as dsa
 
 
 def parse_meta_file(fname):
@@ -50,7 +52,7 @@ def parse_meta_file(fname):
 
 
 def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
-             shape=None, dtype=None):
+             shape=None, dtype=None, dask_delayed=True):
     """Read an MITgcm .meta / .data file pair"""
 
     if iternum is None:
@@ -86,7 +88,13 @@ def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
             shape.insert(0, nrecs)
             name = os.path.basename(fname)
 
-    d = read_raw_data(datafile, dtype, shape, use_mmap=use_mmap)
+    if dask_delayed:
+        d = dsa.from_delayed(
+              delayed(read_raw_data)(datafile, dtype, shape, use_mmap=use_mmap),
+              shape, dtype
+            )
+    else:
+        d = read_raw_data(datafile, dtype, shape, use_mmap=use_mmap)
 
     if nrecs == 1:
         if force_dict:

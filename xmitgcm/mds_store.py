@@ -511,6 +511,9 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
 
             # maybe slice and squeeze the data
             if 'slice' in metadata:
+                # if we are slicing, we can assume it is safe to convert dask
+                # array to numpy
+                data = np.asarray(data)
                 sl = metadata['slice']
                 # need to promote the variable to higher dimensions in the
                 # to handle certain 2D model outputs
@@ -789,8 +792,10 @@ def _reshape_llc_data(data, jdim):
             shape[jdim+1] = ar.shape[jdim]
         # insert a length-1 dimension along which to concatenate
         shape.insert(jdim, 1)
-        # modify the array shape in place, no copies allowed
-        ar.shape = shape
+        # this modify the array shape in place, with no copies allowed
+        # but it doesn't work with dask arrays
+        # ar.shape = shape
+        ar = ar.reshape(shape)
         # now ar is propery shaped, but we still need to slice it into faces
         face_slice_dim = jdim + 1 + rs
         for n in range(nfaces_in_facet):
