@@ -294,6 +294,34 @@ def test_read_mds_no_meta(all_mds_datadirs):
             assert isinstance(res[prefix], dask.array.core.Array)
             assert res[prefix].shape == shape
 
+
+def test_read_raw_data_llc(llc_mds_datadirs):
+    dirname, expected = llc_mds_datadirs
+
+    from xmitgcm.llc_utils import read_3d_llc_array
+
+    shape = expected['shape']
+    nz, nface, ny, nx = shape
+
+    dtype = expected['dtype'].newbyteorder('>')
+
+    # if we use memmap=True, we open too many files
+
+    fname = os.path.join(dirname, 'T.%010d.data' % expected['test_iternum'])
+    data = read_3d_llc_array(fname, nz, nx, dtype=dtype, memmap=False)
+    assert data.shape == shape
+    assert data.compute().shape == shape
+
+    fname = os.path.join(dirname, 'XC.data')
+    data = read_3d_llc_array(fname, 1, nx, dtype=dtype, memmap=False)
+    # make sure the first dimension is squeezed off
+    assert data.shape == shape[1:]
+    assert data.compute().shape == shape[1:]
+
+#########################################################
+### Below are all tests that actually create datasets ###
+#########################################################
+
 def test_open_mdsdataset_minimal(all_mds_datadirs):
     """Create a minimal xarray object with only dimensions in it."""
 

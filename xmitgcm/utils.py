@@ -89,9 +89,6 @@ def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
             name = os.path.basename(fname)
 
     if dask_delayed:
-        # the problem with this is that no error is raised if the data is
-        # incompatible with the shape. But that is how load_from_prefix figures
-        # out whether the data is 2D or 3D
         d = dsa.from_delayed(
               delayed(read_raw_data)(datafile, dtype, shape, use_mmap=use_mmap),
               shape, dtype

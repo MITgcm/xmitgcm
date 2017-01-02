@@ -552,8 +552,9 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             # variable
             if iternum is not None:
                 dims = [self.time_dim_name] + dims
-                newshape = (1,) + data.shape
-                data = data.reshape(newshape)
+                #newshape = (1,) + data.shape
+                #data = data.reshape(newshape)
+                data = data[None]
 
             yield vname, dims, data, attrs
 
