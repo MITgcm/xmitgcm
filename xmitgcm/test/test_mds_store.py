@@ -398,7 +398,9 @@ def test_open_dataset_no_meta(all_mds_datadirs):
     with hide_file(dirname, *to_hide):
         ds = xmitgcm.open_mdsdataset(dirname, prefix=['T', 'Eta'], **kwargs)
         assert ds['T'].dims == dims_3d
+        assert ds['T'].values.ndim == len(dims_3d)
         assert ds['Eta'].dims == dims_2d
+        assert ds['Eta'].values.ndim == len(dims_2d)
 
     # now get rid of the variables used to infer dimensions
     with hide_file(dirname, 'XC.meta', 'RC.meta'):

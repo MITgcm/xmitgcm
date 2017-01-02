@@ -482,16 +482,18 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         except IOError as ioe:
             # that might have failed because there was no meta file present
             # we can try to get around this by specifying the shape and dtype
-            try:
-                # first try looking for 2D data
-                vardata = read_mds(basename, iternum, endian=self.endian,
-                               dtype=self.default_dtype,
-                               shape=self.default_shape_2D)
-            except IOError as ioe2:
-                # finally try looking for 3D data
-                vardata = read_mds(basename, iternum, endian=self.endian,
-                               dtype=self.default_dtype,
-                               shape=self.default_shape_3D)
+            ndims = len(self._all_data_variables[prefix]['dims'])
+            if ndims==3 and self.nz > 1:
+                data_shape = self.default_shape_3D
+            elif ndims==2 or self.nz == 1:
+                data_shape = self.default_shape_2D
+            else:
+                raise ValueError("Can't determine shape "
+                                 "of variable %s" %  prefix)
+
+            vardata = read_mds(basename, iternum, endian=self.endian,
+                           dtype=self.default_dtype,
+                           shape=data_shape)
 
         for vname, data in vardata.items():
             # we now have to revert to the original prefix once the file is read

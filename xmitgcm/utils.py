@@ -89,6 +89,9 @@ def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
             name = os.path.basename(fname)
 
     if dask_delayed:
+        # the problem with this is that no error is raised if the data is
+        # incompatible with the shape. But that is how load_from_prefix figures
+        # out whether the data is 2D or 3D
         d = dsa.from_delayed(
               delayed(read_raw_data)(datafile, dtype, shape, use_mmap=use_mmap),
               shape, dtype
@@ -112,6 +115,7 @@ def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
 def read_raw_data(datafile, dtype, shape, use_mmap=False):
     """Read a raw binary file and shape it."""
 
+    #print("Reading raw data in %s" % datafile)
     # first check to be sure there is the right number of bytes in the file
     number_of_values = reduce(lambda x, y: x * y, shape)
     expected_number_of_bytes = number_of_values * dtype.itemsize
