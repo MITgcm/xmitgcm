@@ -30,7 +30,7 @@ def _read_2d_facet(fname, nfacet, nlev, nx, dtype='>f8', memmap=True):
     facet_shape = (facet_ny, nx)
     facet_nitems = facet_ny * nx
     with open(fname, 'rb') as f:
-        print("Reading %s facet %g nlev %g" % (fname, nfacet, nlev))
+        #print("Reading %s facet %g nlev %g" % (fname, nfacet, nlev))
         if memmap:
             data = np.memmap(f, dtype=dtype, mode='r', offset=offset,
                              shape=facet_shape, order=facet_order)
@@ -53,7 +53,7 @@ def _read_2d_face(fname, nface, nlev, nx, dtype='>f8', memmap=True):
     return data
 
 # manually construct dask graph
-def read_3d_llc_data(fname, nz, nx, dtype='>f8', memmap=True):
+def read_3d_llc_data(fname, nz, nx, dtype='>f8', memmap=True, nrec=0):
     """Read a three-dimensional LLC file using a custom dask graph.
 
     PARAMETERS
@@ -68,6 +68,8 @@ def read_3d_llc_data(fname, nz, nx, dtype='>f8', memmap=True):
         Datatype of the data
     memmap : bool, optional
         Whether to read the data using np.memmap
+    nrec : int, optional
+        The record number of a multi-record file (i.e. diagnostic)
 
     RETURNS
     -------
@@ -83,8 +85,11 @@ def read_3d_llc_data(fname, nz, nx, dtype='>f8', memmap=True):
     chunks = (1, 1, nx, nx)
     shape = (nz, LLC_NUM_FACES, nx, nx)
 
+    # we hack the record number as extra vertical levels
+    lev_offset = nz*nrec
+
     name = 'llc-' + tokenize(fname)  # unique identifier
-    dsk = {(name, nlev, nface, 0, 0): (load_chunk, nface, nlev)
+    dsk = {(name, nlev, nface, 0, 0): (load_chunk, nface, nlev + lev_offset)
              for nface in range(LLC_NUM_FACES)
              for nlev in range(nz)}
 

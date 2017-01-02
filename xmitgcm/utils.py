@@ -94,16 +94,14 @@ def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
     # this will exclude vertical profile files
     if llc and shape[-1]>1:
         # remeberer that the first dim is nrec
-        if nrecs>1:
-            raise ValueError("For now, can't handle nrecs>1 with llc==True.")
         if len(shape)==4:
             _, nz, ny, nx = shape
         else:
             _, ny, nx = shape
             nz = 1
-        d = read_3d_llc_data(datafile, nz, nx, dtype=dtype, memmap=False)
-        # add record dimension
-        d = d[None]
+        d = [read_3d_llc_data(datafile, nz, nx, dtype=dtype, memmap=False,
+                              nrec=nrec)
+             for nrec in range(nrecs)]
     elif dask_delayed:
         d = dsa.from_delayed(
               delayed(read_raw_data)(datafile, dtype, shape, use_mmap=use_mmap),
