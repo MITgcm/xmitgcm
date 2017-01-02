@@ -104,7 +104,7 @@ def read_3d_llc_data(fname, nz, nx, dtype='>f8', memmap=True, nrec=0):
 
 # a deprecated function that I can't bear to delete because it was painful to
 # write
-def _reshape_llc_data(data, jdim):
+def _reshape_llc_data(data, jdim):  # pragma: no cover
     """Fix the weird problem with llc data array order."""
     # Can we do this without copying any data?
     # If not, we need to go upstream and implement this at the MDS level
