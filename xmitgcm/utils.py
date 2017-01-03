@@ -9,7 +9,10 @@ import os
 import numpy as np
 import warnings
 from functools import reduce
+from dask import delayed
+import dask.array as dsa
 
+from .llc_utils import read_3d_llc_data
 
 def parse_meta_file(fname):
     """Get the metadata as a dict out of the mitGCM mds .meta file."""
@@ -50,7 +53,7 @@ def parse_meta_file(fname):
 
 
 def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
-             shape=None, dtype=None):
+             shape=None, dtype=None, dask_delayed=True, llc=False):
     """Read an MITgcm .meta / .data file pair"""
 
     if iternum is None:
@@ -78,6 +81,8 @@ def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
         else:
             name = meta['basename']
     except IOError as e:
+        # we can recover from not having a .meta file if dtype and shape have
+        # been specified already
         if (shape is None) or (dtype is None):
             raise e
         else:
@@ -86,7 +91,24 @@ def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
             shape.insert(0, nrecs)
             name = os.path.basename(fname)
 
-    d = read_raw_data(datafile, dtype, shape, use_mmap=use_mmap)
+    # this will exclude vertical profile files
+    if llc and shape[-1]>1:
+        # remeberer that the first dim is nrec
+        if len(shape)==4:
+            _, nz, ny, nx = shape
+        else:
+            _, ny, nx = shape
+            nz = 1
+        d = [read_3d_llc_data(datafile, nz, nx, dtype=dtype, memmap=False,
+                              nrec=nrec)
+             for nrec in range(nrecs)]
+    elif dask_delayed:
+        d = dsa.from_delayed(
+              delayed(read_raw_data)(datafile, dtype, shape, use_mmap=use_mmap),
+              shape, dtype
+            )
+    else:
+        d = read_raw_data(datafile, dtype, shape, use_mmap=use_mmap)
 
     if nrecs == 1:
         if force_dict:
@@ -104,6 +126,7 @@ def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
 def read_raw_data(datafile, dtype, shape, use_mmap=False):
     """Read a raw binary file and shape it."""
 
+    #print("Reading raw data in %s" % datafile)
     # first check to be sure there is the right number of bytes in the file
     number_of_values = reduce(lambda x, y: x * y, shape)
     expected_number_of_bytes = number_of_values * dtype.itemsize

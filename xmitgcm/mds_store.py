@@ -478,20 +478,23 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
 
         basename = os.path.join(ddir, fname_base)
         try:
-            vardata = read_mds(basename, iternum, endian=self.endian)
+            vardata = read_mds(basename, iternum, endian=self.endian,
+                               llc=self.llc)
         except IOError as ioe:
             # that might have failed because there was no meta file present
             # we can try to get around this by specifying the shape and dtype
-            try:
-                # first try looking for 2D data
-                vardata = read_mds(basename, iternum, endian=self.endian,
-                               dtype=self.default_dtype,
-                               shape=self.default_shape_2D)
-            except IOError as ioe2:
-                # finally try looking for 3D data
-                vardata = read_mds(basename, iternum, endian=self.endian,
-                               dtype=self.default_dtype,
-                               shape=self.default_shape_3D)
+            ndims = len(self._all_data_variables[prefix]['dims'])
+            if ndims==3 and self.nz > 1:
+                data_shape = self.default_shape_3D
+            elif ndims==2 or self.nz == 1:
+                data_shape = self.default_shape_2D
+            else:
+                raise ValueError("Can't determine shape "
+                                 "of variable %s" %  prefix)
+
+            vardata = read_mds(basename, iternum, endian=self.endian,
+                           dtype=self.default_dtype,
+                           shape=data_shape, llc=self.llc)
 
         for vname, data in vardata.items():
             # we now have to revert to the original prefix once the file is read
@@ -511,6 +514,9 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
 
             # maybe slice and squeeze the data
             if 'slice' in metadata:
+                # if we are slicing, we can assume it is safe to convert dask
+                # array to numpy
+                data = np.asarray(data)
                 sl = metadata['slice']
                 # need to promote the variable to higher dimensions in the
                 # to handle certain 2D model outputs
@@ -547,8 +553,9 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             # variable
             if iternum is not None:
                 dims = [self.time_dim_name] + dims
-                newshape = (1,) + data.shape
-                data = data.reshape(newshape)
+                #newshape = (1,) + data.shape
+                #data = data.reshape(newshape)
+                data = data[None]
 
             yield vname, dims, data, attrs
 
@@ -749,8 +756,8 @@ def _reshape_for_llc(dims, data):
     """Take dims and data and return modified / reshaped dims and data for
     llc geometry."""
 
-    # this won't work otherwise
-    assert len(dims)==data.ndim
+    # the data should already come shaped correctly for llc
+    # but the dims are not yet correct
 
     # the only dimensions that get expanded into faces
     expand_dims = ['j', 'j_g']
@@ -759,56 +766,5 @@ def _reshape_for_llc(dims, data):
             # add face dimension to dims
             jdim = dims.index(dim)
             dims.insert(jdim, LLC_FACE_DIMNAME)
-            data = _reshape_llc_data(data, jdim)
+            assert data.ndim==len(dims)
     return dims, data
-
-
-def _reshape_llc_data(data, jdim):
-    """Fix the weird problem with llc data array order."""
-    # Can we do this without copying any data?
-    # If not, we need to go upstream and implement this at the MDS level
-    # Or can we fudge it with dask?
-    # this is all very specific to the llc file output
-    # would be nice to generalize more, but how?
-    nside = data.shape[jdim] / LLC_NUM_FACES
-    # how the LLC data is laid out along the j dimension
-    strides = ((0,3), (3,6), (6,7), (7,10), (10,13))
-    # whether to reshape each face
-    reshape = (False, False, False, True, True)
-    # this will slice the data into 5 facets
-    slices = [jdim * (slice(None),) + (slice(nside*st[0], nside*st[1]),)
-              for st in strides]
-    facet_arrays = [data[sl] for sl in slices]
-    face_arrays = []
-    for ar, rs, st in zip(facet_arrays, reshape, strides):
-        nfaces_in_facet = st[1] - st[0]
-        shape = list(ar.shape)
-        if rs:
-            # we assume the other horizontal dimension is immediately after jdim
-            shape[jdim] = ar.shape[jdim+1]
-            shape[jdim+1] = ar.shape[jdim]
-        # insert a length-1 dimension along which to concatenate
-        shape.insert(jdim, 1)
-        # modify the array shape in place, no copies allowed
-        ar.shape = shape
-        # now ar is propery shaped, but we still need to slice it into faces
-        face_slice_dim = jdim + 1 + rs
-        for n in range(nfaces_in_facet):
-            face_slice = (face_slice_dim * (slice(None),) +
-                          (slice(nside*n, nside*(n+1)),))
-            data_face = ar[face_slice]
-            face_arrays.append(data_face)
-
-    # We can't concatenate using numpy (hcat etc.) because it makes a copy,
-    # presumably loading the memmaps into memory.
-    # Using dask gets around this.
-    # But what if we want different chunks, or already chunked the data
-    # upstream? Doesn't seem like this is ideal
-    # TODO: Refactor handling of dask arrays and chunking
-    #return np.concatenate(face_arrays, axis=jdim)
-    # the dask version doesn't work because of this:
-    # https://github.com/dask/dask/issues/1645
-    face_arrays_dask = [da.from_array(fa, chunks=fa.shape)
-                        for fa in face_arrays]
-    concat = da.concatenate(face_arrays_dask, axis=jdim)
-    return concat

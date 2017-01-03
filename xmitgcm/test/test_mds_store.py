@@ -9,6 +9,8 @@ import py
 import tempfile
 from glob import glob
 from shutil import copyfile
+import dask
+import dask.array as dsa
 
 import xmitgcm
 
@@ -237,19 +239,20 @@ def test_read_mds(all_mds_datadirs):
     res = read_mds(basename)
     assert isinstance(res, dict)
     assert prefix in res
-    # should be memmap by default
-    assert isinstance(res[prefix], np.memmap)
+    # should be dask by default
+    assert isinstance(res[prefix], dask.array.core.Array)
 
     # try some options
-    res = read_mds(basename, force_dict=False)
+    res = read_mds(basename, force_dict=False, dask_delayed=False)
     assert isinstance(res, np.memmap)
-    res = read_mds(basename, force_dict=False, use_mmap=False)
+    res = read_mds(basename, force_dict=False, use_mmap=False,
+                   dask_delayed=False)
     assert isinstance(res, np.ndarray)
 
     # make sure endianness works
     testval = res.newbyteorder('<')[0,0]
     res_endian = read_mds(basename, force_dict=False, use_mmap=False,
-                          endian='<')
+                          endian='<', dask_delayed=False)
     val_endian = res_endian[0,0]
     np.testing.assert_allclose(testval, val_endian)
 
@@ -287,9 +290,37 @@ def test_read_mds_no_meta(all_mds_datadirs):
             res = read_mds(basename, shape=shape, dtype=dtype)
             assert isinstance(res, dict)
             assert prefix in res
-            # should be memmap by default
-            assert isinstance(res[prefix], np.memmap)
+            # should be dask by default
+            assert isinstance(res[prefix], dask.array.core.Array)
             assert res[prefix].shape == shape
+
+
+def test_read_raw_data_llc(llc_mds_datadirs):
+    dirname, expected = llc_mds_datadirs
+
+    from xmitgcm.llc_utils import read_3d_llc_data
+
+    shape = expected['shape']
+    nz, nface, ny, nx = shape
+
+    dtype = expected['dtype'].newbyteorder('>')
+
+    # if we use memmap=True, we open too many files
+
+    fname = os.path.join(dirname, 'T.%010d.data' % expected['test_iternum'])
+    data = read_3d_llc_data(fname, nz, nx, dtype=dtype, memmap=False)
+    assert data.shape == shape
+    assert data.compute().shape == shape
+
+    fname = os.path.join(dirname, 'XC.data')
+    data = read_3d_llc_data(fname, 1, nx, dtype=dtype, memmap=False)
+    # make sure the first dimension is squeezed off
+    assert data.shape == shape[1:]
+    assert data.compute().shape == shape[1:]
+
+#########################################################
+### Below are all tests that actually create datasets ###
+#########################################################
 
 def test_open_mdsdataset_minimal(all_mds_datadirs):
     """Create a minimal xarray object with only dimensions in it."""
@@ -395,7 +426,9 @@ def test_open_dataset_no_meta(all_mds_datadirs):
     with hide_file(dirname, *to_hide):
         ds = xmitgcm.open_mdsdataset(dirname, prefix=['T', 'Eta'], **kwargs)
         assert ds['T'].dims == dims_3d
+        assert ds['T'].values.ndim == len(dims_3d)
         assert ds['Eta'].dims == dims_2d
+        assert ds['Eta'].values.ndim == len(dims_2d)
 
     # now get rid of the variables used to infer dimensions
     with hide_file(dirname, 'XC.meta', 'RC.meta'):
