@@ -364,6 +364,13 @@ for n in range(1,100):
                   long_name="Concentration of %s" % trname,
                   units="kg m-3")
    ) 
+
+
+# these aliases are necessary to deal with the LLC output which was saved with
+# unconventional variable names and no meta files
+aliases = {'Eta': 'ETAN', 'PhiBot': 'PHIBOT', 'Salt': 'SALT', 'Theta': 'THETA'}
+
+
 # Nptracers=99
 # _ptracers = { 'PTRACER%02d' % n :
 #                (dims=['k','j','i'], 'PTRACER%02d Concentration' % n, "tracer units/m^3")

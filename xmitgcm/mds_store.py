@@ -18,7 +18,7 @@ import dask.array as da
 from .variables import dimensions, \
     horizontal_coordinates_spherical, horizontal_coordinates_cartesian, \
     vertical_coordinates, horizontal_grid_variables, vertical_grid_variables, \
-    volume_grid_variables, state_variables
+    volume_grid_variables, state_variables, aliases
 # would it be better to import mitgcm_variables and then automate the search
 # for variable dictionaries
 
@@ -483,7 +483,10 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         except IOError as ioe:
             # that might have failed because there was no meta file present
             # we can try to get around this by specifying the shape and dtype
-            ndims = len(self._all_data_variables[prefix]['dims'])
+            try:
+                ndims = len(self._all_data_variables[prefix]['dims'])
+            except KeyError:
+                ndims = 3
             if ndims==3 and self.nz > 1:
                 data_shape = self.default_shape_3D
             elif ndims==2 or self.nz == 1:
@@ -683,6 +686,10 @@ def _get_all_data_variables(data_dir, layers):
         newname = name + '-T'
         extra_metadata[newname] = val
     metadata = _concat_dicts([metadata, extra_metadata])
+
+    # now fill in aliases
+    for alias, original in aliases.items():
+        metadata[alias] = metadata[original]
 
     return metadata
 
