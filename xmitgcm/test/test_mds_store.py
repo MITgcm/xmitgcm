@@ -454,6 +454,8 @@ def test_swap_dims(all_mds_datadirs):
     dirname, expected = all_mds_datadirs
     kwargs = dict(iters=None, read_grid=True, geometry=expected['geometry'])
 
+    expected_dims = ['XC', 'XG', 'YC', 'YG', 'Z', 'Zl', 'Zp1', 'Zu']
+
     # make sure we never swap if not reading grid
     assert 'i' in xmitgcm.open_mdsdataset(dirname,
         iters=None, read_grid=False, geometry=expected['geometry'])
@@ -472,7 +474,6 @@ def test_swap_dims(all_mds_datadirs):
                     iters=None, read_grid=True, swap_dims=True,
                     grid_vars_to_coords=True)
 
-        expected_dims = ['XC', 'XG', 'YC', 'YG', 'Z', 'Zl', 'Zp1', 'Zu']
 
         # add extra layers dimensions if needed
         if 'layers' in expected:
@@ -482,6 +483,14 @@ def test_swap_dims(all_mds_datadirs):
                 expected_dims += extra_dims
 
         assert list(ds.dims.keys()) == expected_dims
+
+        # make sure swapping works with multiple iters
+        ds = xmitgcm.open_mdsdataset(dirname, geometry=expected['geometry'],
+                                     prefix=['S'])
+        print(ds)
+        assert 'XC' in ds['S'].dims
+        assert 'YC' in ds['S'].dims
+ 
 
 
 def test_prefixes(all_mds_datadirs):
