@@ -302,6 +302,9 @@ def test_read_raw_data_llc(llc_mds_datadirs, method):
 
     shape = expected['shape']
     nz, nface, ny, nx = shape
+    # the function will also return a nrecs dimension
+    nrecs = 1
+    shape = (nrecs,) + shape
 
     dtype = expected['dtype'].newbyteorder('>')
 
@@ -315,9 +318,10 @@ def test_read_raw_data_llc(llc_mds_datadirs, method):
 
     fname = os.path.join(dirname, 'XC.data')
     data = read_3d_llc_data(fname, 1, nx, **kwargs)
-    # make sure the first dimension is squeezed off
-    assert data.shape == shape[1:]
-    assert data.compute().shape == shape[1:]
+    # the z dimension is squeezed out by MDS, so the function matches that behavior
+    shape_2d = (shape[0],) + shape[2:]
+    assert data.shape == shape_2d
+    assert data.compute().shape == shape_2d
 
 #########################################################
 ### Below are all tests that actually create datasets ###

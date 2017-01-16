@@ -50,6 +50,25 @@ def parse_meta_file(fname):
         assert flds['nrecords'] == len(flds['fldList'])
     return flds
 
+def get_useful_info_from_meta_file(metafile):
+    # why does the .meta file contain so much repeated info?
+    # Here we just get the part we need
+    # and reverse order (numpy uses C order, mds is fortran)
+    meta = parse_meta_file(metafile)
+    shape = [g[0] for g in meta['dimList']][::-1]
+    assert len(shape) == meta['nDims']
+    # now add an extra for number of recs
+    nrecs = meta['nrecords']
+    shape.insert(0, nrecs)
+    dtype = meta['dataprec']
+    if 'fldList' in meta:
+        fldlist = meta['fldList']
+        name = fldlist[0]
+    else:
+        name = meta['basename']
+        fldlist = None
+
+    return nrecs, shape, name, dtype, fldlist
 
 def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
              shape=None, dtype=None, dask_delayed=True, llc=False):
@@ -65,20 +84,8 @@ def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
 
     # get metadata
     try:
-        meta = parse_meta_file(metafile)
-        # why does the .meta file contain so much repeated info?
-        # just get the part we need
-        # and reverse order (numpy uses C order, mds is fortran)
-        shape = [g[0] for g in meta['dimList']][::-1]
-        assert len(shape) == meta['nDims']
-        # now add an extra for number of recs
-        nrecs = meta['nrecords']
-        shape.insert(0, nrecs)
-        dtype = meta['dataprec'].newbyteorder(endian)
-        if 'fldList' in meta:
-            name = meta['fldList'][0]
-        else:
-            name = meta['basename']
+        nrecs, shape, name, dtype, fldlist = get_useful_info_from_meta_file(metafile)
+        dtype = dtype.newbyteorder(endian)
     except IOError as e:
         # we can recover from not having a .meta file if dtype and shape have
         # been specified already
@@ -98,9 +105,8 @@ def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
         else:
             _, ny, nx = shape
             nz = 1
-        d = [read_3d_llc_data(datafile, nz, nx, dtype=dtype, memmap=False,
-                              nrec=nrec)
-             for nrec in range(nrecs)]
+        d = read_3d_llc_data(datafile, nz, nx, dtype=dtype, memmap=False,
+                              nrecs=nrecs)
     elif dask_delayed:
         d = dsa.from_delayed(
               delayed(read_raw_data)(datafile, dtype, shape, use_mmap=use_mmap),
@@ -117,7 +123,7 @@ def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
     else:
         # need record names
         out = {}
-        for n, name in enumerate(meta['fldList']):
+        for n, name in enumerate(fldlist):
             out[name] = d[n]
         return out
 
@@ -289,7 +295,7 @@ def _read_2d_face(fname, nface, nlev, nx, dtype='>f8', memmap=True):
     return data
 
 # manually construct dask graph
-def read_3d_llc_data(fname, nz, nx, dtype='>f8', memmap=True, nrec=0,
+def read_3d_llc_data(fname, nz, nx, dtype='>f8', memmap=True, nrecs=1,
                      method="smallchunks"):
     """Read a three-dimensional LLC file using a custom dask graph.
 
@@ -306,8 +312,8 @@ def read_3d_llc_data(fname, nz, nx, dtype='>f8', memmap=True, nrec=0,
     memmap : bool, optional
         Whether to read the data using np.memmap. Forced to be ``False`` for
         ``method="smallchunks"``.
-    nrec : int, optional
-        The record number of a multi-record file (i.e. diagnostic)
+    nrecs : int, optional
+        The number of records in a multi-record file
     method : {"smallchunks", "bigchunks"}, optional
         Which routine to use for reading raw LLC. "smallchunks" splits the file
         into a individual dask chunk of size (nx x nx) for each face of each
@@ -329,33 +335,36 @@ def read_3d_llc_data(fname, nz, nx, dtype='>f8', memmap=True, nrec=0,
 
         def load_chunk(nface, nlev):
             return _read_2d_face(fname, nface, nlev, nx,
-                            dtype=dtype, memmap=memmap)[None, None]
+                            dtype=dtype, memmap=memmap)[None, None, None]
 
-        chunks = (1, 1, nx, nx)
-        shape = (nz, LLC_NUM_FACES, nx, nx)
-        # we hack the record number as extra vertical levels
-        lev_offset = nz*nrec
+        chunks = (1, 1, 1, nx, nx)
+        shape = (nrecs, nz, LLC_NUM_FACES, nx, nx)
         name = 'llc-' + tokenize(fname)  # unique identifier
-        dsk = {(name, nlev, nface, 0, 0): (load_chunk, nface, nlev + lev_offset)
+        # we hack the record number as extra vertical levels
+        dsk = {(name, nrec, nlev, nface, 0, 0): (load_chunk, nface,
+                                                 nlev + nz*nrec)
                  for nface in range(LLC_NUM_FACES)
-                 for nlev in range(nz)}
+                 for nlev in range(nz)
+                 for nrec in range(nrecs)}
 
         data = dsa.Array(dsk, name, chunks, dtype=dtype, shape=shape)
-        # automatically squeeze off z dimension; this matches mds file behavior
-        if nz==1:
-            data = data[0]
-        return data
 
     elif method=="bigchunks":
-        if nrec>0:
+        if nrecs>1:
             raise NotImplementedError('Code needs to be refactored to properly '
-                'handle nrec>1')
+                'handle nrecs>1')
         numrecs = 1
         shape = (numrecs, nz, LLC_NUM_FACES*nx, nx)
         # the dimension that needs to be reshaped
-        jdim = 3
+        jdim = 2
         data = read_raw_data(fname, dtype, shape, use_mmap=memmap)
-        return _reshape_llc_data(data, jdim)
+        data= _reshape_llc_data(data, jdim)
+
+    # automatically squeeze off z dimension; this matches mds file behavior
+    if nz==1:
+        data = data[:,0]
+    return data
+
 
 
 # a deprecated function that I can't bear to delete because it was painful to
@@ -407,9 +416,9 @@ def _reshape_llc_data(data, jdim):  # pragma: no cover
     #return np.concatenate(face_arrays, axis=jdim)
     # the dask version doesn't work because of this:
     # https://github.com/dask/dask/issues/1645
-    face_arrays_dask = [da.from_array(fa, chunks=fa.shape)
+    face_arrays_dask = [dsa.from_array(fa, chunks=fa.shape)
                         for fa in face_arrays]
-    concat = da.concatenate(face_arrays_dask, axis=jdim)
+    concat = dsa.concatenate(face_arrays_dask, axis=jdim)
     return concat
 
 
