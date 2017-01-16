@@ -657,17 +657,24 @@ def test_layers_diagnostics(layers_mds_datadirs):
         assert var in ds
         assert ds[var].dims == dims
 
-def test_llc_dims(llc_mds_datadirs):
+@pytest.mark.parametrize("method", ["smallchunks", "bigchunks"])
+def test_llc_dims(llc_mds_datadirs, method):
     """Check that the LLC file dimensions are correct."""
     dirname, expected = llc_mds_datadirs
     ds = xmitgcm.open_mdsdataset(dirname,
                             iters=expected['test_iternum'],
-                            geometry=expected['geometry'])
+                            geometry=expected['geometry'], llc_method=method)
+
+    nz, nface, ny, nx = expected['shape']
+    nt = 1
 
     assert ds.dims['face'] == 13
     assert ds.rA.dims == ('face', 'j', 'i')
+    assert ds.rA.values.shape == (nface, ny, nx)
     assert ds.U.dims == ('time', 'k', 'face', 'j', 'i_g')
+    assert ds.U.values.shape == (nt, nz, nface, ny, nx)
     assert ds.V.dims == ('time', 'k', 'face', 'j_g', 'i')
+    assert ds.V.values.shape == (nt, nz, nface, ny, nx)
 
 def test_drc_length(all_mds_datadirs):
     """Test that open_mdsdataset is adding an extra level to drC if it has length nr"""

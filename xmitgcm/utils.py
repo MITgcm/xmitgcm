@@ -71,7 +71,8 @@ def get_useful_info_from_meta_file(metafile):
     return nrecs, shape, name, dtype, fldlist
 
 def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
-             shape=None, dtype=None, dask_delayed=True, llc=False):
+             shape=None, dtype=None, dask_delayed=True, llc=False,
+             llc_method="smallchunks"):
     """Read an MITgcm .meta / .data file pair"""
 
     if iternum is None:
@@ -106,7 +107,7 @@ def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
             _, ny, nx = shape
             nz = 1
         d = read_3d_llc_data(datafile, nz, nx, dtype=dtype, memmap=False,
-                              nrecs=nrecs)
+                              nrecs=nrecs, method=llc_method)
     elif dask_delayed:
         d = dsa.from_delayed(
               delayed(read_raw_data)(datafile, dtype, shape, use_mmap=use_mmap),
@@ -350,11 +351,7 @@ def read_3d_llc_data(fname, nz, nx, dtype='>f8', memmap=True, nrecs=1,
         data = dsa.Array(dsk, name, chunks, dtype=dtype, shape=shape)
 
     elif method=="bigchunks":
-        if nrecs>1:
-            raise NotImplementedError('Code needs to be refactored to properly '
-                'handle nrecs>1')
-        numrecs = 1
-        shape = (numrecs, nz, LLC_NUM_FACES*nx, nx)
+        shape = (nrecs, nz, LLC_NUM_FACES*nx, nx)
         # the dimension that needs to be reshaped
         jdim = 2
         data = read_raw_data(fname, dtype, shape, use_mmap=memmap)
