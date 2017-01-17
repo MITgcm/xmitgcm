@@ -35,7 +35,8 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     grid_vars_to_coords=True, swap_dims=None,
                     endian=">", chunks=None,
                     ignore_unknown_vars=False, default_dtype=None,
-                    nx=None, ny=None, nz=None):
+                    nx=None, ny=None, nz=None,
+                    llc_method="smallchunks"):
     """Open MITgcm-style mds (.data / .meta) file output as xarray datset.
 
     Parameters
@@ -80,6 +81,15 @@ def open_mdsdataset(data_dir, grid_dir=None,
         The numerical dimensions of the model. These will be inferred from
         ``XC.meta`` and ``RC.meta`` if they are not specified. If
         ``geometry==llc``, ``ny`` does not have to specified.
+    llc_method : {"smallchunks", "bigchunks"}, optional
+        Which routine to use for reading LLC data. "smallchunks" splits the file
+        into a individual dask chunk of size (nx x nx) for each face of each
+        level (i.e. the total number of chunks is 13 * nz). "bigchunks" loads
+        the whole raw data file (either into memory or as a numpy.memmap),
+        splits it into faces, and concatenates those faces together using
+        ``dask.array.concatenate``. The different methods will have different
+        memory and i/o performance depending on the details of the system
+        configuration.
 
     Returns
     -------
@@ -150,9 +160,8 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     endian=endian, chunks=chunks,
                     ignore_unknown_vars=ignore_unknown_vars,
                     default_dtype=default_dtype,
-                    nx=nx, ny=ny, nz=nz)
+                    nx=nx, ny=ny, nz=nz, llc_method=llc_method)
                 datasets = [open_mdsdataset(
-
                         data_dir, iters=iternum, read_grid=False, **kwargs)
                     for iternum in iters]
                 # now add the grid
@@ -177,9 +186,9 @@ def open_mdsdataset(data_dir, grid_dir=None,
                           geometry, endian,
                           ignore_unknown_vars=ignore_unknown_vars,
                           default_dtype=default_dtype,
-                          nx=nx, ny=ny, nz=nz)
+                          nx=nx, ny=ny, nz=nz, llc_method=llc_method)
     ds = xr.Dataset.load_store(store)
-    
+
     if swap_dims:
         ds = _swap_dimensions(ds, geometry)
     if grid_vars_to_coords:
@@ -255,7 +264,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                  geometry='sphericalpolar',
                  endian='>', ignore_unknown_vars=False,
                  default_dtype=np.dtype('f4'),
-                 nx=None, ny=None, nz=None):
+                 nx=None, ny=None, nz=None, llc_method="smallchunks"):
         """
         This is not a user-facing class. See open_mdsdataset for argument
         documentation. The only ones which are distinct are.
@@ -322,6 +331,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             nyraw = self.ny
         self.default_shape_3D = (self.nz, nyraw, self.nx)
         self.default_shape_2D = (nyraw, self.nx)
+        self.llc_method=llc_method
 
         # Now set up the corresponding coordinates.
         # Rather than assuming the dimension names, we use Comodo conventions
@@ -408,21 +418,21 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         prefixes = []
         if read_grid:
             prefixes = prefixes + list(self._all_grid_variables.keys())
-            
+
         # add data files
         prefixes = (prefixes +
                     _get_all_matching_prefixes(
                                                data_dir,
                                                iternum,
                                                file_prefixes))
-    
+
         for p in prefixes:
             # use a generator to loop through the variables in each file
             for (vname, dims, data, attrs) in self.load_from_prefix(p, iternum):
                 # print(vname, dims, data.shape)
                 #Sizes of grid variables can vary between mitgcm versions. Check for
                 #such inconsistency and correct if so
-                (vname, dims, data, attrs) = self.fix_inconsistent_variables(vname, dims, data, attrs) 
+                (vname, dims, data, attrs) = self.fix_inconsistent_variables(vname, dims, data, attrs)
 
                 thisvar = xr.Variable(dims, data, attrs)
                 self._variables[vname] = thisvar
@@ -479,7 +489,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         basename = os.path.join(ddir, fname_base)
         try:
             vardata = read_mds(basename, iternum, endian=self.endian,
-                               llc=self.llc)
+                               llc=self.llc, llc_method=self.llc_method)
         except IOError as ioe:
             # that might have failed because there was no meta file present
             # we can try to get around this by specifying the shape and dtype

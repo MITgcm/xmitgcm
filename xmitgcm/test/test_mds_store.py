@@ -294,29 +294,34 @@ def test_read_mds_no_meta(all_mds_datadirs):
             assert isinstance(res[prefix], dask.array.core.Array)
             assert res[prefix].shape == shape
 
-
-def test_read_raw_data_llc(llc_mds_datadirs):
+@pytest.mark.parametrize("method", ["smallchunks", "bigchunks"])
+def test_read_raw_data_llc(llc_mds_datadirs, method):
     dirname, expected = llc_mds_datadirs
 
-    from xmitgcm.llc_utils import read_3d_llc_data
+    from xmitgcm.utils import read_3d_llc_data
 
     shape = expected['shape']
     nz, nface, ny, nx = shape
+    # the function will also return a nrecs dimension
+    nrecs = 1
+    shape = (nrecs,) + shape
 
     dtype = expected['dtype'].newbyteorder('>')
 
     # if we use memmap=True, we open too many files
+    kwargs = dict(method=method, dtype=dtype, memmap=False)
 
     fname = os.path.join(dirname, 'T.%010d.data' % expected['test_iternum'])
-    data = read_3d_llc_data(fname, nz, nx, dtype=dtype, memmap=False)
+    data = read_3d_llc_data(fname, nz, nx, **kwargs)
     assert data.shape == shape
     assert data.compute().shape == shape
 
     fname = os.path.join(dirname, 'XC.data')
-    data = read_3d_llc_data(fname, 1, nx, dtype=dtype, memmap=False)
-    # make sure the first dimension is squeezed off
-    assert data.shape == shape[1:]
-    assert data.compute().shape == shape[1:]
+    data = read_3d_llc_data(fname, 1, nx, **kwargs)
+    # the z dimension is squeezed out by MDS, so the function matches that behavior
+    shape_2d = (shape[0],) + shape[2:]
+    assert data.shape == shape_2d
+    assert data.compute().shape == shape_2d
 
 #########################################################
 ### Below are all tests that actually create datasets ###
@@ -490,7 +495,7 @@ def test_swap_dims(all_mds_datadirs):
         print(ds)
         assert 'XC' in ds['S'].dims
         assert 'YC' in ds['S'].dims
- 
+
 
 
 def test_prefixes(all_mds_datadirs):
@@ -652,17 +657,24 @@ def test_layers_diagnostics(layers_mds_datadirs):
         assert var in ds
         assert ds[var].dims == dims
 
-def test_llc_dims(llc_mds_datadirs):
+@pytest.mark.parametrize("method", ["smallchunks", "bigchunks"])
+def test_llc_dims(llc_mds_datadirs, method):
     """Check that the LLC file dimensions are correct."""
     dirname, expected = llc_mds_datadirs
     ds = xmitgcm.open_mdsdataset(dirname,
                             iters=expected['test_iternum'],
-                            geometry=expected['geometry'])
+                            geometry=expected['geometry'], llc_method=method)
+
+    nz, nface, ny, nx = expected['shape']
+    nt = 1
 
     assert ds.dims['face'] == 13
     assert ds.rA.dims == ('face', 'j', 'i')
+    assert ds.rA.values.shape == (nface, ny, nx)
     assert ds.U.dims == ('time', 'k', 'face', 'j', 'i_g')
+    assert ds.U.values.shape == (nt, nz, nface, ny, nx)
     assert ds.V.dims == ('time', 'k', 'face', 'j_g', 'i')
+    assert ds.V.values.shape == (nt, nz, nface, ny, nx)
 
 def test_drc_length(all_mds_datadirs):
     """Test that open_mdsdataset is adding an extra level to drC if it has length nr"""
