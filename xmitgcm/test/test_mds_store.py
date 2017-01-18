@@ -102,7 +102,19 @@ _experiments = {
                             'SIatmFW', 'oceQnet', 'oceFWflx', 'oceTAUX',
                             'oceTAUY', 'ADVxHEFF', 'ADVyHEFF', 'DFxEHEFF',
                             'DFyEHEFF', 'ADVxSNOW', 'ADVySNOW', 'DFxESNOW',
-                            'DFyESNOW', 'SIuice', 'SIvice'])}
+                            'DFyESNOW', 'SIuice', 'SIvice'])},
+    'curvilinear_leman': {'geometry': 'curvilinear',
+                          'delta_t': 20,
+                          'ref_date': "2013-11-12 12:00",
+                          'shape': (35, 64, 340),
+                          'test_iternum': 6,
+                          'dtype': np.dtype('f4'),
+                          'expected_values': {'XC': ((0,0), 501919.0)},
+                          'all_iters': [0, 3, 6],
+                          'expected_time':[
+                            (0, np.datetime64('2013-11-12T12:00:00.000000000')),
+                            (1, np.datetime64('2013-11-12T12:02:00.000000000'))],
+                          'prefixes': ['THETA']}
 }
 
 
@@ -423,7 +435,7 @@ def test_swap_dims(all_mds_datadirs):
     # make sure we never swap if not reading grid
     assert 'i' in xmitgcm.open_mdsdataset(dirname,
         iters=None, read_grid=False, geometry=expected['geometry'])
-    if expected['geometry'] == 'llc':
+    if expected['geometry'] in ('llc', 'curvilinear'):
         # make sure swapping is not the default
         assert 'i' in xmitgcm.open_mdsdataset(dirname, **kwargs)
         # and is impossible

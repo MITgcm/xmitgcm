@@ -103,7 +103,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
         if read_grid == False:
             swap_dims = False
         else:
-            swap_dims = False if geometry=='llc' else True
+            swap_dims = False if geometry in ('llc', 'curvilinear') else True
 
     # some checks for argument consistency
     if swap_dims and not read_grid:
@@ -223,7 +223,7 @@ def _swap_dimensions(ds, geometry, drop_old=True):
     # this fixes problems
     ds = ds.reset_coords()
 
-    if geometry.lower() == 'llc':
+    if geometry.lower() in ('llc', 'curvilinear'):
         raise ValueError("Can't swap dimensions if `geometry` is `llc`")
 
     # first squeeze all the coordinates
