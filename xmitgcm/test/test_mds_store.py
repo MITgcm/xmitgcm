@@ -109,7 +109,7 @@ _experiments = {
                           'shape': (35, 64, 340),
                           'test_iternum': 6,
                           'dtype': np.dtype('f4'),
-                          'expected_values': {'XC': ((0,0), 501919.0)},
+                          'expected_values': {'XC': ((0,0), 501919.21875)},
                           'all_iters': [0, 3, 6],
                           'expected_time':[
                             (0, np.datetime64('2013-11-12T12:00:00.000000000')),
