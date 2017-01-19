@@ -75,6 +75,27 @@ horizontal_coordinates_spherical = OrderedDict(
                 units="degrees_north", coordinates="YG XG"))
 )
 
+horizontal_coordinates_curvcart = OrderedDict(
+    XC = dict(dims=["j", "i"], attrs=dict(
+                standard_name="plane_x_coordinate", long_name="x coordinate",
+                units="m", coordinate="YC XC")),
+    YC = dict(dims=["j", "i"], attrs=dict(
+                standard_name="plane_y_coordinate", long_name="y coordinate",
+                units="m", coordinate="YC XC")),
+    XG = dict(dims=["j_g", "i_g"], attrs=dict(
+                standard_name="plane_x_coordinate_at_f_location",
+                long_name="x coordinate", units="m", coordinate="YG XG")),
+    YG = dict(dims=["j_g", "i_g"], attrs=dict(
+                standard_name="plane_y_coordinate_at_f_location",
+                long_name="y coordinate", units="m", coordinates="YG XG")),
+    CS  = dict(dims=["j", "i"], attrs=dict(standard_name="Cos of grid orientation angle",
+               long_name="AngleCS", units=" ", coordinate="YC XC"),
+               filename='AngleCS'),
+    SN  = dict(dims=["j", "i"], attrs=dict(standard_name="Sin of grid orientation angle",
+               long_name="AngleSN", units=" ", coordinate="YC XC"),
+               filename='AngleSN')
+)
+
 horizontal_coordinates_cartesian = OrderedDict(
     XC = dict(dims=["j", "i"], attrs=dict(
                 standard_name="plane_x_coordinate", long_name="x coordinate",

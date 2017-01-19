@@ -375,13 +375,13 @@ The physical dimensions of typical veriables are::
     >>> ('time', 'Zl', 'YC', 'XG')
 
 In order for physical dimensions to be assigned ``open_mdsdataset`` must be
-involved with ``read_grid=True`` (default). For a moree minimalistic approach,
+involved with ``read_grid=True`` (default). For a more minimalistic approach,
 one can use ``read_grid=False`` and assign logcial dimensions. Logical
 dimensions can also be chosen by explicitly setting ``swap_dims=False``, even
 with ``read_grid=False``.
 Physical dimension only work with ``geometry=='cartesian'`` or
-``geometry=='sphericalpolar'``. For ``geometry=='llc'``, it is not possible
-to replace the logical dimensions with physical dimensions, and setting
+``geometry=='sphericalpolar'``. For ``geometry=='llc'`` or ``geometry=='curvilinear'``,
+it is not possible to replace the logical dimensions with physical dimensions, and setting
 ``swap_dims=False`` will raise an error.
 
 Logical dimensions follow the naming conventions of the
@@ -448,8 +448,9 @@ Grid Geometries
 ---------------
 
 The grid geometry is not inferred; it must be specified via the ``geometry``
-keyword. xmitgcm currently supports three MITgcm grid geometries: ``cartesian``,
-``sphericalpolar``, and ``llc``.  The first two are straightforward. The ``llc``
+keyword. xmitgcm currently supports four MITgcm grid geometries: ``cartesian``,
+``sphericalpolar``, ``curvilinear``, and ``llc``.  The first two are straightforward.
+The ``curvilinear`` is used for curvilinear cartesian grids. The ``llc``
 ("lat-lon-cap") geometry is more complicated. This grid consists of four
 distinct faces of the same size plus a smaller north-polar cap. Each face has a
 distinct relatioship between its logical dimensions and its physical
