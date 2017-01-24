@@ -307,7 +307,12 @@ def test_read_mds_no_meta(all_mds_datadirs):
             assert res[prefix].shape == shape
 
 @pytest.mark.parametrize("method", ["smallchunks", "bigchunks"])
-def test_read_raw_data_llc(llc_mds_datadirs, method):
+@pytest.mark.parametrize("memmap", [True, False])
+def test_read_raw_data_llc(llc_mds_datadirs, method, memmap):
+    if memmap and method=='smallchunks':
+        pytest.skip("Using `method='smallchunks` with `memmap=True` "
+                    "opens too many files.")
+
     dirname, expected = llc_mds_datadirs
 
     from xmitgcm.utils import read_3d_llc_data
@@ -321,12 +326,15 @@ def test_read_raw_data_llc(llc_mds_datadirs, method):
     dtype = expected['dtype'].newbyteorder('>')
 
     # if we use memmap=True, we open too many files
-    kwargs = dict(method=method, dtype=dtype, memmap=False)
+    kwargs = dict(method=method, dtype=dtype, memmap=memmap)
 
     fname = os.path.join(dirname, 'T.%010d.data' % expected['test_iternum'])
     data = read_3d_llc_data(fname, nz, nx, **kwargs)
     assert data.shape == shape
-    assert data.compute().shape == shape
+    dc = data.compute()
+    assert dc.shape == shape
+    # once computed, all arrays are ndarray, even if backed by memmap
+    assert isinstance(dc, np.ndarray)
 
     fname = os.path.join(dirname, 'XC.data')
     data = read_3d_llc_data(fname, 1, nx, **kwargs)
