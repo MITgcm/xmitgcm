@@ -98,6 +98,8 @@ def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
             shape.insert(0, nrecs)
             name = os.path.basename(fname)
 
+    # TODO: refactor overall logic of the code below
+
     # this will exclude vertical profile files
     if llc and shape[-1]>1:
         # remeberer that the first dim is nrec
@@ -106,8 +108,19 @@ def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
         else:
             _, ny, nx = shape
             nz = 1
-        d = read_3d_llc_data(datafile, nz, nx, dtype=dtype, memmap=False,
+
+        if llc_method=='bigchunks' and (not use_mmap):
+            # this would load a ton of data... need to delay it
+            d = dsa.from_delayed(
+                delayed(read_3d_llc_data)(datafile, nz, nx, dtype=dtype,
+                            memmap=memmap, nrecs=nrecs, method=llc_method)
+            )
+        else:
+            if llc_method=='smallchunks':
+                use_mmap=False
+            d = read_3d_llc_data(datafile, nz, nx, dtype=dtype, memmap=use_mmap,
                               nrecs=nrecs, method=llc_method)
+
     elif dask_delayed:
         d = dsa.from_delayed(
               delayed(read_raw_data)(datafile, dtype, shape, use_mmap=use_mmap),
