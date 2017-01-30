@@ -295,7 +295,10 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         if endian not in ['>', '<', '=']:
             raise ValueError("Invalid byte order (endian=%s)" % endian)
         self.endian = endian
-        self.default_dtype = default_dtype
+        if default_dtype is not None:
+            self.default_dtype = np.dtype(default_dtype).newbyteorder(endian)
+        else:
+            self.default_dtype = default_dtype
 
         # storage dicts for variables and attributes
         self._variables = xr.core.pycompat.OrderedDict()

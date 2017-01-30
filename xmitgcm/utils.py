@@ -87,11 +87,14 @@ def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
     try:
         nrecs, shape, name, dtype, fldlist = get_useful_info_from_meta_file(metafile)
         dtype = dtype.newbyteorder(endian)
-    except IOError as e:
+    except IOError:
         # we can recover from not having a .meta file if dtype and shape have
         # been specified already
-        if (shape is None) or (dtype is None):
-            raise e
+        if shape is None:
+            raise IOError("Cannot find the shape associated to %s in the metadata." %fname)
+        elif dtype is None:
+            raise IOError("Cannot find the dtype associated to %s in the metadata, "
+                          "please specify the default dtype to avoid this error." %fname)
         else:
             nrecs = 1
             shape = list(shape)
