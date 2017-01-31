@@ -455,6 +455,12 @@ def test_open_dataset_no_meta(all_mds_datadirs):
         assert ds['Eta'].dims == dims_2d
         assert ds['Eta'].values.ndim == len(dims_2d)
 
+        with pytest.raises(IOError, message="Expecting IOError when default_dtype "
+                                            "is not precised (i.e., None)"):
+            xmitgcm.open_mdsdataset(dirname, prefix=['T', 'Eta'], iters=it,
+                                    geometry=expected['geometry'],
+                                    read_grid=False)
+
     # now get rid of the variables used to infer dimensions
     with hide_file(dirname, 'XC.meta', 'RC.meta'):
         with pytest.raises(IOError):
