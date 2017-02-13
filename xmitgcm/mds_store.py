@@ -539,7 +539,10 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 # to handle certain 2D model outputs
                 if len(sl) == 3 and data.ndim == 2:
                     data.shape = (1,) + data.shape
+                    print("promiting!")
+                print("Slice", type(data))
                 data = np.atleast_1d(data[sl])
+                print('Slice OK')
 
             if 'transform' in metadata:
                 # transform is a function to be called on the data
