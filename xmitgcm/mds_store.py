@@ -539,7 +539,10 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 # to handle certain 2D model outputs
                 if len(sl) == 3 and data.ndim == 2:
                     data.shape = (1,) + data.shape
+                    print("promiting!")
+                print("Slice", type(data))
                 data = np.atleast_1d(data[sl])
+                print('Slice OK')
 
             if 'transform' in metadata:
                 # transform is a function to be called on the data
@@ -561,7 +564,10 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 dims = dims[1:]
             elif len(dims) == 1 and (data.ndim == 2 or data.ndim == 3):
                 # this is for certain profile data like RC, PHrefC, etc.
-                data = np.atleast_1d(data.squeeze())
+                #data = np.atleast_1d(data.squeeze())
+                data = data.squeeze()
+                if data.shape == ():
+                    data = data[None,]
 
             if self.llc:
                 dims, data = _reshape_for_llc(dims, data)
