@@ -149,7 +149,6 @@ increases with number of workers for bigchunks.
 Running xmitgcm on Pleaides
 ---------------------------
 
-<<<<<<< a0532af4f7516d512af39d6514a9ba8efad1fe3c
 These instructions describe how to get a working xmitgcm environment on a
 cluster such as Pleiades_. (See related
 `blog post <https://medium.com/@rabernat/custom-conda-environments-for-data-science-on-hpc-clusters-32d58c63aa95>`_)
