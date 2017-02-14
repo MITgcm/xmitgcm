@@ -12,6 +12,7 @@ parallel, out-of-core_ analysis of MITgcm output data.
    quick_start
    usage
    examples
+   performance
    utils
    development
 

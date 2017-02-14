@@ -292,8 +292,12 @@ usual capabilities on the llc data, for example::
         PHrefC   (k) >f4 49.05 147.15 245.25 343.35 441.45 539.55 637.65 735.799 ...
         drF      (k) >f4 10.0 10.0 10.0 10.0 10.0 10.0 10.0 10.01 10.03 10.11 ...
 
-Note that this simple example does not perform correct volume weighting or
-land masking in the average.
+(Note that this simple example does not perform correct volume weighting or
+land masking in the average.)
+
+``open_mdsdataset`` offers two different strategies for reading LLC data,
+``method='smallchunks'`` (the default) and ``method='bigchunks'``. The details
+and tradeoffs of these strategies are described in :doc:`/performance`.
 
 .. _dask: http://dask.pydata.org
 .. _xarray: http://xarray.pydata.org
