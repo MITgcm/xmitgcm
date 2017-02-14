@@ -399,6 +399,8 @@ def test_read_grid(all_mds_datadirs):
     for vname in _EXPECTED_GRID_VARS:
         assert vname in ds
 
+    # actually load the data, to check for dask-related errors
+    ds.load()
 
 def test_values_and_endianness(all_mds_datadirs):
     """Make sure we read all the grid variables."""
@@ -518,7 +520,8 @@ def test_swap_dims(all_mds_datadirs):
         # make sure swapping works with multiple iters
         ds = xmitgcm.open_mdsdataset(dirname, geometry=expected['geometry'],
                                      prefix=['S'])
-        print(ds)
+        #print(ds)
+        ds.load()
         assert 'XC' in ds['S'].dims
         assert 'YC' in ds['S'].dims
 

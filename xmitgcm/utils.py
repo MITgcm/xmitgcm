@@ -14,7 +14,18 @@ import dask.array as dsa
 from dask.base import tokenize
 
 def parse_meta_file(fname):
-    """Get the metadata as a dict out of the mitGCM mds .meta file."""
+    """Get the metadata as a dict out of the MITgcm mds .meta file.
+
+    PARAMETERS
+    ----------
+    fname : str
+        Path to the .meta file
+
+    RETURNS
+    -------
+    flds : dict
+        Metadata in dictionary form.
+    """
     flds = {}
     basename = re.match('(^.+?)\..+', os.path.basename(fname)).groups()[0]
     flds['basename'] = basename
@@ -50,7 +61,7 @@ def parse_meta_file(fname):
         assert flds['nrecords'] == len(flds['fldList'])
     return flds
 
-def get_useful_info_from_meta_file(metafile):
+def _get_useful_info_from_meta_file(metafile):
     # why does the .meta file contain so much repeated info?
     # Here we just get the part we need
     # and reverse order (numpy uses C order, mds is fortran)
@@ -73,7 +84,47 @@ def get_useful_info_from_meta_file(metafile):
 def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
              shape=None, dtype=None, dask_delayed=True, llc=False,
              llc_method="smallchunks"):
-    """Read an MITgcm .meta / .data file pair"""
+    """Read an MITgcm .meta / .data file pair
+
+
+    PARAMETERS
+    ----------
+    fname : str
+        The base name of the data file pair (without a .data or .meta suffix)
+    iternum : int, optional
+        The iteration number suffix
+    use_mmap : bool, optional
+        Whether to read the data using a numpy.memmap
+    force_dict : bool, optional
+        Whether to return a dictionary of ``{varname: data}`` pairs
+    endian : {'>', '<', '|'}, optional
+        Dndianness of the data
+    dtype : numpy.dtype, optional
+        Data type of the data (will be inferred from the .meta file by default)
+    shape : tuple, optional
+        Shape of the data (will be inferred from the .meta file by default)
+    dask_delayed : bool, optional
+        Whether wrap the reading of the raw data in a ``dask.delayed`` object
+    llc : bool, optional
+        Whether the data is from an LLC geometry
+    llc_method : {'smalchunks', 'bigchunks'}
+        Which routine to use for reading raw LLC. "smallchunks" splits the file
+        into a individual dask chunk of size (nx x nx) for each face of each
+        level (i.e. the total number of chunks is 13 * nz). "bigchunks" loads
+        the whole raw data file (either into memory or as a numpy.memmap),
+        splits it into faces, and concatenates those faces together using
+        ``dask.array.concatenate``. The different methods will have different
+        memory and i/o performance depending on the details of the system
+        configuration.
+
+    RETURNS
+    -------
+    data : dict
+       The keys correspond to the variable names of the different variables in
+       the data file. The values are the data itself, either as an
+       ``numpy.ndarray``, ``numpy.memmap``, or ``dask.array.Array`` depending
+       on the options selected.
+    """
 
     if iternum is None:
         istr = ''
@@ -85,7 +136,7 @@ def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
 
     # get metadata
     try:
-        nrecs, shape, name, dtype, fldlist = get_useful_info_from_meta_file(metafile)
+        nrecs, shape, name, dtype, fldlist = _get_useful_info_from_meta_file(metafile)
         dtype = dtype.newbyteorder(endian)
     except IOError:
         # we can recover from not having a .meta file if dtype and shape have
@@ -146,7 +197,24 @@ def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
 
 
 def read_raw_data(datafile, dtype, shape, use_mmap=False):
-    """Read a raw binary file and shape it."""
+    """Read a raw binary file and shape it.
+
+    PARAMETERS
+    ----------
+    datafile : str
+        Path to a .data file
+    dtype : numpy.dtype
+        Data type of the data
+    shape : tuple
+        Shape of the data
+    use_memmap : bool, optional
+        Whether to read the data using a numpy.memmap
+
+    RETURNS
+    -------
+    data : numpy.ndarray
+        The data (or a memmap to it)
+    """
 
     #print("Reading raw data in %s" % datafile)
     # first check to be sure there is the right number of bytes in the file
@@ -389,7 +457,7 @@ def _reshape_llc_data(data, jdim):  # pragma: no cover
     # Or can we fudge it with dask?
     # this is all very specific to the llc file output
     # would be nice to generalize more, but how?
-    nside = data.shape[jdim] / LLC_NUM_FACES
+    nside = data.shape[jdim] // LLC_NUM_FACES
     # how the LLC data is laid out along the j dimension
     strides = ((0,3), (3,6), (6,7), (7,10), (10,13))
     # whether to reshape each face
@@ -435,7 +503,7 @@ def _reshape_llc_data(data, jdim):  # pragma: no cover
     return concat
 
 
-def llc_face_shape(llc_id):
+def _llc_face_shape(llc_id):
     """Given an integer identifier for the llc grid, return the face shape."""
 
     # known valid LLC configurations
@@ -444,14 +512,14 @@ def llc_face_shape(llc_id):
     else:
         raise ValueError("%g is not a valid llc identifier" % llc_id)
 
-def llc_data_shape(llc_id, nz=None):
+def _llc_data_shape(llc_id, nz=None):
     """Given an integer identifier for the llc grid, and possibly a number of
     vertical grid points, return the expected shape of the full data field."""
 
     # this is a constant for all LLC setups
     NUM_FACES = 13
 
-    tile_shape = llc_face_shape(llc_id)
+    tile_shape = _llc_face_shape(llc_id)
     data_shape = (NUM_FACES,) + face_shape
     if nz is not None:
         data_shape = (nz,) + data_shape

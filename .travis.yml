@@ -9,6 +9,8 @@ matrix:
   include:
   - python: 2.7
     env: CONDA_ENV=py27
+  - python: 2.7
+    env: CONDA_ENV=py27-numpy1.11.1
   - python: 3.5
     env: CONDA_ENV=py35
 
