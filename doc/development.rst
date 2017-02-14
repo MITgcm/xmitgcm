@@ -4,7 +4,7 @@ Development
 Release History
 ---------------
 
-v0.2.0 (2016-02-13)
+v0.2.0 (2017-02-14)
 ~~~~~~~~~~~~~~~~~~~~
 
 This release contains the following feature enhancements:
