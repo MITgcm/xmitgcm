@@ -304,3 +304,5 @@ Here is a batch job which calls the script
   # the first available iteration
   iter0=10368
   python -u write_by_iternum.py $iter0
+
+.. _Pleiades: https://www.nas.nasa.gov/hecc/resources/pleiades.html
