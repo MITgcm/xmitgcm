@@ -457,7 +457,7 @@ def _reshape_llc_data(data, jdim):  # pragma: no cover
     # Or can we fudge it with dask?
     # this is all very specific to the llc file output
     # would be nice to generalize more, but how?
-    nside = data.shape[jdim] / LLC_NUM_FACES
+    nside = data.shape[jdim] // LLC_NUM_FACES
     # how the LLC data is laid out along the j dimension
     strides = ((0,3), (3,6), (6,7), (7,10), (10,13))
     # whether to reshape each face
