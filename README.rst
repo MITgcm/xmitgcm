@@ -1,7 +1,7 @@
 xmitgcm: Read MITgcm mds binary files into xarray
 =================================================
 
-|pypi| |Build Status| |codecov| |docs|
+|pypi| |Build Status| |codecov| |docs| |DOI|
 
 xmitgcm is a python package for reading MITgcm_ binary MDS files into
 xarray_ data structures. By storing data in dask_ arrays, xmitgcm enables
@@ -88,8 +88,8 @@ keyword arguments. In most cases, you will have to specify further details.
 Consult the `online documentation <http://xmitgcm.readthedocs.org>`_ for
 more details.
 
-.. |DOI| image:: https://zenodo.org/badge/14957/pyqg/pyqg.svg
-   :target: https://zenodo.org/badge/latestdoi/14957/xgcm/xmitgcm
+.. |DOI| image:: https://zenodo.org/badge/70649781.svg
+   :target: https://zenodo.org/badge/latestdoi/70649781
 .. |Build Status| image:: https://travis-ci.org/xgcm/xmitgcm.svg?branch=master
    :target: https://travis-ci.org/xgcm/xmitgcm
    :alt: travis-ci build status
