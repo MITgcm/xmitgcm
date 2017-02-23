@@ -48,11 +48,11 @@ dimensions = OrderedDict(
     k_u = dict(dims=['k_u'], attrs=dict(
                 standard_name="z_grid_index_at_lower_w_location",
                 axis="Z", long_name="z-dimension of the w grid",
-                c_grid_axis_shift=-0.5, swap_dim='Zu')),
+                c_grid_axis_shift=0.5, swap_dim='Zu')),
     k_l = dict(dims=['k_l'], attrs=dict(
                 standard_name="z_grid_index_at_upper_w_location",
                 axis="Z", long_name="z-dimension of the w grid",
-                c_grid_axis_shift=0.5, swap_dim='Zl')),
+                c_grid_axis_shift=-0.5, swap_dim='Zl')),
     # this is complicated because it is offset in both directions - allowed by comodo?
     k_p1 = dict(dims=['k_p1'], attrs=dict(
                 standard_name="z_grid_index_at_w_location",
@@ -384,7 +384,7 @@ for n in range(1,100):
        attrs=dict(standard_name='%s_concentration' % trname,
                   long_name="Concentration of %s" % trname,
                   units="kg m-3")
-   ) 
+   )
 
 
 # these aliases are necessary to deal with the LLC output which was saved with
