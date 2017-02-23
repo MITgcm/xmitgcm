@@ -4,6 +4,10 @@ Development
 Release History
 ---------------
 
+v.0.3.0 (???)
+~~~~~~~~~~~~~
+  - Fix to keep proper Comodo metadata when swapping dimensions.
+
 v0.2.0 (2017-02-14)
 ~~~~~~~~~~~~~~~~~~~~
 

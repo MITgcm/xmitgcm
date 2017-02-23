@@ -226,8 +226,7 @@ def _set_coords(ds):
 def _swap_dimensions(ds, geometry, drop_old=True):
     """Replace logical coordinates with physical ones. Does not work for llc.
     """
-    # TODO: handle metadata correctly such that the new dimension attributes
-    # still conform to comodo conventions
+    keep_attrs = ['axis', 'c_grid_axis_shift']
 
     # this fixes problems
     ds = ds.reset_coords()
@@ -246,6 +245,9 @@ def _swap_dimensions(ds, geometry, drop_old=True):
                     # take the first row / column
                     coord_var = coord_var.isel(**{coord_dim: 0}).drop(coord_dim)
             ds[new_dim] = coord_var
+            for key in keep_attrs:
+                if key in ds[orig_dim].attrs:
+                    ds[new_dim].attrs[key] = ds[orig_dim].attrs[key]
     # then swap dims
     for orig_dim in ds.dims:
         if 'swap_dim' in ds[orig_dim].attrs:

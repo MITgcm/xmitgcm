@@ -389,6 +389,17 @@ def test_open_mdsdataset_minimal(all_mds_datadirs):
     ds_expected = xr.Dataset(coords=coords)
     assert ds_expected.equals(ds)
 
+    # check for comodo metadata needed by xgcm
+    assert ds['i'].attrs['axis'] == 'X'
+    assert ds['i_g'].attrs['axis'] == 'X'
+    assert ds['i_g'].attrs['c_grid_axis_shift'] == -0.5
+    assert ds['j'].attrs['axis'] == 'Y'
+    assert ds['j_g'].attrs['axis'] == 'Y'
+    assert ds['j_g'].attrs['c_grid_axis_shift'] == -0.5
+    assert ds['k'].attrs['axis'] == 'Z'
+    assert ds['k_l'].attrs['axis'] == 'Z'
+    assert ds['k_l'].attrs['c_grid_axis_shift'] == -0.5
+
 def test_read_grid(all_mds_datadirs):
     """Make sure we read all the grid variables."""
     dirname, expected = all_mds_datadirs
@@ -507,6 +518,17 @@ def test_swap_dims(all_mds_datadirs):
                     iters=None, read_grid=True, swap_dims=True,
                     grid_vars_to_coords=True)
 
+
+        # check for comodo metadata needed by xgcm
+        assert ds['XC'].attrs['axis'] == 'X'
+        assert ds['XG'].attrs['axis'] == 'X'
+        assert ds['XG'].attrs['c_grid_axis_shift'] == -0.5
+        assert ds['YC'].attrs['axis'] == 'Y'
+        assert ds['YG'].attrs['axis'] == 'Y'
+        assert ds['YG'].attrs['c_grid_axis_shift'] == -0.5
+        assert ds['Z'].attrs['axis'] == 'Z'
+        assert ds['Zl'].attrs['axis'] == 'Z'
+        assert ds['Zl'].attrs['c_grid_axis_shift'] == -0.5
 
         # add extra layers dimensions if needed
         if 'layers' in expected:
