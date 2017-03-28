@@ -605,13 +605,13 @@ def _guess_model_dimensions(data_dir, is_llc=False):
         raise IOError("Couldn't find RC.meta file to infer nz.")
     try:
         xc_meta = parse_meta_file(os.path.join(data_dir, 'XC.meta'))
-        nx = xc_meta['dimList'][0][0]
-        ny = xc_meta['dimList'][1][0]
+        nx = int(xc_meta['dimList'][0][0])
+        ny = int(xc_meta['dimList'][1][0])
     except IOError:
         raise IOError("Couldn't find XC.meta file to infer nx and ny.")
     if is_llc:
         nface = LLC_NUM_FACES
-        ny /= nface
+        ny //= nface
     else:
         nface = None
     return nz, nface, ny, nx
