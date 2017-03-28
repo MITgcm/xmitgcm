@@ -389,6 +389,10 @@ def test_open_mdsdataset_minimal(all_mds_datadirs):
     ds_expected = xr.Dataset(coords=coords)
     assert ds_expected.equals(ds)
 
+    # check that the datatypes are correct
+    for key in coords:
+        assert ds[key].dtype == np.int64
+
     # check for comodo metadata needed by xgcm
     assert ds['i'].attrs['axis'] == 'X'
     assert ds['i_g'].attrs['axis'] == 'X'
@@ -505,7 +509,8 @@ def test_swap_dims(all_mds_datadirs):
         iters=None, read_grid=False, geometry=expected['geometry'])
     if expected['geometry'] in ('llc', 'curvilinear'):
         # make sure swapping is not the default
-        assert 'i' in xmitgcm.open_mdsdataset(dirname, **kwargs)
+        ds = xmitgcm.open_mdsdataset(dirname, **kwargs)
+        assert 'i' in ds
         # and is impossible
         with pytest.raises(ValueError) as excinfo:
             ds = xmitgcm.open_mdsdataset(
