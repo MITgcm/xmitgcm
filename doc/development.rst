@@ -4,8 +4,9 @@ Development
 Release History
 ---------------
 
-v.0.3.0 (???)
+v.0.2.1 (2017-05-31)
 ~~~~~~~~~~~~~
+  - Fix to ensure that grid indices are always interger dtype.
   - Fix to keep proper Comodo metadata when swapping dimensions.
 
 v0.2.0 (2017-02-14)
