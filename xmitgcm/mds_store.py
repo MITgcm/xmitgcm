@@ -37,7 +37,8 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     endian=">", chunks=None,
                     ignore_unknown_vars=False, default_dtype=None,
                     nx=None, ny=None, nz=None,
-                    llc_method="smallchunks"):
+                    llc_method="smallchunks",
+                    diagnostics=None):
     """Open MITgcm-style mds (.data / .meta) file output as xarray datset.
 
     Parameters
@@ -161,7 +162,8 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     endian=endian, chunks=chunks,
                     ignore_unknown_vars=ignore_unknown_vars,
                     default_dtype=default_dtype,
-                    nx=nx, ny=ny, nz=nz, llc_method=llc_method)
+                    nx=nx, ny=ny, nz=nz, llc_method=llc_method,
+                    diagnostics=diagnostics)
                 datasets = [open_mdsdataset(
                         data_dir, iters=iternum, read_grid=False, **kwargs)
                     for iternum in iters]
@@ -181,13 +183,13 @@ def open_mdsdataset(data_dir, grid_dir=None,
                 if grid_vars_to_coords:
                     ds = _set_coords(ds)
                 return ds
-
     store = _MDSDataStore(data_dir, grid_dir, iternum, delta_t, read_grid,
                           prefix, ref_date, calendar,
                           geometry, endian,
                           ignore_unknown_vars=ignore_unknown_vars,
                           default_dtype=default_dtype,
-                          nx=nx, ny=ny, nz=nz, llc_method=llc_method)
+                          nx=nx, ny=ny, nz=nz, llc_method=llc_method,
+                          diagnostics=diagnostics)
     ds = xr.Dataset.load_store(store)
 
     if swap_dims:
@@ -267,7 +269,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                  geometry='sphericalpolar',
                  endian='>', ignore_unknown_vars=False,
                  default_dtype=np.dtype('f4'),
-                 nx=None, ny=None, nz=None, llc_method="smallchunks"):
+                 nx=None, ny=None, nz=None, llc_method="smallchunks",
+                 diagnostics=None):
         """
         This is not a user-facing class. See open_mdsdataset for argument
         documentation. The only ones which are distinct are.
@@ -338,6 +341,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         self.default_shape_3D = (self.nz, nyraw, self.nx)
         self.default_shape_2D = (nyraw, self.nx)
         self.llc_method=llc_method
+        
+        self.diagnostics=diagnostics
 
         # Now set up the corresponding coordinates.
         # Rather than assuming the dimension names, we use Comodo conventions
@@ -415,7 +420,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         self._all_grid_variables = _get_all_grid_variables(self.geometry,
                                                            self.layers)
         self._all_data_variables = _get_all_data_variables(self.data_dir,
-                                                           self.layers)
+                                                           self.layers,
+                                                           self.diagnostics)
 
         # The rest of the data has to be read from disk.
         # The list `prefixes` specifies file prefixes from which to infer
@@ -684,11 +690,14 @@ def _recursively_replace(item, search, replace):
         return item
 
 
-def _get_all_data_variables(data_dir, layers):
+def _get_all_data_variables(data_dir, layers, diagnostics):
     """"Put all the relevant data metadata into one big dictionary."""
     allvars = [state_variables]
     # add others from available_diagnostics.log
-    fname = os.path.join(data_dir, 'available_diagnostics.log')
+    if diagnostics is None:
+        fname = os.path.join(data_dir, 'available_diagnostics.log')
+    else:
+        fname = diagnostics
     if os.path.exists(fname):
         diag_file = fname
     else:
