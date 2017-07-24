@@ -207,18 +207,21 @@ volume_grid_variables = OrderedDict(
 layers_grid_variables = OrderedDict(
     layer_NAME_bounds = dict(dims=['l_b'], attrs=dict(
                 standard_name="ocean_layer_coordinate_NAME_bounds",
-                long_name="boundaries points of layer NAME"),
+                long_name="boundaries points of layer NAME",
+                axis="NAME", c_grid_axis_shift=-0.5),
             filename="layersNAME", slice=(slice(None),0,0)),
     layer_NAME_center = dict(dims=['l_c'], attrs=dict(
                 standard_name="ocean_layer_coordinate_NAME_center",
-                long_name="center points of layer NAME"),
+                long_name="center points of layer NAME",
+                axis="NAME"),
             filename="layersNAME", slice=(slice(None),0,0),
             # if we don't convert to array, dask can't tokenize
             # https://github.com/pydata/xarray/issues/1014
             transform=(lambda x: np.asarray(0.5*(x[1:] + x[:-1])))),
     layer_NAME_interface = dict(dims=['l_i'], attrs=dict(
                 standard_name="ocean_layer_coordinate_NAME_interface",
-                long_name="interface points of layer NAME"),
+                long_name="interface points of layer NAME",
+                axis="NAME", c_grid_axis_shift=-0.5),
             filename="layersNAME", slice=(slice(1,-1),0,0))
 )
 
