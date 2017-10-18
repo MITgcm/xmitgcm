@@ -101,7 +101,6 @@ def open_mdsdataset(data_dir, grid_dir=None,
     ----------
     .. [1] http://cfconventions.org/Data/cf-conventions/cf-conventions-1.7/build/ch04s04.html
     """
-
     # get frame info for history
     frame = inspect.currentframe()
     _, _, _, arg_values = inspect.getargvalues(frame)
