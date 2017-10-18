@@ -750,7 +750,7 @@ def test_drc_length(all_mds_datadirs):
 # of options, to identify if ref_date can trigger an error
 #
 @pytest.mark.parametrize("method", [True, False])
-def test_print_with_ref_date_grid(mds_datadirs_with_refdate, method):
+def test_tload_with_ref_date_grid(mds_datadirs_with_refdate, method):
     """With ref_date, without grid."""
     dirname, expected = mds_datadirs_with_refdate
 
@@ -758,10 +758,10 @@ def test_print_with_ref_date_grid(mds_datadirs_with_refdate, method):
                                  ref_date=expected['ref_date'], read_grid=method,
                                  delta_t=expected['delta_t'],
                                  geometry=expected['geometry'])
-    print(ds)
+    ds.time.load()
 
 @pytest.mark.parametrize("method", [True, False])
-def test_print_with_ref_date_swap(mds_datadirs_with_refdate, method):
+def test_tload_with_ref_date_swap(mds_datadirs_with_refdate, method):
     """With ref_date, without grid."""
     dirname, expected = mds_datadirs_with_refdate
 
@@ -769,7 +769,7 @@ def test_print_with_ref_date_swap(mds_datadirs_with_refdate, method):
                                  ref_date=expected['ref_date'], read_grid=True,
                                  delta_t=expected['delta_t'], swap_dims=method,
                                  geometry=expected['geometry'])
-    print(ds)
+    ds.time.load()
 
 @pytest.mark.parametrize("method", [True, False])
 def test_open_with_ref_date_grid(mds_datadirs_with_refdate, method):
