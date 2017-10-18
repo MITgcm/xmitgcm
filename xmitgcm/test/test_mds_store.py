@@ -749,78 +749,44 @@ def test_drc_length(all_mds_datadirs):
 # Series of tests which try to open a dataset with different combinations of
 # of options, to identify if ref_date can trigger an error
 #
-def test_print_with_ref_date_without_grid(mds_datadirs_with_refdate):
+@pytest.mark.parametrize("method", [True, False])
+def test_print_with_ref_date_grid(mds_datadirs_with_refdate, method):
     """With ref_date, without grid."""
     dirname, expected = mds_datadirs_with_refdate
 
     ds = xmitgcm.open_mdsdataset(dirname, iters='all', prefix=['S'],
-                                 ref_date=expected['ref_date'], read_grid=False,
+                                 ref_date=expected['ref_date'], read_grid=method,
                                  delta_t=expected['delta_t'],
                                  geometry=expected['geometry'])
     print(ds)
 
-def test_print_with_ref_date_with_grid(mds_datadirs_with_refdate):
+@pytest.mark.parametrize("method", [True, False])
+def test_print_with_ref_date_swap(mds_datadirs_with_refdate, method):
     """With ref_date, without grid."""
     dirname, expected = mds_datadirs_with_refdate
 
     ds = xmitgcm.open_mdsdataset(dirname, iters='all', prefix=['S'],
                                  ref_date=expected['ref_date'], read_grid=True,
-                                 delta_t=expected['delta_t'],
+                                 delta_t=expected['delta_t'], swap_dims=method,
                                  geometry=expected['geometry'])
     print(ds)
 
-def test_print_with_ref_date_with_swap(mds_datadirs_with_refdate):
+@pytest.mark.parametrize("method", [True, False])
+def test_open_with_ref_date_grid(mds_datadirs_with_refdate, method):
     """With ref_date, without grid."""
     dirname, expected = mds_datadirs_with_refdate
 
     ds = xmitgcm.open_mdsdataset(dirname, iters='all', prefix=['S'],
-                                 ref_date=expected['ref_date'], read_grid=True,
-                                 delta_t=expected['delta_t'], swap_dims=True,
-                                 geometry=expected['geometry'])
-    print(ds)
-
-def test_print_with_ref_date_without_swap(mds_datadirs_with_refdate):
-    """With ref_date, without grid."""
-    dirname, expected = mds_datadirs_with_refdate
-
-    ds = xmitgcm.open_mdsdataset(dirname, iters='all', prefix=['S'],
-                                 ref_date=expected['ref_date'], read_grid=True,
-                                 delta_t=expected['delta_t'], swap_dims=False,
-                                 geometry=expected['geometry'])
-    print(ds)
-
-def test_open_with_ref_date_without_grid(mds_datadirs_with_refdate):
-    """With ref_date, without grid."""
-    dirname, expected = mds_datadirs_with_refdate
-
-    ds = xmitgcm.open_mdsdataset(dirname, iters='all', prefix=['S'],
-                                 ref_date=expected['ref_date'], read_grid=False,
+                                 ref_date=expected['ref_date'], read_grid=method,
                                  delta_t=expected['delta_t'],
                                  geometry=expected['geometry'])
 
-def test_open_with_ref_date_with_grid(mds_datadirs_with_refdate):
+@pytest.mark.parametrize("method", [True, False])
+def test_open_with_ref_date_swap(mds_datadirs_with_refdate, method):
     """With ref_date, without grid."""
     dirname, expected = mds_datadirs_with_refdate
 
     ds = xmitgcm.open_mdsdataset(dirname, iters='all', prefix=['S'],
                                  ref_date=expected['ref_date'], read_grid=True,
-                                 delta_t=expected['delta_t'],
-                                 geometry=expected['geometry'])
-
-def test_open_with_ref_date_with_swap(mds_datadirs_with_refdate):
-    """With ref_date, without grid."""
-    dirname, expected = mds_datadirs_with_refdate
-
-    ds = xmitgcm.open_mdsdataset(dirname, iters='all', prefix=['S'],
-                                 ref_date=expected['ref_date'], read_grid=True,
-                                 delta_t=expected['delta_t'], swap_dims=True,
-                                 geometry=expected['geometry'])
-
-def test_open_with_ref_date_without_swap(mds_datadirs_with_refdate):
-    """With ref_date, without grid."""
-    dirname, expected = mds_datadirs_with_refdate
-
-    ds = xmitgcm.open_mdsdataset(dirname, iters='all', prefix=['S'],
-                                 ref_date=expected['ref_date'], read_grid=True,
-                                 delta_t=expected['delta_t'], swap_dims=False,
+                                 delta_t=expected['delta_t'], swap_dims=method,
                                  geometry=expected['geometry'])
