@@ -687,6 +687,7 @@ def _recursively_replace(item, search, replace):
 def _get_all_data_variables(data_dir, layers):
     """"Put all the relevant data metadata into one big dictionary."""
     allvars = [state_variables]
+    allvars.append(package_state_variables)
     # add others from available_diagnostics.log
     fname = os.path.join(data_dir, 'available_diagnostics.log')
     if os.path.exists(fname):
