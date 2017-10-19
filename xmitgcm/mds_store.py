@@ -19,7 +19,7 @@ from .variables import dimensions, \
     horizontal_coordinates_spherical, horizontal_coordinates_cartesian, \
     horizontal_coordinates_curvcart, \
     vertical_coordinates, horizontal_grid_variables, vertical_grid_variables, \
-    volume_grid_variables, state_variables, aliases
+    volume_grid_variables, state_variables, aliases, package_state_variables
 # would it be better to import mitgcm_variables and then automate the search
 # for variable dictionaries
 

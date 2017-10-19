@@ -394,6 +394,27 @@ for n in range(1,100):
 # unconventional variable names and no meta files
 aliases = {'Eta': 'ETAN', 'PhiBot': 'PHIBOT', 'Salt': 'SALT', 'Theta': 'THETA'}
 
+package_state_variables = {'KPPviscAz':(dims=['k_l','j','i'], attrs=dict(
+		 standard_name="KPP_vertical_eddy_visc", 
+                 long_name='KPP vertical eddy viscosity coefficient',
+		 units='m2 s-1')),
+		'KPPdiffKzS': (dims=['k_l','j','i'], attrs=dict(
+                 standard_name="KPP_diff_tracer_salt",
+                 long_name='KPP vertical diffusion coefficient for salt and tracers',
+                 units='m2 s-1'), 
+                'KPPdiffKzT': (dims=['k_l','j','i'], attrs=dict(
+                 standard_name="KPP_diff_temp",
+                 long_name='KPP vertical diffusion coefficient for heat',
+                 units='m2 s-1')),
+                'KPPghat' : (dims=['k_l','j','i'], attrs=dict(
+                 standard_name="KPP_non_local_coeff",
+                 long_name='non-local transfer coefficient',
+                 units='s m-2 ')),
+	        'KPPhbl' : (dims=['j','i'], attrs=dict(
+                 standard_name="KPP_boundary_layer",
+                 long_name='KPP boundary layer depth, bulk Ri criterion',
+                 units='m'))}
+			
 
 # Nptracers=99
 # _ptracers = { 'PTRACER%02d' % n :
