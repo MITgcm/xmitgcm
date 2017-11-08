@@ -496,6 +496,15 @@ def test_open_dataset_no_meta(all_mds_datadirs):
                 ds = xmitgcm.open_mdsdataset(dirname, prefix=['T', 'Eta'],
                                              nx=nx, ny=ny, nz=nz, **kwargs)
 
+    # try just hiding RC
+    with hide_file(dirname, 'RC.meta'):
+        if expected['geometry']=='llc':
+            ds = xmitgcm.open_mdsdataset(dirname, prefix=['T', 'Eta'],
+                                         nz=nz, **kwargs)
+        else:
+            ds = xmitgcm.open_mdsdataset(dirname, prefix=['T', 'Eta'],
+                                         nz=nz, **kwargs)
+
 
 def test_swap_dims(all_mds_datadirs):
     """See if we can swap dimensions."""
