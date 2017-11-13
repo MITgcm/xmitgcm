@@ -311,24 +311,28 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         [self._dimensions.append(k) for k in dimensions]
         self.llc = (self.geometry == 'llc')
 
-        # TODO: and maybe here a check for the presence of layers?
+        if nz is None:
+            self.nz = _guess_model_nz(self.grid_dir)
+        else:
+            self.nz = nz
+
 
         # we don't need to know ny if using llc
         if self.llc and (nx is not None):
             ny = nx
 
-        # Now we need to figure out the dimensions of the numerical domain,
-        # nx, ny, nz
+        # Now we need to figure out the horizontal dimensions nx, ny
         # nface is the number of llc faces
-        if (nz is not None) and (ny is not None) and (nz is not None):
+        if (nx is not None) and (ny is not None):
             # we have been passed enough information to determine the
             # dimensions without reading any files
-            self.nz, self.ny, self.nx = nz, ny, nx
+            self.ny, self.nx = ny, nx
             self.nface = LLC_NUM_FACES if self.llc else None
         else:
             # have to peek at the grid file metadata
-            self.nz, self.nface, self.ny, self.nx = (
-                _guess_model_dimensions(self.grid_dir, self.llc))
+            self.nface, self.ny, self.nx = (
+                _guess_model_horiz_dims(self.grid_dir, self.llc))
+        
         self.layers = _guess_layers(data_dir)
 
         if self.llc:
@@ -594,7 +598,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             del self._variables['var']
 
 
-def _guess_model_dimensions(data_dir, is_llc=False):
+def _guess_model_nz(data_dir):
     try:
         rc_meta = parse_meta_file(os.path.join(data_dir, 'RC.meta'))
         if len(rc_meta['dimList']) == 2:
@@ -603,6 +607,10 @@ def _guess_model_dimensions(data_dir, is_llc=False):
             nz = rc_meta['dimList'][2][2]
     except IOError:
         raise IOError("Couldn't find RC.meta file to infer nz.")
+    return nz
+
+
+def _guess_model_horiz_dims(data_dir, is_llc=False):
     try:
         xc_meta = parse_meta_file(os.path.join(data_dir, 'XC.meta'))
         nx = int(xc_meta['dimList'][0][0])
@@ -614,7 +622,7 @@ def _guess_model_dimensions(data_dir, is_llc=False):
         ny //= nface
     else:
         nface = None
-    return nz, nface, ny, nx
+    return nface, ny, nx
 
 
 def _guess_layers(data_dir):
