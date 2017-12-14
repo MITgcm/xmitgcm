@@ -195,8 +195,14 @@ def open_mdsdataset(data_dir, grid_dir=None,
     if grid_vars_to_coords:
         ds = _set_coords(ds)
 
-    if ref_date:
-        ds = xr.decode_cf(ds)
+    if ref_date and 'time' in ds:
+        # our own little hack for decoding cf datetimes
+        units = ds.time.attrs.get('units')
+        calendar = ds.time.attrs.get('calendar')
+        ds.time.data = (xr.conventions
+                        .decode_cf_datetime(ds.time.data, units=units,
+                                        calendar=calendar))
+
 
     # do we need more fancy logic (like open_dataset), or is this enough
     if chunks is not None:
@@ -517,7 +523,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
 
             vardata = read_mds(basename, iternum, endian=self.endian,
                            dtype=self.default_dtype,
-                           shape=data_shape, llc=self.llc)
+                           shape=data_shape, llc=self.llc,
+                           llc_method=self.llc_method)
 
         for vname, data in vardata.items():
             # we now have to revert to the original prefix once the file is read
