@@ -519,7 +519,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
 
             vardata = read_mds(basename, iternum, endian=self.endian,
                            dtype=self.default_dtype,
-                           shape=data_shape, llc=self.llc)
+                           shape=data_shape, llc=self.llc,
+                           llc_method=self.llc_method)
 
         for vname, data in vardata.items():
             # we now have to revert to the original prefix once the file is read
