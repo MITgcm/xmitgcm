@@ -715,12 +715,19 @@ def test_layers_diagnostics(layers_mds_datadirs):
         assert ds[var].dims == dims
 
 @pytest.mark.parametrize("method", ["smallchunks", "bigchunks"])
-def test_llc_dims(llc_mds_datadirs, method):
+@pytest.mark.parametrize("with_refdate", [True, False])
+def test_llc_dims(llc_mds_datadirs, method, with_refdate):
     """Check that the LLC file dimensions are correct."""
     dirname, expected = llc_mds_datadirs
+    if with_refdate:
+        kwargs = {'delta_t': expected['delta_t'],
+                  'refdate': expected['refdate']}
+    else:
+        kwargs = {}
     ds = xmitgcm.open_mdsdataset(dirname,
                             iters=expected['test_iternum'],
-                            geometry=expected['geometry'], llc_method=method)
+                            geometry=expected['geometry'], llc_method=method,
+                            **kwargs)
 
     nz, nface, ny, nx = expected['shape']
     nt = 1
@@ -732,6 +739,13 @@ def test_llc_dims(llc_mds_datadirs, method):
     assert ds.U.values.shape == (nt, nz, nface, ny, nx)
     assert ds.V.dims == ('time', 'k', 'face', 'j_g', 'i')
     assert ds.V.values.shape == (nt, nz, nface, ny, nx)
+
+    print(ds.U.chunks)
+    if method == "smallchunks":
+        assert ds.U.chunks == (nt*(1,), nz*(1,), nface*(1,), (ny,), (nx,))
+    elif method == "bigchunks":
+        assert ds.U.chunks == (nt*(1,), (nz,), nface*(1,), (ny,), (nx,))
+
 
 def test_drc_length(all_mds_datadirs):
     """Test that open_mdsdataset is adding an extra level to drC if it has length nr"""
