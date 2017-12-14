@@ -640,6 +640,10 @@ def test_date_parsing(mds_datadirs_with_refdate):
     for i, date in expected['expected_time']:
         assert ds.time[i].values == date
 
+    # since time was decoded, this encoding should be removed from attributes
+    assert 'units' not in ds.time.attrs
+    assert 'calendar' not in ds.time.attrs
+
 
 def test_parse_diagnostics(all_mds_datadirs):
     """Make sure we can parse the available_diagnostics.log file."""
