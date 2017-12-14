@@ -721,7 +721,7 @@ def test_llc_dims(llc_mds_datadirs, method, with_refdate):
     dirname, expected = llc_mds_datadirs
     if with_refdate:
         kwargs = {'delta_t': expected['delta_t'],
-                  'refdate': expected['refdate']}
+                  'ref_date': expected['ref_date']}
     else:
         kwargs = {}
     ds = xmitgcm.open_mdsdataset(dirname,
