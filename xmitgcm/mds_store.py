@@ -197,11 +197,20 @@ def open_mdsdataset(data_dir, grid_dir=None,
 
     if ref_date and 'time' in ds:
         # our own little hack for decoding cf datetimes
-        units = ds.time.attrs.get('units')
-        calendar = ds.time.attrs.get('calendar')
-        ds.time.data = (xr.conventions
-                        .decode_cf_datetime(ds.time.data, units=units,
-                                        calendar=calendar))
+        encoding = {}
+        units = ds.time.attrs.get('units') or ''
+        if 'since' in units:
+            calendar = ds.time.attrs.get('calendar')
+            encoding['units'] = units
+            del ds.time.attrs['units']
+            if calendar:
+                encoding['calendar'] = calendar
+                del ds.time.attrs['calendar']
+            ds.time.data = (xr.conventions
+                            .decode_cf_datetime(ds.time.data, units=units,
+                                            calendar=calendar))
+            # this doesn't seem to have any effect, so we remove it
+            #ds.time.encoding = encoding
 
 
     # do we need more fancy logic (like open_dataset), or is this enough
@@ -338,7 +347,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             # have to peek at the grid file metadata
             self.nface, self.ny, self.nx = (
                 _guess_model_horiz_dims(self.grid_dir, self.llc))
-        
+
         self.layers = _guess_layers(data_dir)
 
         if self.llc:
