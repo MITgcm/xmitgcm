@@ -389,10 +389,10 @@ for n in range(1,100):
                   units="")
    )
 for n in range(1,100):
-   trname = 'PTRtave%02d' % n
-   state_variables[trname] = dict(dims=['k','j','i'],
-       attrs=dict(standard_name='%s_concentration' % trname,
-                  long_name="Concentration of %s" % trname,
+   travename = 'PTRtave%02d' % n
+   state_variables[travename] = dict(dims=['k','j','i'],
+       attrs=dict(standard_name='%s_concentration' % travename,
+                  long_name="Concentration of %s" % travename,
                   units="")
    )
 
