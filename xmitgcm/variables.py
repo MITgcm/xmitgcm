@@ -386,7 +386,14 @@ for n in range(1,100):
    state_variables[trname] = dict(dims=['k','j','i'],
        attrs=dict(standard_name='%s_concentration' % trname,
                   long_name="Concentration of %s" % trname,
-                  units="kg m-3")
+                  units="")
+   )
+for n in range(1,100):
+   trname = 'PTRtave%02d' % n
+   state_variables[trname] = dict(dims=['k','j','i'],
+       attrs=dict(standard_name='%s_concentration' % trname,
+                  long_name="Concentration of %s" % trname,
+                  units="")
    )
 
 
@@ -395,13 +402,13 @@ for n in range(1,100):
 aliases = {'Eta': 'ETAN', 'PhiBot': 'PHIBOT', 'Salt': 'SALT', 'Theta': 'THETA'}
 
 package_state_variables = {'KPPviscAz':dict(dims=['k_l','j','i'], attrs=dict(
-		 standard_name="KPP_vertical_eddy_visc", 
+		 standard_name="KPP_vertical_eddy_visc",
                  long_name='KPP vertical eddy viscosity coefficient',
 		 units='m2 s-1')),
 		'KPPdiffKzS': dict(dims=['k_l','j','i'], attrs=dict(
                  standard_name="KPP_diff_tracer_salt",
                  long_name='KPP vertical diffusion coefficient for salt and tracers',
-                 units='m2 s-1')), 
+                 units='m2 s-1')),
                 'KPPdiffKzT': dict(dims=['k_l','j','i'], attrs=dict(
                  standard_name="KPP_diff_temp",
                  long_name='KPP vertical diffusion coefficient for heat',
@@ -414,7 +421,7 @@ package_state_variables = {'KPPviscAz':dict(dims=['k_l','j','i'], attrs=dict(
                  standard_name="KPP_boundary_layer",
                  long_name='KPP boundary layer depth, bulk Ri criterion',
                  units='m'))}
-			
+
 
 # Nptracers=99
 # _ptracers = { 'PTRACER%02d' % n :
