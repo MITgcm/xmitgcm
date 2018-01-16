@@ -34,7 +34,7 @@ Volume Weighting
 However, it is still not properly volume weighted.
 To take a volume-weighted average, you can do::
 
-    volume = ds.hFacC * ds.drC * ds.rA
+    volume = ds.hFacC * ds.drF * ds.rA
     (ds.S * volume).sum() / volume.sum()
     >>> <xarray.DataArray ()>
     array(34.779126627139945)
