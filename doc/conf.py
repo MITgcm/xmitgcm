@@ -15,6 +15,7 @@
 import sys
 import os
 import xmitgcm
+from subprocess import check_output, CalledProcessError
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -69,7 +70,6 @@ copyright = u'2016, xmitgcm developers'
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
-from subprocess import check_output, CalledProcessError
 
 
 def get_version():
