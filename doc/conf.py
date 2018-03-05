@@ -71,6 +71,7 @@ copyright = u'2016, xmitgcm developers'
 #
 from subprocess import check_output, CalledProcessError
 
+
 def get_version():
     """
     Return the latest tag (checkpoint) and, if there have
@@ -87,6 +88,7 @@ def get_version():
         return 'unknown version'
 
     return version.rstrip()
+
 
 # "version" is used for html build
 version = get_version()
