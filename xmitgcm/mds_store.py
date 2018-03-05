@@ -206,7 +206,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
             if calendar:
                 encoding['calendar'] = calendar
                 del ds.time.attrs['calendar']
-            ds.time.data = (xr.conventions
+            ds.time.data = (xr.coding.times
                             .decode_cf_datetime(ds.time.data, units=units,
                                             calendar=calendar))
             # this doesn't seem to have any effect, so we remove it
