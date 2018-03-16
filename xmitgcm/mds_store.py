@@ -749,7 +749,8 @@ def _concat_dicts(list_of_dicts):
     return result
 
 
-def _get_all_iternums(data_dir, file_prefixes=None, file_format='*.??????????.data'):
+def _get_all_iternums(data_dir, file_prefixes=None, 
+                      file_format='*.??????????.data'):
     """Scan a directory for all iteration number suffixes."""
     iternums = set()
     all_datafiles = glob(os.path.join(data_dir, file_format))
