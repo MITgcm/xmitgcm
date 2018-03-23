@@ -119,6 +119,12 @@ def open_mdsdataset(data_dir, grid_dir=None,
     if swap_dims and not read_grid:
         raise ValueError("If swap_dims==True, read_grid must be True.")
 
+    # if prefix is passed as a string, force it to be a list
+    if type(prefix) is str:
+        prefix = [prefix]
+    else:
+        pass
+
     # We either have a single iter, in which case we create a fresh store,
     # or a list of iters, in which case we combine.
     if iters == 'all':
