@@ -120,7 +120,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
         raise ValueError("If swap_dims==True, read_grid must be True.")
 
     # if prefix is passed as a string, force it to be a list
-    if type(prefix) is str:
+    if type(prefix) is str or unicode:
         prefix = [prefix]
     else:
         pass
