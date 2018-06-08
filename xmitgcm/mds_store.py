@@ -141,7 +141,6 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     these_prefixes = _get_all_matching_prefixes(
                         data_dir, iternum, prefix
                     )
-                    # don't care about order
                     if set(these_prefixes) != set(first_prefixes):
                         raise IOError("Could not find the expected file "
                                       "prefixes %s at iternum %g. (Instead "
@@ -750,7 +749,7 @@ def _concat_dicts(list_of_dicts):
 
 
 def _get_all_iternums(data_dir, file_prefixes=None,
-                      file_format='*.??????????.data'):
+                      file_format='*.??????????.data', ignore_pickup=True):
     """Scan a directory for all iteration number suffixes."""
     iternums = set()
     all_datafiles = glob(os.path.join(data_dir, file_format))
@@ -759,6 +758,9 @@ def _get_all_iternums(data_dir, file_prefixes=None,
     for f in all_datafiles:
         iternum = int(f[istart:iend])
         prefix = os.path.split(f[:istart-1])[-1]
+        # Only process iternums which have something more than pickups
+        if ignore_pickup and _is_pickup_prefix(prefix):
+            continue
         if file_prefixes is None:
             iternums.add(iternum)
         else:
