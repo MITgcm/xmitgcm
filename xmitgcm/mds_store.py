@@ -141,6 +141,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     these_prefixes = _get_all_matching_prefixes(
                         data_dir, iternum, prefix
                     )
+                    # don't care about order
                     if set(these_prefixes) != set(first_prefixes):
                         raise IOError("Could not find the expected file "
                                       "prefixes %s at iternum %g. (Instead "
