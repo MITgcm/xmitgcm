@@ -13,6 +13,7 @@ from io import StringIO
 import inspect
 import xarray as xr
 import dask.array as da
+import sys
 
 # we keep the metadata in its own module to keep this one cleaner
 from .variables import dimensions, \
@@ -25,9 +26,16 @@ from .variables import dimensions, \
 
 from .utils import parse_meta_file, read_mds, parse_available_diagnostics
 
+# Python2/3 compatibility
+if (sys.version_info > (3, 0)):
+    stringtypes = [str]
+else:
+    stringtypes = [str, unicode]
+
 # should we hard code this?
 LLC_NUM_FACES = 13
 LLC_FACE_DIMNAME = 'face'
+
 
 def open_mdsdataset(data_dir, grid_dir=None,
                     iters='all', prefix=None, read_grid=True,
@@ -120,7 +128,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
         raise ValueError("If swap_dims==True, read_grid must be True.")
 
     # if prefix is passed as a string, force it to be a list
-    if type(prefix) is str or unicode:
+    if type(prefix) in stringtypes:
         prefix = [prefix]
     else:
         pass
