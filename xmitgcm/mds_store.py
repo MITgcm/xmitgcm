@@ -28,13 +28,14 @@ from .utils import parse_meta_file, read_mds, parse_available_diagnostics
 
 # Python2/3 compatibility
 if (sys.version_info > (3, 0)):
-     stringtypes=[str]
+    stringtypes = [str]
 else:
-     stringtypes=[str,unicode]
+    stringtypes = [str, unicode]
 
 # should we hard code this?
 LLC_NUM_FACES = 13
 LLC_FACE_DIMNAME = 'face'
+
 
 def open_mdsdataset(data_dir, grid_dir=None,
                     iters='all', prefix=None, read_grid=True,
