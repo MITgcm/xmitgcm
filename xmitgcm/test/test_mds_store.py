@@ -226,14 +226,14 @@ def test_read_raw_data(tmpdir):
         _ = read_raw_data(fname, dtype, wrongshape)
 
     # test optional functionalities
-    shape = (5,15,10)
+    shape = (5, 15, 10)
     shape_subset = (15, 10)
     for dtype in [np.dtype('f8'), np.dtype('f4'), np.dtype('i4')]:
         testdata = np.zeros(shape, dtype)
         # create some test data
-        x = np.arange(shape[0],dtype=dtype)
+        x = np.arange(shape[0], dtype=dtype)
         for k in np.arange(shape[0]):
-            testdata[k,:,:] = x[k]
+            testdata[k, :, :] = x[k]
         # write to a file
         datafile = tmpdir.join("tmp.data")
         datafile.write_binary(testdata.tobytes())
@@ -241,20 +241,26 @@ def test_read_raw_data(tmpdir):
         # now test the function
         for k in np.arange(shape[0]):
             offset = (k * shape[1] * shape[2] * dtype.itemsize)
-            data = read_raw_data(fname, dtype, shape_subset,offset=offset,partial_read=True)
-            np.testing.assert_allclose(data, testdata[k,:,:])
+            data = read_raw_data(fname, dtype, shape_subset,
+                                 offset=offset, partial_read=True)
+            np.testing.assert_allclose(data, testdata[k, :, :])
 
         # test it breaks when it should
         with pytest.raises(IOError):
             # read with wrong shape
-            _ = read_raw_data(fname, dtype, shape_subset,offset=0,partial_read=False)
+            _ = read_raw_data(fname, dtype, shape_subset,
+                              offset=0, partial_read=False)
         with pytest.raises(ValueError):
             # use offset when trying to read global file
-            _ = read_raw_data(fname, dtype, shape_subset,offset=4,partial_read=False)
+            _ = read_raw_data(fname, dtype, shape_subset,
+                              offset=4, partial_read=False)
             # offset is too big
-            _ = read_raw_data(fname, dtype, shape,offset=(shape[0]*shape[1]*shape[2]*dtype.itemsize),partial_read=True)
+            _ = read_raw_data(fname, dtype, shape, offset=(
+                shape[0]*shape[1]*shape[2]*dtype.itemsize), partial_read=True)
 
 # a meta test
+
+
 def test_file_hiding(all_mds_datadirs):
     dirname, _ = all_mds_datadirs
     basenames = ['XC.data', 'XC.meta']

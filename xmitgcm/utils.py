@@ -229,7 +229,8 @@ def read_raw_data(datafile, dtype, shape, use_mmap=False, offset=0,
     if not partial_read:
         # first check that partial_read and offset are used together
         if offset != 0:
-            raise ValueError('When partial_read==False, offset will not be read')
+            raise ValueError(
+                'When partial_read==False, offset will not be read')
         # second check to be sure there is the right number of bytes in the file
         if expected_number_of_bytes != actual_number_of_bytes:
             raise IOError('File `%s` does not have the correct size '
