@@ -211,7 +211,7 @@ def read_raw_data(datafile, dtype, shape, use_mmap=False, offset=0,
     use_memmap : bool, optional
         Whether to read the data using a numpy.memmap
     offset : int, optional
-        Offset to apply on read
+        Offset (in bytes) to apply on read
     order : str, optional
         Row/Column Major = 'C' or 'F'
     partial_read : bool, optional
@@ -225,9 +225,12 @@ def read_raw_data(datafile, dtype, shape, use_mmap=False, offset=0,
 
     number_of_values = reduce(lambda x, y: x * y, shape)
     expected_number_of_bytes = number_of_values * dtype.itemsize
+    actual_number_of_bytes = os.path.getsize(datafile)
     if not partial_read:
-        # first check to be sure there is the right number of bytes in the file
-        actual_number_of_bytes = os.path.getsize(datafile)
+        # first check that partial_read and offset are used together
+        if offset != 0:
+            raise ValueError('When partial_read==False, offset will not be read')
+        # second check to be sure there is the right number of bytes in the file
         if expected_number_of_bytes != actual_number_of_bytes:
             raise IOError('File `%s` does not have the correct size '
                           '(expected %g, found %g)' %
@@ -236,6 +239,10 @@ def read_raw_data(datafile, dtype, shape, use_mmap=False, offset=0,
                            actual_number_of_bytes))
     else:
         pass
+
+    if offset >= actual_number_of_bytes:
+        raise ValueError('bytes offset %g is greater than file size %g' %
+                         (offset, actual_number_of_bytes))
 
     with open(datafile, 'rb') as f:
         if use_mmap:
