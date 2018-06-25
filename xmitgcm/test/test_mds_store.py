@@ -244,19 +244,30 @@ def test_read_raw_data(tmpdir):
             data = read_raw_data(fname, dtype, shape_subset,
                                  offset=offset, partial_read=True)
             np.testing.assert_allclose(data, testdata[k, :, :])
+            assert isinstance(data, np.ndarray) and not isinstance(data, np.memmap)
+            # check memmap
+            mdata = read_raw_data(fname, dtype, shape_subset,
+                                  offset=offset, partial_read=True,use_mmap=True)
+            assert isinstance(mdata, np.memmap)
 
         # test it breaks when it should
         with pytest.raises(IOError):
             # read with wrong shape
             _ = read_raw_data(fname, dtype, shape_subset,
                               offset=0, partial_read=False)
+            _ = read_raw_data(fname, dtype, shape_subset,
+                              offset=0, partial_read=False,use_mmap=True)
         with pytest.raises(ValueError):
             # use offset when trying to read global file
             _ = read_raw_data(fname, dtype, shape_subset,
                               offset=4, partial_read=False)
+            _ = read_raw_data(fname, dtype, shape_subset,
+                              offset=4, partial_read=False,use_mmap=True)
             # offset is too big
             _ = read_raw_data(fname, dtype, shape, offset=(
                 shape[0]*shape[1]*shape[2]*dtype.itemsize), partial_read=True)
+            _ = read_raw_data(fname, dtype, shape, offset=(
+                shape[0]*shape[1]*shape[2]*dtype.itemsize), partial_read=True,use_mmap=True)
 
 # a meta test
 
