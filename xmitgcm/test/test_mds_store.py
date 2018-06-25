@@ -248,7 +248,8 @@ def test_read_raw_data(tmpdir):
                 data, np.memmap)
             # check memmap
             mdata = read_raw_data(fname, dtype, shape_subset,
-                                  offset=offset, partial_read=True, use_mmap=True)
+                                  offset=offset, partial_read=True,
+                                  use_mmap=True)
             assert isinstance(mdata, np.memmap)
 
         # test it breaks when it should
