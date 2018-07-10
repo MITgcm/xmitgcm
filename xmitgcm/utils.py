@@ -240,7 +240,13 @@ def read_raw_data(datafile, dtype, shape, use_mmap=False, offset=0,
                            actual_number_of_bytes))
     else:
         pass
-    assert(offset < actual_number_of_bytes), 'offset greater than filesize'
+
+    if offset < actual_number_of_bytes:
+        pass
+    else:
+        raise ValueError('bytes offset %g is greater than file size %g' %
+                         (offset, actual_number_of_bytes))
+
     with open(datafile, 'rb') as f:
         if use_mmap:
             data = np.memmap(f, dtype=dtype, mode='r', offset=offset,
