@@ -264,11 +264,12 @@ def test_read_raw_data(tmpdir,dtype):
             _ = read_raw_data(fname, dtype, shape_subset,
                               offset=4, partial_read=False, use_mmap=True)
             # offset is too big
-            _ = read_raw_data(fname, dtype, shape, offset=(
-                shape[0]*shape[1]*shape[2]*dtype.itemsize), partial_read=True)
-            _ = read_raw_data(fname, dtype, shape, offset=(
-                shape[0]*shape[1]*shape[2]*dtype.itemsize), partial_read=True,
-                use_mmap=True)
+           for k in np.arange(50):
+                _ = read_raw_data(fname, dtype, shape, offset=(
+                    shape[0]*shape[1]*shape[2]*dtype.itemsize), partial_read=True)
+                _ = read_raw_data(fname, dtype, shape, offset=(
+                    shape[0]*shape[1]*shape[2]*dtype.itemsize), partial_read=True,
+                    use_mmap=True)
 
 # a meta test
 def test_file_hiding(all_mds_datadirs):
