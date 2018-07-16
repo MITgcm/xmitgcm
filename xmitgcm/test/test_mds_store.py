@@ -255,17 +255,21 @@ def test_read_raw_data(tmpdir,dtype):
             # read with wrong shape
             _ = read_raw_data(fname, dtype, shape_subset,
                               offset=0, partial_read=False)
+        with pytest.raises(IOError):
             _ = read_raw_data(fname, dtype, shape_subset,
                               offset=0, partial_read=False, use_mmap=True)
         with pytest.raises(ValueError):
             # use offset when trying to read global file
             _ = read_raw_data(fname, dtype, shape_subset,
                               offset=4, partial_read=False)
+        with pytest.raises(ValueError):
             _ = read_raw_data(fname, dtype, shape_subset,
                               offset=4, partial_read=False, use_mmap=True)
             # offset is too big
+        with pytest.raises(ValueError):
             _ = read_raw_data(fname, dtype, shape, offset=(
                 shape[0]*shape[1]*shape[2]*dtype.itemsize), partial_read=True)
+        with pytest.raises(ValueError):
             _ = read_raw_data(fname, dtype, shape, offset=(
                 shape[0]*shape[1]*shape[2]*dtype.itemsize), partial_read=True,
                 use_mmap=True)
