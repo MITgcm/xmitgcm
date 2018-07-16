@@ -198,33 +198,81 @@ def test_parse_meta(tmpdir):
     for k, v in expected.items():
         assert result[k] == v
 
-
-def test_read_raw_data(tmpdir):
+@pytest.mark.parametrize("dtype", [np.dtype('f8'), np.dtype('f4'), np.dtype('i4')])
+def test_read_raw_data(tmpdir,dtype):
     """Check our utility for reading raw data."""
 
     from xmitgcm.utils import read_raw_data
     shape = (2, 4)
-    for dtype in [np.dtype('f8'), np.dtype('f4'), np.dtype('i4')]:
-        # create some test data
-        testdata = np.zeros(shape, dtype)
-        # write to a file
-        datafile = tmpdir.join("tmp.data")
-        datafile.write_binary(testdata.tobytes())
-        fname = str(datafile)
-        # now test the function
-        data = read_raw_data(fname, dtype, shape)
-        np.testing.assert_allclose(data, testdata)
-        # interestingly, memmaps are also ndarrays, but not vice versa
-        assert isinstance(data, np.ndarray) and not isinstance(data, np.memmap)
-        # check memmap
-        mdata = read_raw_data(fname, dtype, shape, use_mmap=True)
-        assert isinstance(mdata, np.memmap)
+    # create some test data
+    testdata = np.zeros(shape, dtype)
+    # write to a file
+    datafile = tmpdir.join("tmp.data")
+    datafile.write_binary(testdata.tobytes())
+    fname = str(datafile)
+    # now test the function
+    data = read_raw_data(fname, dtype, shape)
+    np.testing.assert_allclose(data, testdata)
+    # interestingly, memmaps are also ndarrays, but not vice versa
+    assert isinstance(data, np.ndarray) and not isinstance(data, np.memmap)
+    # check memmap
+    mdata = read_raw_data(fname, dtype, shape, use_mmap=True)
+    assert isinstance(mdata, np.memmap)
 
     # make sure errors are correct
     wrongshape = (2, 5)
     with pytest.raises(IOError):
         _ = read_raw_data(fname, dtype, wrongshape)
 
+    # test optional functionalities
+    shape = (5, 15, 10)
+    shape_subset = (15, 10)
+    testdata = np.zeros(shape, dtype)
+    # create some test data
+    x = np.arange(shape[0], dtype=dtype)
+    for k in np.arange(shape[0]):
+        testdata[k, :, :] = x[k]
+    # write to a file
+    datafile = tmpdir.join("tmp.data")
+    datafile.write_binary(testdata.tobytes())
+    fname = str(datafile)
+    # now test the function
+    for k in np.arange(shape[0]):
+        offset = (k * shape[1] * shape[2] * dtype.itemsize)
+        data = read_raw_data(fname, dtype, shape_subset,
+                             offset=offset, partial_read=True)
+        np.testing.assert_allclose(data, testdata[k, :, :])
+        assert isinstance(data, np.ndarray) and not isinstance(
+            data, np.memmap)
+        # check memmap
+        mdata = read_raw_data(fname, dtype, shape_subset,
+                              offset=offset, partial_read=True,
+                              use_mmap=True)
+        assert isinstance(mdata, np.memmap)
+
+        # test it breaks when it should
+        with pytest.raises(IOError):
+            # read with wrong shape
+            _ = read_raw_data(fname, dtype, shape_subset,
+                              offset=0, partial_read=False)
+        with pytest.raises(IOError):
+            _ = read_raw_data(fname, dtype, shape_subset,
+                              offset=0, partial_read=False, use_mmap=True)
+        with pytest.raises(ValueError):
+            # use offset when trying to read global file
+            _ = read_raw_data(fname, dtype, shape_subset,
+                              offset=4, partial_read=False)
+        with pytest.raises(ValueError):
+            _ = read_raw_data(fname, dtype, shape_subset,
+                              offset=4, partial_read=False, use_mmap=True)
+            # offset is too big
+        with pytest.raises(ValueError):
+            _ = read_raw_data(fname, dtype, shape, offset=(
+                shape[0]*shape[1]*shape[2]*dtype.itemsize), partial_read=True)
+        with pytest.raises(ValueError):
+            _ = read_raw_data(fname, dtype, shape, offset=(
+                shape[0]*shape[1]*shape[2]*dtype.itemsize), partial_read=True,
+                use_mmap=True)
 
 # a meta test
 def test_file_hiding(all_mds_datadirs):

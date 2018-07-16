@@ -196,7 +196,8 @@ def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
         return out
 
 
-def read_raw_data(datafile, dtype, shape, use_mmap=False):
+def read_raw_data(datafile, dtype, shape, use_mmap=False, offset=0,
+                  order='C', partial_read=False):
     """Read a raw binary file and shape it.
 
     PARAMETERS
@@ -209,6 +210,12 @@ def read_raw_data(datafile, dtype, shape, use_mmap=False):
         Shape of the data
     use_memmap : bool, optional
         Whether to read the data using a numpy.memmap
+    offset : int, optional
+        Offset (in bytes) to apply on read
+    order : str, optional
+        Row/Column Major = 'C' or 'F'
+    partial_read : bool, optional
+        If reading part of the file
 
     RETURNS
     -------
@@ -216,25 +223,40 @@ def read_raw_data(datafile, dtype, shape, use_mmap=False):
         The data (or a memmap to it)
     """
 
-    #print("Reading raw data in %s" % datafile)
-    # first check to be sure there is the right number of bytes in the file
     number_of_values = reduce(lambda x, y: x * y, shape)
     expected_number_of_bytes = number_of_values * dtype.itemsize
     actual_number_of_bytes = os.path.getsize(datafile)
-    if expected_number_of_bytes != actual_number_of_bytes:
-        raise IOError('File `%s` does not have the correct size '
-                      '(expected %g, found %g)' %
-                      (datafile,
-                       expected_number_of_bytes,
-                       actual_number_of_bytes))
-    if use_mmap:
-        # print("Reading %s using memmap" % datafile)
-        d = np.memmap(datafile, dtype, 'r')
+    if not partial_read:
+        # first check that partial_read and offset are used together
+        if offset != 0:
+            raise ValueError(
+                'When partial_read==False, offset will not be read')
+        # second check to be sure there is the right number of bytes in file
+        if expected_number_of_bytes != actual_number_of_bytes:
+            raise IOError('File `%s` does not have the correct size '
+                          '(expected %g, found %g)' %
+                          (datafile,
+                           expected_number_of_bytes,
+                           actual_number_of_bytes))
     else:
-        # print("Reading %s using fromfile" % datafile)
-        d = np.fromfile(datafile, dtype)
-    d.shape = shape
-    return d
+        pass
+
+    if offset < actual_number_of_bytes:
+        pass
+    else:
+        raise ValueError('bytes offset %g is greater than file size %g' %
+                         (offset, actual_number_of_bytes))
+
+    with open(datafile, 'rb') as f:
+        if use_mmap:
+            data = np.memmap(f, dtype=dtype, mode='r', offset=offset,
+                             shape=tuple(shape), order=order)
+        else:
+            f.seek(offset)
+            data = np.fromfile(f, dtype=dtype, count=number_of_values)
+            data = data.reshape(shape, order=order)
+    data.shape = shape
+    return data
 
 
 def parse_available_diagnostics(fname, layers={}):
