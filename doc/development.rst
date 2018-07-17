@@ -4,6 +4,24 @@ Development
 Release History
 ---------------
 
+v.0.2.2 (2018-07-18)
+~~~~~~~~~~~~~
+  - Extend capabilities of read_raw_data (:issue:`84`)
+  - Fix the problem with testing type of prefix (:issue:`83`)
+  - Cast prefix to list if it isn't already one (:issue:`79`)
+  - Generalizes _get_all_iternums in order to handle compressed data (:issue:`77`)
+  - Extract version number from git tag (:issue:`72`)
+  - Adding .stickler.yml (:issue:`70`)
+  - Added functionality to read PTRtave files (:issue:`63`)
+  - Update examples.rst (:issue:`65`)
+  - fix time encoding (:issue:`61`)
+  - Fix llc chunking (:issue:`60`)
+  - Test refactor (:issue:`54`)
+  - Kpp added properly (:issue:`55`)
+  - Tests for ref_date issue (:issue:`53`)
+  - Add python 3.6 testing (:issue:`52`)
+  - Added layers axis attribute (:issue:`47`)
+
 v.0.2.1 (2017-05-31)
 ~~~~~~~~~~~~~
   - Fix to ensure that grid indices are always interger dtype.
