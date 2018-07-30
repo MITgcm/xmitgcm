@@ -1,7 +1,7 @@
-name: xgcm
+name: xmitgcm
 dependencies:
   - python=2.7
   - xarray
   - dask
-  - numpydoc=0.5
-  - sphinx=1.2.3
+  - numpydoc=0.7
+  - sphinx=1.7.5
