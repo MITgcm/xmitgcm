@@ -580,16 +580,16 @@ def read_generic_data(variable, metadata, use_mmap=True):
     if (metadata['nx'] == 1) and (metadata['ny'] == 1) and \
        (len(metadata['vars']) == 1):
             # vertical coordinate
-            data_raw = read_raw_data(metadata['filename'], metadata['dtype'],
-                                     (metadata['nz'],), use_mmap=use_mmap,
-                                     offset=0, order='C', partial_read=False)
+        data_raw = read_raw_data(metadata['filename'], metadata['dtype'],
+                                 (metadata['nz'],), use_mmap=use_mmap,
+                                 offset=0, order='C', partial_read=False)
 
-            shape = (metadata['nt'], metadata['nz'], 1,
-                     metadata['nx'], metadata['nx'])
-            data_raw = np.reshape(data_raw, shape)
-            chunks = (metadata['nt'], 1, 1,
-                      metadata['nx'], metadata['nx'])
-            data = dsa.from_array(data_raw, chunks=chunks)
+        shape = (metadata['nt'], metadata['nz'], 1,
+                 metadata['nx'], metadata['nx'])
+        data_raw = np.reshape(data_raw, shape)
+        chunks = (metadata['nt'], 1, 1,
+                  metadata['nx'], metadata['nx'])
+        data = dsa.from_array(data_raw, chunks=chunks)
 
     else:
         if metadata['has_faces']:
