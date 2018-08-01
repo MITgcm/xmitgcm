@@ -550,6 +550,7 @@ def _llc_data_shape(llc_id, nz=None):
     # no, not in this function
     return data_shape
 
+
 def read_all_variables(variable_list, metadata, use_mmap=True):
     ''' return a dictionary of dask arrays
     variable_list : list
@@ -565,6 +566,7 @@ def read_all_variables(variable_list, metadata, use_mmap=True):
 
     return out
 
+
 def read_generic_data(variable, metadata, use_mmap=True):
     ''' return dask array for variable using the given metadata
     variable : string
@@ -576,24 +578,25 @@ def read_generic_data(variable, metadata, use_mmap=True):
     '''
 
     if (metadata['nx'] == 1) and (metadata['ny'] == 1) and
-       (len(metadata['vars']) == 1):
-        # vertical coordinate
-        data_raw = read_raw_data(metadata['filename'], metadata['dtype'],
-                                 (metadata['nz'],), use_mmap=use_mmap, offset=0,
-                                 order='C', partial_read=False)
+        (len(metadata['vars']) == 1):
+            # vertical coordinate
+            data_raw = read_raw_data(metadata['filename'], metadata['dtype'],
+                                     (metadata['nz'],
+                                      ), use_mmap=use_mmap, offset=0,
+                                     order='C', partial_read=False)
 
-        shape = (metadata['nt'], metadata['nz'], 1,
-                 metadata['nx'], metadata['nx'])
-        data_raw = np.reshape(data_raw,shape)
-        chunks = (metadata['nt'], 1, 1,
-                  metadata['nx'], metadata['nx'])
-        data = dsa.from_array(data_raw, chunks=chunks)
+            shape = (metadata['nt'], metadata['nz'], 1,
+                     metadata['nx'], metadata['nx'])
+            data_raw = np.reshape(data_raw, shape)
+            chunks = (metadata['nt'], 1, 1,
+                      metadata['nx'], metadata['nx'])
+            data = dsa.from_array(data_raw, chunks=chunks)
 
     else:
         if metadata['has_faces']:
             def load_chunk(face, lev, rec):
-                return _read_xy_chunk(variable,metadata,rec=rec,lev=lev,
-                                      face=face,use_mmap=use_mmap)[None, None, None]
+                return _read_xy_chunk(variable, metadata, rec=rec, lev=lev,
+                                      face=face, use_mmap=use_mmap)[None, None, None]
 
             chunks = (1, 1, 1, metadata['nx'], metadata['nx'])
             shape = (metadata['nt'], metadata['nz'], len(metadata['face_facets']),
@@ -601,29 +604,32 @@ def read_generic_data(variable, metadata, use_mmap=True):
             name = 'llc-' + tokenize(metadata['filename'])
 
             dsk = {(name, rec, lev, face, 0, 0): (load_chunk, face,
-                                                     lev , rec)
-                     for face in range(len(metadata['face_facets']))
-                     for lev in range(metadata['nz'])
-                     for rec in range(metadata['nt'])}
+                                                  lev, rec)
+                   for face in range(len(metadata['face_facets']))
+                   for lev in range(metadata['nz'])
+                   for rec in range(metadata['nt'])}
 
-            data = dsa.Array(dsk, name, chunks, dtype=metadata['dtype'], shape=shape)
+            data = dsa.Array(dsk, name, chunks,
+                             dtype=metadata['dtype'], shape=shape)
         else:
             def load_chunk(lev, rec):
-                return _read_xy_chunk(variable,metadata,rec=rec,lev=lev,
-                                      face=0,use_mmap=use_mmap)[None, None]
+                return _read_xy_chunk(variable, metadata, rec=rec, lev=lev,
+                                      face=0, use_mmap=use_mmap)[None, None]
 
             chunks = (1, 1, metadata['ny'], metadata['nx'])
             shape = (metadata['nt'], metadata['nz'],
                      metadata['ny'], metadata['nx'])
             name = 'reg-' + tokenize(metadata['filename'])
 
-            dsk = {(name, rec, lev, 0, 0): (load_chunk, lev , rec)
-                     for lev in range(metadata['nz'])
-                     for rec in range(metadata['nt'])}
+            dsk = {(name, rec, lev, 0, 0): (load_chunk, lev, rec)
+                   for lev in range(metadata['nz'])
+                   for rec in range(metadata['nt'])}
 
-            data = dsa.Array(dsk, name, chunks, dtype=metadata['dtype'], shape=shape)
+            data = dsa.Array(dsk, name, chunks,
+                             dtype=metadata['dtype'], shape=shape)
 
     return data
+
 
 def _read_xy_chunk(variable, metadata, rec=0, lev=0, face=0, use_mmap=False):
     ''' read a 2d chunk along (x,y)
@@ -655,31 +661,38 @@ def _read_xy_chunk(variable, metadata, rec=0, lev=0, face=0, use_mmap=False):
         # inspect its dimensions
         dims = metadata['dims_vars'][jvar]
         # compute the byte size of this variable
-        nbytes_thisvar=1*nbytes
+        nbytes_thisvar = 1*nbytes
         for dim in dims:
-            nbytes_thisvar=nbytes_thisvar*metadata[dim]
+            nbytes_thisvar = nbytes_thisvar*metadata[dim]
         # update offset from previous variables
-        offset_vars=offset_vars+nbytes_thisvar
+        offset_vars = offset_vars+nbytes_thisvar
 
     # 2. get dimensions of desired variable
     dims = metadata['dims_vars'][idx_var]
     # set values to 1 by default
-    nx=1 ; ny=1 ; nz=1 ; nt=1
+    nx = 1
+    ny = 1
+    nz = 1
+    nt = 1
     # update with true values
-    if 'nx' in dims : nx=metadata['nx']
-    if 'ny' in dims : ny=metadata['ny']
-    if 'nz' in dims : nz=metadata['nz']
-    if 'nt' in dims : nt=metadata['nt']
+    if 'nx' in dims:
+        nx = metadata['nx']
+    if 'ny' in dims:
+        ny = metadata['ny']
+    if 'nz' in dims:
+        nz = metadata['nz']
+    if 'nt' in dims:
+        nt = metadata['nt']
 
     # 3. compute offset from previous records of current variable
-    if ( rec > nt-1):
+    if (rec > nt-1):
         raise ValueError("time record %g greater than number of records %g" %
                          (rec, nt))
     else:
         offset_timerecords = rec * nz * ny * nx * nbytes
 
     # 4. compute offset from previous vertical levels of current variable
-    if ( lev > nz-1):
+    if (lev > nz-1):
         raise ValueError("level %g is greater than number of levels %g" %
                          (lev, nz))
     else:
@@ -694,29 +707,29 @@ def _read_xy_chunk(variable, metadata, rec=0, lev=0, face=0, use_mmap=False):
         facet_origin = metadata['face_facets'][face]
         # compute the offset from previous facets
         ny_facets = np.array(metadata['ny_facets'])
-        nyglo_facets = np.concatenate(([0],ny_facets.cumsum()[:-1]),axis=0)
+        nyglo_facets = np.concatenate(([0], ny_facets.cumsum()[:-1]), axis=0)
         offset_facets = nyglo_facets[facet_origin] * metadata['nx'] * nbytes
         # update offset
         offset = offset + offset_facets
         # shape if shape of the facet
-        shape = (metadata['ny_facets'][facet_origin],nx,)
+        shape = (metadata['ny_facets'][facet_origin], nx,)
     else:
         # no need to update offset and shape is simply:
-        shape = (ny,nx,)
+        shape = (ny, nx,)
 
     # check if we do a partial read of the file
     if (nt > 1) or (nz > 1) or (len(metadata['vars']) > 1) or metadata['has_faces']:
-        partial_read=True
+        partial_read = True
     else:
-        partial_read=False
+        partial_read = False
 
     # define the order (row/column major)
     if metadata['has_faces']:
         # in llc, we can have either C or F
-        order=metadata['facet_orders'][facet_origin]
+        order = metadata['facet_orders'][facet_origin]
     else:
         # in conventional grids, it's in C
-        order= 'C'
+        order = 'C'
 
     # 7. Do the actual read
     data_raw = read_raw_data(metadata['filename'], metadata['dtype'],
@@ -732,8 +745,10 @@ def _read_xy_chunk(variable, metadata, rec=0, lev=0, face=0, use_mmap=False):
         else:
             nypad_before = metadata['pad_before_y']
 
-        pad_before = dsa.from_array(np.zeros((nypad_before,nx)),chunks=(nypad_before,nx))
-        ddata_padded_before = dsa.concatenate((pad_before,ddata_interior), axis=0)
+        pad_before = dsa.from_array(
+            np.zeros((nypad_before, nx)), chunks=(nypad_before, nx))
+        ddata_padded_before = dsa.concatenate(
+            (pad_before, ddata_interior), axis=0)
     else:
         ddata_padded_before = ddata_interior
 
@@ -743,8 +758,10 @@ def _read_xy_chunk(variable, metadata, rec=0, lev=0, face=0, use_mmap=False):
         else:
             nypad_after = metadata['pad_after_y']
 
-        pad_after = dsa.from_array(np.zeros((nypad_after,nx)),chunks=(nypad_after,nx))
-        ddata_padded_after = dsa.concatenate((ddata_padded_before,pad_after), axis=0)
+        pad_after = dsa.from_array(
+            np.zeros((nypad_after, nx)), chunks=(nypad_after, nx))
+        ddata_padded_after = dsa.concatenate(
+            (ddata_padded_before, pad_after), axis=0)
     else:
         ddata_padded_after = ddata_padded_before
 
@@ -763,4 +780,3 @@ def _read_xy_chunk(variable, metadata, rec=0, lev=0, face=0, use_mmap=False):
             data = data.transpose()
 
     return data
-
