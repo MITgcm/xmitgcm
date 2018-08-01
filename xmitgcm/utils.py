@@ -557,8 +557,8 @@ def read_all_variables(variable_list, metadata, use_mmap=True):
                     list of MITgcm variables, from fldList in .meta
     metadata      : dict
                     internal metadata for binary file
-    use_mmap : bool, optional
-               Whether to read the data using a numpy.memmap
+    use_mmap      : bool, optional
+                    Whether to read the data using a numpy.memmap
     '''
     out = []
     for variable in variable_list:
@@ -577,13 +577,12 @@ def read_generic_data(variable, metadata, use_mmap=True):
                Whether to read the data using a numpy.memmap
     '''
 
-    if (metadata['nx'] == 1) and (metadata['ny'] == 1) and
-        (len(metadata['vars']) == 1):
+    if (metadata['nx'] == 1) and (metadata['ny'] == 1) and \
+       (len(metadata['vars']) == 1):
             # vertical coordinate
             data_raw = read_raw_data(metadata['filename'], metadata['dtype'],
-                                     (metadata['nz'],
-                                      ), use_mmap=use_mmap, offset=0,
-                                     order='C', partial_read=False)
+                                     (metadata['nz'],), use_mmap=use_mmap,
+                                     offset=0, order='C', partial_read=False)
 
             shape = (metadata['nt'], metadata['nz'], 1,
                      metadata['nx'], metadata['nx'])
@@ -596,10 +595,12 @@ def read_generic_data(variable, metadata, use_mmap=True):
         if metadata['has_faces']:
             def load_chunk(face, lev, rec):
                 return _read_xy_chunk(variable, metadata, rec=rec, lev=lev,
-                                      face=face, use_mmap=use_mmap)[None, None, None]
+                                      face=face, use_mmap=use_mmap)[None,
+                                                                    None, None]
 
             chunks = (1, 1, 1, metadata['nx'], metadata['nx'])
-            shape = (metadata['nt'], metadata['nz'], len(metadata['face_facets']),
+            shape = (metadata['nt'], metadata['nz'],
+                     len(metadata['face_facets']),
                      metadata['nx'], metadata['nx'])
             name = 'llc-' + tokenize(metadata['filename'])
 
@@ -718,7 +719,8 @@ def _read_xy_chunk(variable, metadata, rec=0, lev=0, face=0, use_mmap=False):
         shape = (ny, nx,)
 
     # check if we do a partial read of the file
-    if (nt > 1) or (nz > 1) or (len(metadata['vars']) > 1) or metadata['has_faces']:
+    if (nt > 1) or (nz > 1) or (len(metadata['vars']) > 1) or \
+       metadata['has_faces']:
         partial_read = True
     else:
         partial_read = False
