@@ -399,17 +399,17 @@ def test_read_xy_chunk(all_mds_datadirs, memmap):
 
     dirname, expected = all_mds_datadirs
 
-    metadata = expected
-    metadata.update({'filename': dirname + '/' + 'T.' +
-                     str(metadata['test_iternum']).zfill(10) +
-                     '.data', 'vars': ['T'], 'endian': '>'})
+    file_metadata = expected
+    file_metadata.update({'filename': dirname + '/' + 'T.' +
+                           str(file_metadata['test_iternum']).zfill(10) +
+                           '.data', 'vars': ['T'], 'endian': '>'})
     # set the size of dimensions (could be changed in _experiments)
-    if metadata['geometry'] in ['llc']:
-        nx = metadata['shape'][3]
-        metadata.update({'nx': metadata['shape'][3],
-                         'ny': metadata['shape'][2],
-                         'nface': metadata['shape'][1],
-                         'nz': metadata['shape'][0],
+    if file_metadata['geometry'] in ['llc']:
+        nx = file_metadata['shape'][3]
+        file_metadata.update({'nx': file_metadata['shape'][3],
+                         'ny': file_metadata['shape'][2],
+                         'nface': file_metadata['shape'][1],
+                         'nz': file_metadata['shape'][0],
                          'dims_vars': [('nz','nface','ny','nx')],
                          'has_faces': True,
                          'ny_facets': [3*nx,3*nx,nx,3*nx,3*nx],
@@ -422,13 +422,13 @@ def test_read_xy_chunk(all_mds_datadirs, memmap):
                                             False, False, True, True, True,
                                             True, True, True]})
     else:
-        metadata.update({'nx': metadata['shape'][2],
-                         'ny': metadata['shape'][1],
-                         'nz': metadata['shape'][0],
-                         'dims_vars': [('nz','nface','ny','nx')],
+        file_metadata.update({'nx': file_metadata['shape'][2],
+                         'ny': file_metadata['shape'][1],
+                         'nz': file_metadata['shape'][0],
+                         'dims_vars': [('nz','ny','nx')],
                          'has_faces': False})
 
-    data = _read_xy_chunk('T', metadata)
+    data = _read_xy_chunk('T', file_metadata)
 
     assert type(data) == dask.array.core.Array
 

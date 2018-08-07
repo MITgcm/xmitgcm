@@ -552,14 +552,23 @@ def _llc_data_shape(llc_id, nz=None):
 
 
 def read_all_variables(variable_list, metadata, use_mmap=True):
-    ''' return a dictionary of dask arrays
+    """
+    Return a dictionary of dask arrays
+
+    Parameters
+    ----------
     variable_list : list
                     list of MITgcm variables, from fldList in .meta
     metadata      : dict
                     internal metadata for binary file
     use_mmap      : bool, optional
                     Whether to read the data using a numpy.memmap
-    '''
+    Returns
+    -------
+    list
+
+    """
+
     out = []
     for variable in variable_list:
         out.append(read_generic_data(variable, metadata, use_mmap=use_mmap))
@@ -568,14 +577,23 @@ def read_all_variables(variable_list, metadata, use_mmap=True):
 
 
 def read_generic_data(variable, metadata, use_mmap=True):
-    ''' return dask array for variable using the given metadata
+    """
+    Return dask array for variable using the given metadata
+
+    Parameters
+    ----------
     variable : string
                name of the variable to read
     metadata : dict
                internal metadata for binary file
     use_mmap : bool, optional
                Whether to read the data using a numpy.memmap
-    '''
+
+    Returns
+    -------
+    dask array
+
+    """
 
     if (metadata['nx'] == 1) and (metadata['ny'] == 1) and \
        (len(metadata['vars']) == 1):
@@ -632,12 +650,17 @@ def read_generic_data(variable, metadata, use_mmap=True):
     return data
 
 
-def _read_xy_chunk(variable, metadata, rec=0, lev=0, face=0, use_mmap=False):
-    ''' read a 2d chunk along (x,y)
+def _read_xy_chunk(variable, file_metadata, rec=0, lev=0, face=0,
+                   use_mmap=False):
+    """
+    Read a 2d chunk along (x,y)
+
+    Parameters
+    ----------
     variable : string
                name of the variable to read
-    metadata : dict
-               metadata for binary file
+    file_metadata : dict
+               file_metadata for binary file
     rec      : integer, optional
                time record to read (default=0)
     lev      : integer, optional
@@ -646,44 +669,38 @@ def _read_xy_chunk(variable, metadata, rec=0, lev=0, face=0, use_mmap=False):
                face to read for llc configurations (default=0)
     use_mmap : bool, optional
                Whether to read the data using a numpy.memmap
-    '''
+
+    Returns
+    -------
+    numpy array or memmap
+    """
 
     # size of the data element
-    nbytes = metadata['dtype'].itemsize
+    nbytes = file_metadata['dtype'].itemsize
     # byte order
-    metadata['dtype'] = metadata['dtype'].newbyteorder(metadata['endian'])
+    file_metadata['datatype'] = file_metadata['dtype'].newbyteorder(
+                                file_metadata['endian'])
     # find index of variable
-    idx_var = metadata['vars'].index(variable)
+    idx_var = file_metadata['vars'].index(variable)
 
     # 1. compute offset_variable, init to zero
     offset_vars = 0
     # loop on variables before the one to read
     for jvar in np.arange(idx_var):
         # inspect its dimensions
-        dims = metadata['dims_vars'][jvar]
+        dims = file_metadata['dims_vars'][jvar]
         # compute the byte size of this variable
         nbytes_thisvar = 1*nbytes
         for dim in dims:
-            nbytes_thisvar = nbytes_thisvar*metadata[dim]
+            nbytes_thisvar = nbytes_thisvar*file_metadata[dim]
         # update offset from previous variables
         offset_vars = offset_vars+nbytes_thisvar
 
     # 2. get dimensions of desired variable
-    dims = metadata['dims_vars'][idx_var]
-    # set values to 1 by default
-    nx = 1
-    ny = 1
-    nz = 1
-    nt = 1
-    # update with true values
-    if 'nx' in dims:
-        nx = metadata['nx']
-    if 'ny' in dims:
-        ny = metadata['ny']
-    if 'nz' in dims:
-        nz = metadata['nz']
-    if 'nt' in dims:
-        nt = metadata['nt']
+    dims = file_metadata['dims_vars'][idx_var]
+    # inquire for values of dimensions, else return 1
+    nt, nz, ny, nx = [file_metadata.get(dimname, 1)
+        for dimname in ('nt', 'nz', 'ny', 'nx')]
 
     # 3. compute offset from previous records of current variable
     if (rec > nt-1):
@@ -703,49 +720,51 @@ def _read_xy_chunk(variable, metadata, rec=0, lev=0, face=0, use_mmap=False):
     offset = offset_vars + offset_timerecords + offset_verticallevels
 
     # 6. compute offset due to faces
-    if metadata['has_faces']:
+    if file_metadata['has_faces']:
         # determin which facet the face belong to
-        facet_origin = metadata['face_facets'][face]
+        facet_origin = file_metadata['face_facets'][face]
         # compute the offset from previous facets
-        ny_facets = np.array(metadata['ny_facets'])
+        ny_facets = np.array(file_metadata['ny_facets'])
         nyglo_facets = np.concatenate(([0], ny_facets.cumsum()[:-1]), axis=0)
-        offset_facets = nyglo_facets[facet_origin] * metadata['nx'] * nbytes
+        offset_facets = nyglo_facets[facet_origin] * \
+                        file_metadata['nx'] * nbytes
         # update offset
         offset = offset + offset_facets
         # shape if shape of the facet
-        shape = (metadata['ny_facets'][facet_origin], nx,)
+        shape = (file_metadata['ny_facets'][facet_origin], nx,)
     else:
         # no need to update offset and shape is simply:
         shape = (ny, nx,)
 
     # check if we do a partial read of the file
-    if (nt > 1) or (nz > 1) or (len(metadata['vars']) > 1) or \
-       metadata['has_faces']:
+    if (nt > 1) or (nz > 1) or (len(file_metadata['vars']) > 1) or \
+       file_metadata['has_faces']:
         partial_read = True
     else:
         partial_read = False
 
     # define the order (row/column major)
-    if metadata['has_faces']:
+    if file_metadata['has_faces']:
         # in llc, we can have either C or F
-        order = metadata['facet_orders'][facet_origin]
+        order = file_metadata['facet_orders'][facet_origin]
     else:
         # in conventional grids, it's in C
         order = 'C'
 
     # 7. Do the actual read
-    data_raw = read_raw_data(metadata['filename'], metadata['dtype'],
+    data_raw = read_raw_data(file_metadata['filename'],
+                             file_metadata['datatype'],
                              shape, use_mmap=use_mmap, offset=offset,
                              order=order, partial_read=partial_read)
 
     ddata_interior = dsa.from_array(data_raw, chunks=data_raw.shape)
 
     # 8. Pad data, if needed
-    if 'pad_before_y' in metadata:
-        if metadata['has_faces']:
-            nypad_before = metadata['pad_before_y'][facet_origin]
+    if 'pad_before_y' in file_metadata:
+        if file_metadata['has_faces']:
+            nypad_before = file_metadata['pad_before_y'][facet_origin]
         else:
-            nypad_before = metadata['pad_before_y']
+            nypad_before = file_metadata['pad_before_y']
 
         pad_before = dsa.from_array(
             np.zeros((nypad_before, nx)), chunks=(nypad_before, nx))
@@ -754,11 +773,11 @@ def _read_xy_chunk(variable, metadata, rec=0, lev=0, face=0, use_mmap=False):
     else:
         ddata_padded_before = ddata_interior
 
-    if 'pad_after_y' in metadata:
-        if metadata['has_faces']:
-            nypad_after = metadata['pad_after_y'][facet_origin]
+    if 'pad_after_y' in file_metadata:
+        if file_metadata['has_faces']:
+            nypad_after = file_metadata['pad_after_y'][facet_origin]
         else:
-            nypad_after = metadata['pad_after_y']
+            nypad_after = file_metadata['pad_after_y']
 
         pad_after = dsa.from_array(
             np.zeros((nypad_after, nx)), chunks=(nypad_after, nx))
@@ -768,17 +787,17 @@ def _read_xy_chunk(variable, metadata, rec=0, lev=0, face=0, use_mmap=False):
         ddata_padded_after = ddata_padded_before
 
     # 9. extract the face from the facet
-    if metadata['has_faces'] and ('face_offsets' in metadata):
-        face_slice = slice(nx*metadata['face_offsets'][face],
-                           nx*(metadata['face_offsets'][face]+1))
+    if file_metadata['has_faces'] and ('face_offsets' in file_metadata):
+        face_slice = slice(nx*file_metadata['face_offsets'][face],
+                           nx*(file_metadata['face_offsets'][face]+1))
 
         data = ddata_padded_after[face_slice]
     else:
         data = ddata_padded_after
 
     # 10. Transpose face, if needed
-    if metadata['has_faces'] and ('transpose_face' in metadata):
-        if metadata['transpose_face'][face]:
+    if file_metadata['has_faces'] and ('transpose_face' in file_metadata):
+        if file_metadata['transpose_face'][face]:
             data = data.transpose()
 
     return data
