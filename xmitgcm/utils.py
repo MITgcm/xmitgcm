@@ -679,7 +679,7 @@ def _read_xy_chunk(variable, file_metadata, rec=0, lev=0, face=0,
     nbytes = file_metadata['dtype'].itemsize
     # byte order
     file_metadata['datatype'] = file_metadata['dtype'].newbyteorder(
-                                file_metadata['endian'])
+        file_metadata['endian'])
     # find index of variable
     idx_var = file_metadata['vars'].index(variable)
 
@@ -700,7 +700,7 @@ def _read_xy_chunk(variable, file_metadata, rec=0, lev=0, face=0,
     dims = file_metadata['dims_vars'][idx_var]
     # inquire for values of dimensions, else return 1
     nt, nz, ny, nx = [file_metadata.get(dimname, 1)
-        for dimname in ('nt', 'nz', 'ny', 'nx')]
+                      for dimname in ('nt', 'nz', 'ny', 'nx')]
 
     # 3. compute offset from previous records of current variable
     if (rec > nt-1):
@@ -727,7 +727,7 @@ def _read_xy_chunk(variable, file_metadata, rec=0, lev=0, face=0,
         ny_facets = np.array(file_metadata['ny_facets'])
         nyglo_facets = np.concatenate(([0], ny_facets.cumsum()[:-1]), axis=0)
         offset_facets = nyglo_facets[facet_origin] * \
-                        file_metadata['nx'] * nbytes
+            file_metadata['nx'] * nbytes
         # update offset
         offset = offset + offset_facets
         # shape if shape of the facet
@@ -769,13 +769,13 @@ def _read_xy_chunk(variable, file_metadata, rec=0, lev=0, face=0,
     else:
         data = data_padded_after
 
-
     # 10. Transpose face, if needed
     if file_metadata['has_faces'] and ('transpose_face' in file_metadata):
         if file_metadata['transpose_face'][face]:
             data = data.transpose()
 
     return data
+
 
 def _pad_array(data, file_metadata, face=0):
     """
@@ -828,4 +828,3 @@ def _pad_array(data, file_metadata, face=0):
         data_padded_after = data_padded_before
 
     return data_padded_after
-

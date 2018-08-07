@@ -401,34 +401,34 @@ def test_read_xy_chunk(all_mds_datadirs, memmap):
 
     file_metadata = expected
     file_metadata.update({'filename': dirname + '/' + 'T.' +
-                           str(file_metadata['test_iternum']).zfill(10) +
-                           '.data', 'vars': ['T'], 'endian': '>'})
+                          str(file_metadata['test_iternum']).zfill(10) +
+                          '.data', 'vars': ['T'], 'endian': '>'})
     # set the size of dimensions (could be changed in _experiments)
     if file_metadata['geometry'] in ['llc']:
         nx = file_metadata['shape'][3]
         file_metadata.update({'nx': file_metadata['shape'][3],
-                         'ny': file_metadata['shape'][2],
-                         'nface': file_metadata['shape'][1],
-                         'nz': file_metadata['shape'][0],
-                         'dims_vars': [('nz','nface','ny','nx')],
-                         'has_faces': True,
-                         'ny_facets': [3*nx,3*nx,nx,3*nx,3*nx],
-                         'face_facets':
-                         [0, 0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 4, 4],
-                         'facet_orders': ['C', 'C', 'C', 'F', 'F'],
-                         'face_offsets':
-                         [0, 1, 2, 0, 1, 2, 0, 0, 1, 2, 0, 1, 2],
-                         'transpose_face': [False, False, False, False, False,
-                                            False, False, True, True, True,
-                                            True, True, True]})
+                              'ny': file_metadata['shape'][2],
+                              'nface': file_metadata['shape'][1],
+                              'nz': file_metadata['shape'][0],
+                              'dims_vars': [('nz', 'nface', 'ny', 'nx')],
+                              'has_faces': True,
+                              'ny_facets': [3*nx, 3*nx, nx, 3*nx, 3*nx],
+                              'face_facets':
+                              [0, 0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 4, 4],
+                              'facet_orders': ['C', 'C', 'C', 'F', 'F'],
+                              'face_offsets':
+                              [0, 1, 2, 0, 1, 2, 0, 0, 1, 2, 0, 1, 2],
+                              'transpose_face': [False, False, False, False, False,
+                                                 False, False, True, True, True,
+                                                 True, True, True]})
     else:
         file_metadata.update({'nx': file_metadata['shape'][2],
-                         'ny': file_metadata['shape'][1],
-                         'nz': file_metadata['shape'][0],
-                         'dims_vars': [('nz','ny','nx')],
-                         'has_faces': False})
+                              'ny': file_metadata['shape'][1],
+                              'nz': file_metadata['shape'][0],
+                              'dims_vars': [('nz', 'ny', 'nx')],
+                              'has_faces': False})
 
-    data = _read_xy_chunk('T', file_metadata,use_mmap=memmap)
+    data = _read_xy_chunk('T', file_metadata, use_mmap=memmap)
 
     if memmap:
         assert type(data) == np.memmap
@@ -441,40 +441,41 @@ def test_read_xy_chunk(all_mds_datadirs, memmap):
     # llc and not
     # padding in different configs
 
+
 @pytest.mark.parametrize("dtype", ['>d', '>f', '>i'])
 @pytest.mark.parametrize("memmap", [True, False])
-def test_pad_array(memmap,dtype):
+def test_pad_array(memmap, dtype):
 
     from xmitgcm.utils import _pad_array
     import struct
 
     # create test data
-    gendata = np.array([[1,2],[3,4]])
+    gendata = np.array([[1, 2], [3, 4]])
     fid = open('testdata', "wb")
     flatdata = gendata.flatten()
     for kk in np.arange(len(flatdata)):
-        tmp = struct.pack(dtype,flatdata[kk])
+        tmp = struct.pack(dtype, flatdata[kk])
         fid.write(tmp)
     fid.close()
 
     # then read it
     if memmap:
         data = np.memmap('testdata', dtype=dtype, mode='r',
-                             shape=(2,2,), order='C')
+                         shape=(2, 2,), order='C')
     else:
         data = np.fromfile('testdata', dtype=dtype)
-        data = data.reshape((2,2,))
+        data = data.reshape((2, 2,))
 
     # check my original data
     ny, nx = data.shape
-    assert data.shape == (ny,nx)
+    assert data.shape == (ny, nx)
     assert data.min() == 1
     assert data.max() == 4
 
     # test no padding
     file_metadata = {}
     data_padded = _pad_array(data, file_metadata)
-    assert data_padded.shape == (2,2)
+    assert data_padded.shape == (2, 2)
     if memmap:
         assert type(data_padded) == np.memmap
     else:
@@ -484,61 +485,62 @@ def test_pad_array(memmap,dtype):
     file_metadata = {'pad_before_y': 2, 'has_faces': False, 'nx': nx}
     data_padded = _pad_array(data, file_metadata)
     assert type(data_padded) == np.ndarray
-    assert data_padded.shape == (4,2)
+    assert data_padded.shape == (4, 2)
     assert data_padded.min() == 0
     assert data_padded.max() == 4
-    assert data_padded[2,0] == 1
-    assert data_padded[3,1] == 4
+    assert data_padded[2, 0] == 1
+    assert data_padded[3, 1] == 4
 
-    file_metadata = {'pad_before_y': [2,3], 'has_faces': True, 'nx': nx,
-                     'face_facets':[0,1]}
-    data_padded = _pad_array(data, file_metadata,face=0)
+    file_metadata = {'pad_before_y': [2, 3], 'has_faces': True, 'nx': nx,
+                     'face_facets': [0, 1]}
+    data_padded = _pad_array(data, file_metadata, face=0)
     assert type(data_padded) == np.ndarray
-    assert data_padded.shape == (4,2)
+    assert data_padded.shape == (4, 2)
     assert data_padded.min() == 0
     assert data_padded.max() == 4
-    assert data_padded[2,0] == 1
-    assert data_padded[3,1] == 4
+    assert data_padded[2, 0] == 1
+    assert data_padded[3, 1] == 4
 
-    data_padded = _pad_array(data, file_metadata,face=1)
+    data_padded = _pad_array(data, file_metadata, face=1)
     assert type(data_padded) == np.ndarray
-    assert data_padded.shape == (5,2)
+    assert data_padded.shape == (5, 2)
     assert data_padded.min() == 0
     assert data_padded.max() == 4
-    assert data_padded[3,0] == 1
-    assert data_padded[4,1] == 4
+    assert data_padded[3, 0] == 1
+    assert data_padded[4, 1] == 4
 
     # test padding after
     file_metadata = {'pad_after_y': 2, 'has_faces': False, 'nx': nx}
     data_padded = _pad_array(data, file_metadata)
     assert type(data_padded) == np.ndarray
-    assert data_padded.shape == (4,2)
+    assert data_padded.shape == (4, 2)
     assert data_padded.min() == 0
     assert data_padded.max() == 4
-    assert data_padded[0,0] == 1
-    assert data_padded[1,1] == 4
+    assert data_padded[0, 0] == 1
+    assert data_padded[1, 1] == 4
 
-    file_metadata = {'pad_after_y': [2,3], 'has_faces': True, 'nx': nx,
-                     'face_facets':[0,1]}
-    data_padded = _pad_array(data, file_metadata,face=0)
+    file_metadata = {'pad_after_y': [2, 3], 'has_faces': True, 'nx': nx,
+                     'face_facets': [0, 1]}
+    data_padded = _pad_array(data, file_metadata, face=0)
     assert type(data_padded) == np.ndarray
-    assert data_padded.shape == (4,2)
+    assert data_padded.shape == (4, 2)
     assert data_padded.min() == 0
     assert data_padded.max() == 4
-    assert data_padded[0,0] == 1
-    assert data_padded[1,1] == 4
+    assert data_padded[0, 0] == 1
+    assert data_padded[1, 1] == 4
 
-    data_padded = _pad_array(data, file_metadata,face=1)
+    data_padded = _pad_array(data, file_metadata, face=1)
     assert type(data_padded) == np.ndarray
-    assert data_padded.shape == (5,2)
+    assert data_padded.shape == (5, 2)
     assert data_padded.min() == 0
     assert data_padded.max() == 4
-    assert data_padded[0,0] == 1
-    assert data_padded[1,1] == 4
+    assert data_padded[0, 0] == 1
+    assert data_padded[1, 1] == 4
 
 #########################################################
 ### Below are all tests that actually create datasets ###
 #########################################################
+
 
 def test_open_mdsdataset_minimal(all_mds_datadirs):
     """Create a minimal xarray object with only dimensions in it."""
@@ -546,15 +548,15 @@ def test_open_mdsdataset_minimal(all_mds_datadirs):
     dirname, expected = all_mds_datadirs
 
     ds = xmitgcm.open_mdsdataset(
-            dirname, iters=None, read_grid=False, swap_dims=False,
-            geometry=expected['geometry'])
+        dirname, iters=None, read_grid=False, swap_dims=False,
+        geometry=expected['geometry'])
 
     # the expected dimensions of the dataset
     eshape = expected['shape']
-    if len(eshape)==3:
+    if len(eshape) == 3:
         nz, ny, nx = eshape
         nface = None
-    elif len(eshape)==4:
+    elif len(eshape) == 4:
         nz, nface, ny, nx = eshape
     else:
         raise ValueError("Invalid expected shape")
