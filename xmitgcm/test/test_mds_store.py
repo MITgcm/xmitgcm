@@ -391,6 +391,49 @@ def test_read_raw_data_llc(llc_mds_datadirs, method, memmap):
     assert data.shape == shape_2d
     assert data.compute().shape == shape_2d
 
+@pytest.mark.parametrize("memmap", [True, False])
+def test_read_xy_chunk(all_mds_datadirs,memmap):
+
+    from xmitgcm.utils import _read_xy_chunk
+
+    dirname, expected = all_mds_datadirs
+
+    metadata = expected
+    metadata.update({'filename':dirname + '/' + 'T.' + str(metadata['test_iternum']).zfill(10) +
+                     '.data','vars': ['T'], 'endian': '>'})
+    # set the size of dimensions (could be changed in definition of experiments)
+    if metadata['geometry'] in ['llc']:
+        nx = metadata['shape'][3]
+        metadata.update({'nx':metadata['shape'][3], 'ny':metadata['shape'][2],
+                         'nface':metadata['shape'][1],
+                         'nz':metadata['shape'][0],
+                         'dims_vars' : [('nz','nface','ny','nx')],
+                         'has_faces': True, 'ny_facets':[3*nx,3*nx,nx,3*nx,3*nx],
+                         'face_facets':[0, 0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 4, 4],
+                         'facet_orders' :['C', 'C', 'C', 'F', 'F'],
+                         'face_offsets' :[0, 1, 2, 0, 1, 2, 0, 0, 1, 2 , 0, 1, 2],
+                         'transpose_face' : [False, False, False, False, False, False, False,
+                                             True, True, True, True, True, True]
+                          })
+    else:
+        metadata.update({'nx':metadata['shape'][2], 'ny':metadata['shape'][1],
+                         'nz':metadata['shape'][0],
+                         'dims_vars' : [('nz','nface','ny','nx')],
+                         'has_faces': False})
+
+    data = _read_xy_chunk('T', metadata)
+
+    assert type(data) == dask.array.core.Array
+
+    # test it fails for too large number of records
+
+    # test it fails for too large number of levels
+
+    # partial read and not
+
+    # llc and not
+
+    # padding in different configs
 
 #########################################################
 ### Below are all tests that actually create datasets ###
