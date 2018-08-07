@@ -757,43 +757,18 @@ def _read_xy_chunk(variable, file_metadata, rec=0, lev=0, face=0,
                              shape, use_mmap=use_mmap, offset=offset,
                              order=order, partial_read=partial_read)
 
-    ddata_interior = dsa.from_array(data_raw, chunks=data_raw.shape)
-
     # 8. Pad data, if needed
-    if 'pad_before_y' in file_metadata:
-        if file_metadata['has_faces']:
-            nypad_before = file_metadata['pad_before_y'][facet_origin]
-        else:
-            nypad_before = file_metadata['pad_before_y']
-
-        pad_before = dsa.from_array(
-            np.zeros((nypad_before, nx)), chunks=(nypad_before, nx))
-        ddata_padded_before = dsa.concatenate(
-            (pad_before, ddata_interior), axis=0)
-    else:
-        ddata_padded_before = ddata_interior
-
-    if 'pad_after_y' in file_metadata:
-        if file_metadata['has_faces']:
-            nypad_after = file_metadata['pad_after_y'][facet_origin]
-        else:
-            nypad_after = file_metadata['pad_after_y']
-
-        pad_after = dsa.from_array(
-            np.zeros((nypad_after, nx)), chunks=(nypad_after, nx))
-        ddata_padded_after = dsa.concatenate(
-            (ddata_padded_before, pad_after), axis=0)
-    else:
-        ddata_padded_after = ddata_padded_before
+    data_padded_after = _pad_array(data_raw, file_metadata, face=face)
 
     # 9. extract the face from the facet
     if file_metadata['has_faces'] and ('face_offsets' in file_metadata):
         face_slice = slice(nx*file_metadata['face_offsets'][face],
                            nx*(file_metadata['face_offsets'][face]+1))
 
-        data = ddata_padded_after[face_slice]
+        data = data_padded_after[face_slice]
     else:
-        data = ddata_padded_after
+        data = data_padded_after
+
 
     # 10. Transpose face, if needed
     if file_metadata['has_faces'] and ('transpose_face' in file_metadata):
@@ -801,3 +776,56 @@ def _read_xy_chunk(variable, file_metadata, rec=0, lev=0, face=0,
             data = data.transpose()
 
     return data
+
+def _pad_array(data, file_metadata, face=0):
+    """
+    Return a padded array. If input data is a numpy.memmap and no padding
+    is necessary, the function preserves its type. Otherwise, the concatenate
+    forces it to load into memory.
+
+    Parameters
+    ----------
+
+    data          : numpy array or memmap
+                    input data
+    file_metadata : dict
+                    metadata for file
+    face          : int, optional
+                    llc face if applicable
+
+    Returns
+    -------
+    numpy.array
+
+    """
+
+    # Pad data before in y direction
+    if 'pad_before_y' in file_metadata:
+        if file_metadata['has_faces']:
+            facet_origin = file_metadata['face_facets'][face]
+            nypad_before = file_metadata['pad_before_y'][facet_origin]
+        else:
+            nypad_before = file_metadata['pad_before_y']
+
+        pad_before = np.zeros((nypad_before, file_metadata['nx']))
+        data_padded_before = np.concatenate(
+            (pad_before, data), axis=0)
+    else:
+        data_padded_before = data
+
+    # Pad data after in y direction
+    if 'pad_after_y' in file_metadata:
+        if file_metadata['has_faces']:
+            facet_origin = file_metadata['face_facets'][face]
+            nypad_after = file_metadata['pad_after_y'][facet_origin]
+        else:
+            nypad_after = file_metadata['pad_after_y']
+
+        pad_after = np.zeros((nypad_after, file_metadata['nx']))
+        data_padded_after = np.concatenate(
+            (data_padded_before, pad_after), axis=0)
+    else:
+        data_padded_after = data_padded_before
+
+    return data_padded_after
+
