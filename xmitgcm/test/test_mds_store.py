@@ -439,10 +439,10 @@ def test_read_xy_chunk(all_mds_datadirs, memmap):
 
     # test it fails for too large number of records
     with pytest.raises(ValueError):
-        data = _read_xy_chunk('T', rec=1, file_metadata, use_mmap=memmap)
+        data = _read_xy_chunk('T', file_metadata, rec=1, use_mmap=memmap)
     # test it fails for too large number of levels
     with pytest.raises(ValueError):
-        data = _read_xy_chunk('T', lev=9999, file_metadata, use_mmap=memmap)
+        data = _read_xy_chunk('T', file_metadata, lev=9999, use_mmap=memmap)
     # partial read and not
     # llc and not
     # padding in different configs
