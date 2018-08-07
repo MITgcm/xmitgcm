@@ -467,6 +467,49 @@ def test_read_xy_chunk(all_mds_datadirs, memmap):
             assert type(data) == np.ndarray
 
 
+@pytest.mark.parametrize("memmap", [True, False])
+def test_read_generic_data(all_mds_datadirs, memmap):
+
+    from xmitgcm.utils import read_generic_data
+
+    dirname, expected = all_mds_datadirs
+
+    file_metadata = expected
+    file_metadata.update({'filename': dirname + '/' + 'T.' +
+                          str(file_metadata['test_iternum']).zfill(10) +
+                          '.data', 'vars': ['T'], 'endian': '>'})
+    # set the size of dimensions (could be changed in _experiments)
+    if file_metadata['geometry'] in ['llc']:
+        nx = file_metadata['shape'][3]
+        file_metadata.update({'nx': file_metadata['shape'][3],
+                              'ny': file_metadata['shape'][2],
+                              'nface': file_metadata['shape'][1],
+                              'nz': file_metadata['shape'][0],
+                              'nt': 1,
+                              'dims_vars': [('nz', 'nface', 'ny', 'nx')],
+                              'has_faces': True,
+                              'ny_facets': [3*nx, 3*nx, nx, 3*nx, 3*nx],
+                              'face_facets':
+                              [0, 0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 4, 4],
+                              'facet_orders': ['C', 'C', 'C', 'F', 'F'],
+                              'face_offsets':
+                              [0, 1, 2, 0, 1, 2, 0, 0, 1, 2, 0, 1, 2],
+                              'transpose_face': [False, False, False, False,
+                                                 False, False, False, True,
+                                                 True, True, True, True,
+                                                 True]})
+    else:
+        file_metadata.update({'nx': file_metadata['shape'][2],
+                              'ny': file_metadata['shape'][1],
+                              'nz': file_metadata['shape'][0],
+                              'nt': 1,
+                              'dims_vars': [('nz', 'ny', 'nx')],
+                              'has_faces': False})
+
+    data = read_generic_data('T', file_metadata, use_mmap=memmap)
+
+    assert type(data) == dask.array.core.Array
+
 @pytest.mark.parametrize("dtype", ['>d', '>f', '>i'])
 @pytest.mark.parametrize("memmap", [True, False])
 def test_pad_array(memmap, dtype):

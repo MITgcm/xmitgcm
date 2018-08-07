@@ -576,16 +576,16 @@ def read_all_variables(variable_list, metadata, use_mmap=True):
     return out
 
 
-def read_generic_data(variable, metadata, use_mmap=True):
+def read_generic_data(variable, file_metadata, use_mmap=True):
     """
-    Return dask array for variable using the given metadata
+    Return dask array for variable using the given file_metadata
 
     Parameters
     ----------
     variable : string
                name of the variable to read
-    metadata : dict
-               internal metadata for binary file
+    file_metadata : dict
+               internal file_metadata for binary file
     use_mmap : bool, optional
                Whether to read the data using a numpy.memmap
 
@@ -595,57 +595,59 @@ def read_generic_data(variable, metadata, use_mmap=True):
 
     """
 
-    if (metadata['nx'] == 1) and (metadata['ny'] == 1) and \
-       (len(metadata['vars']) == 1):
+    if (file_metadata['nx'] == 1) and (file_metadata['ny'] == 1) and \
+       (len(file_metadata['vars']) == 1):
             # vertical coordinate
-        data_raw = read_raw_data(metadata['filename'], metadata['dtype'],
-                                 (metadata['nz'],), use_mmap=use_mmap,
+        data_raw = read_raw_data(file_metadata['filename'],
+                                 file_metadata['dtype'],
+                                 (file_metadata['nz'],), use_mmap=use_mmap,
                                  offset=0, order='C', partial_read=False)
 
-        shape = (metadata['nt'], metadata['nz'], 1,
-                 metadata['nx'], metadata['nx'])
+        shape = (file_metadata['nt'], file_metadata['nz'], 1,
+                 file_metadata['nx'], file_metadata['nx'])
         data_raw = np.reshape(data_raw, shape)
-        chunks = (metadata['nt'], 1, 1,
-                  metadata['nx'], metadata['nx'])
+        chunks = (file_metadata['nt'], 1, 1,
+                  file_metadata['nx'], file_metadata['nx'])
         data = dsa.from_array(data_raw, chunks=chunks)
 
     else:
-        if metadata['has_faces']:
+        if file_metadata['has_faces']:
             def load_chunk(face, lev, rec):
-                return _read_xy_chunk(variable, metadata, rec=rec, lev=lev,
-                                      face=face, use_mmap=use_mmap)[None,
-                                                                    None, None]
+                return _read_xy_chunk(variable, file_metadata, rec=rec,
+                                      lev=lev, face=face,
+                                      use_mmap=use_mmap)[None, None, None]
 
-            chunks = (1, 1, 1, metadata['nx'], metadata['nx'])
-            shape = (metadata['nt'], metadata['nz'],
-                     len(metadata['face_facets']),
-                     metadata['nx'], metadata['nx'])
-            name = 'llc-' + tokenize(metadata['filename'])
+            chunks = (1, 1, 1, file_metadata['nx'], file_metadata['nx'])
+            shape = (file_metadata['nt'], file_metadata['nz'],
+                     len(file_metadata['face_facets']),
+                     file_metadata['nx'], file_metadata['nx'])
+            name = 'llc-' + tokenize(file_metadata['filename'])
 
             dsk = {(name, rec, lev, face, 0, 0): (load_chunk, face,
                                                   lev, rec)
-                   for face in range(len(metadata['face_facets']))
-                   for lev in range(metadata['nz'])
-                   for rec in range(metadata['nt'])}
+                   for face in range(len(file_metadata['face_facets']))
+                   for lev in range(file_metadata['nz'])
+                   for rec in range(file_metadata['nt'])}
 
             data = dsa.Array(dsk, name, chunks,
-                             dtype=metadata['dtype'], shape=shape)
+                             dtype=file_metadata['dtype'], shape=shape)
         else:
             def load_chunk(lev, rec):
-                return _read_xy_chunk(variable, metadata, rec=rec, lev=lev,
+                return _read_xy_chunk(variable, file_metadata,
+                                      rec=rec, lev=lev,
                                       face=0, use_mmap=use_mmap)[None, None]
 
-            chunks = (1, 1, metadata['ny'], metadata['nx'])
-            shape = (metadata['nt'], metadata['nz'],
-                     metadata['ny'], metadata['nx'])
-            name = 'reg-' + tokenize(metadata['filename'])
+            chunks = (1, 1, file_metadata['ny'], file_metadata['nx'])
+            shape = (file_metadata['nt'], file_metadata['nz'],
+                     file_metadata['ny'], file_metadata['nx'])
+            name = 'reg-' + tokenize(file_metadata['filename'])
 
             dsk = {(name, rec, lev, 0, 0): (load_chunk, lev, rec)
-                   for lev in range(metadata['nz'])
-                   for rec in range(metadata['nt'])}
+                   for lev in range(file_metadata['nz'])
+                   for rec in range(file_metadata['nt'])}
 
             data = dsa.Array(dsk, name, chunks,
-                             dtype=metadata['dtype'], shape=shape)
+                             dtype=file_metadata['dtype'], shape=shape)
 
     return data
 
