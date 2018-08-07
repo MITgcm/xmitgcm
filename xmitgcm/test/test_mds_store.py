@@ -386,7 +386,8 @@ def test_read_raw_data_llc(llc_mds_datadirs, method, memmap):
 
     fname = os.path.join(dirname, 'XC.data')
     data = read_3d_llc_data(fname, 1, nx, **kwargs)
-    # the z dimension is squeezed out by MDS, so the function matches that behavior
+    # the z dimension is squeezed out by MDS,
+    # so the function matches that behavior
     shape_2d = (shape[0],) + shape[2:]
     assert data.shape == shape_2d
     assert data.compute().shape == shape_2d
@@ -418,9 +419,10 @@ def test_read_xy_chunk(all_mds_datadirs, memmap):
                               'facet_orders': ['C', 'C', 'C', 'F', 'F'],
                               'face_offsets':
                               [0, 1, 2, 0, 1, 2, 0, 0, 1, 2, 0, 1, 2],
-                              'transpose_face': [False, False, False, False, False,
-                                                 False, False, True, True, True,
-                                                 True, True, True]})
+                              'transpose_face': [False, False, False, False,
+                                                 False, False, False, True,
+                                                 True, True, True, True,
+                                                 True]})
     else:
         file_metadata.update({'nx': file_metadata['shape'][2],
                               'ny': file_metadata['shape'][1],
