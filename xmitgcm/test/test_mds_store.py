@@ -451,11 +451,11 @@ def test_read_xy_chunk(all_mds_datadirs, memmap):
     else:
         dimsvar = []
         for kk in np.arange(25):
-            dimsvar.append( ('ny','nx') )
-        file_metadata.update({'filename': dirname + '/' + \
-                                          'state_2d_set1.0000000008.data',
+            dimsvar.append(('ny', 'nx'))
+        file_metadata.update({'filename': dirname + '/' +
+                              'state_2d_set1.0000000008.data',
                               'vars': expected['diagnostics'][1],
-                              'dims_vars': dimsvar })
+                              'dims_vars': dimsvar})
 
         for kface in np.arange(13):
             data = _read_xy_chunk('MXLDEPTH', file_metadata, face=kface,
@@ -465,6 +465,7 @@ def test_read_xy_chunk(all_mds_datadirs, memmap):
             assert type(data) == np.memmap
         else:
             assert type(data) == np.ndarray
+
 
 @pytest.mark.parametrize("dtype", ['>d', '>f', '>i'])
 @pytest.mark.parametrize("memmap", [True, False])
