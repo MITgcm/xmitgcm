@@ -510,6 +510,7 @@ def test_read_generic_data(all_mds_datadirs, memmap):
 
     assert type(data) == dask.array.core.Array
 
+
 @pytest.mark.parametrize("dtype", ['>d', '>f', '>i'])
 @pytest.mark.parametrize("memmap", [True, False])
 def test_pad_array(memmap, dtype):
