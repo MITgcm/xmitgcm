@@ -541,7 +541,7 @@ def _llc_data_shape(llc_id, nz=None):
     # this is a constant for all LLC setups
     NUM_FACES = 13
 
-    tile_shape = _llc_face_shape(llc_id)
+    face_shape = _llc_face_shape(llc_id)
     data_shape = (NUM_FACES,) + face_shape
     if nz is not None:
         data_shape = (nz,) + data_shape
