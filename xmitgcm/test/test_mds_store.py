@@ -443,10 +443,28 @@ def test_read_xy_chunk(all_mds_datadirs, memmap):
     # test it fails for too large number of levels
     with pytest.raises(ValueError):
         data = _read_xy_chunk('T', file_metadata, lev=9999, use_mmap=memmap)
-    # partial read and not
-    # llc and not
-    # padding in different configs
 
+    # those tests are only available for llc experiment:
+    # test reading in multi-variable files
+    if expected['geometry'] not in ['llc']:
+        pass
+    else:
+        dimsvar = []
+        for kk in np.arange(25):
+            dimsvar.append( ('ny','nx') )
+        file_metadata.update({'filename': dirname + '/' + \
+                                          'state_2d_set1.0000000008.data',
+                              'vars': expected['diagnostics'][1],
+                              'dims_vars': dimsvar })
+
+        for kface in np.arange(13):
+            data = _read_xy_chunk('MXLDEPTH', file_metadata, face=kface,
+                                  use_mmap=memmap)
+
+        if memmap:
+            assert type(data) == np.memmap
+        else:
+            assert type(data) == np.ndarray
 
 @pytest.mark.parametrize("dtype", ['>d', '>f', '>i'])
 @pytest.mark.parametrize("memmap", [True, False])
