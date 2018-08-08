@@ -572,7 +572,7 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False):
     out = []
     for variable in variable_list:
         out.append(read_generic_data(variable, file_metadata,
-                   use_mmap=use_mmap))
+                                     use_mmap=use_mmap))
 
     return out
 

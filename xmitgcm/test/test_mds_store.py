@@ -518,6 +518,7 @@ def test_read_generic_data(all_mds_datadirs, memmap):
     assert type(data) == dask.array.core.Array
     data.compute()
 
+
 @pytest.mark.parametrize("memmap", [True, False])
 def test_read_all_variables(all_mds_datadirs, memmap):
 
@@ -559,7 +560,7 @@ def test_read_all_variables(all_mds_datadirs, memmap):
                               'has_faces': False})
 
     dataset = read_all_variables(file_metadata['vars'], file_metadata,
-                              use_mmap=memmap)
+                                 use_mmap=memmap)
 
     assert type(dataset) == list
     assert type(dataset[0]) == dask.array.core.Array
