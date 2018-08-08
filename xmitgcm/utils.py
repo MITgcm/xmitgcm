@@ -551,7 +551,7 @@ def _llc_data_shape(llc_id, nz=None):
     return data_shape
 
 
-def read_all_variables(variable_list, metadata, use_mmap=True):
+def read_all_variables(variable_list, file_metadata, use_mmap=False):
     """
     Return a dictionary of dask arrays
 
@@ -559,7 +559,7 @@ def read_all_variables(variable_list, metadata, use_mmap=True):
     ----------
     variable_list : list
                     list of MITgcm variables, from fldList in .meta
-    metadata      : dict
+    file_metadata : dict
                     internal metadata for binary file
     use_mmap      : bool, optional
                     Whether to read the data using a numpy.memmap
@@ -571,12 +571,13 @@ def read_all_variables(variable_list, metadata, use_mmap=True):
 
     out = []
     for variable in variable_list:
-        out.append(read_generic_data(variable, metadata, use_mmap=use_mmap))
+        out.append(read_generic_data(variable, file_metadata,
+                   use_mmap=use_mmap))
 
     return out
 
 
-def read_generic_data(variable, file_metadata, use_mmap=True):
+def read_generic_data(variable, file_metadata, use_mmap=False):
     """
     Return dask array for variable using the given file_metadata
 
