@@ -507,9 +507,16 @@ def test_read_generic_data(all_mds_datadirs, memmap):
                               'has_faces': False})
 
     data = read_generic_data('T', file_metadata, use_mmap=memmap)
-
     assert type(data) == dask.array.core.Array
+    data.compute()
 
+    # test 1d variable
+    file_metadata.update({'filename': dirname + '/' + 'RC' + '.data',
+                          'vars': ['RC'], 'nx': 1, 'ny': 1})
+
+    data = read_generic_data('RC', file_metadata, use_mmap=memmap)
+    assert type(data) == dask.array.core.Array
+    data.compute()
 
 @pytest.mark.parametrize("dtype", ['>d', '>f', '>i'])
 @pytest.mark.parametrize("memmap", [True, False])
