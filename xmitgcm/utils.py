@@ -577,7 +577,7 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False):
     return out
 
 
-def read_generic_data(variable, file_metadata, use_mmap=False):
+def read_generic_data(variable, file_metadata, use_mmap=False,use_dask=True):
     """
     Return dask array for variable using the given file_metadata
 
@@ -647,6 +647,10 @@ def read_generic_data(variable, file_metadata, use_mmap=False):
 
         data = dsa.Array(dsk, name, chunks,
                          dtype=file_metadata['dtype'], shape=shape)
+
+
+    if not use_dask:
+        data = data.compute()
 
     return data
 

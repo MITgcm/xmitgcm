@@ -506,17 +506,22 @@ def test_read_generic_data(all_mds_datadirs, memmap):
                               'dims_vars': [('nz', 'ny', 'nx')],
                               'has_faces': False})
 
-    data = read_generic_data('T', file_metadata, use_mmap=memmap)
+    data = read_generic_data('T', file_metadata, use_mmap=memmap, use_dask=True)
     assert isinstance(data, dask.array.core.Array)
     data.compute()
+    data = read_generic_data('T', file_metadata, use_mmap=memmap, use_dask=False)
+    assert isinstance(data, np.ndarray)
+
 
     # test 1d variable
     file_metadata.update({'filename': dirname + '/' + 'RC' + '.data',
                           'vars': ['RC'], 'nx': 1, 'ny': 1})
 
-    data = read_generic_data('RC', file_metadata, use_mmap=memmap)
+    data = read_generic_data('RC', file_metadata, use_mmap=memmap,use_dask=True)
     assert isinstance(data, dask.array.core.Array)
     data.compute()
+    data = read_generic_data('RC', file_metadata, use_mmap=memmap,use_dask=False)
+    assert isinstance(data, np.ndarray)
 
 
 @pytest.mark.parametrize("memmap", [True, False])
