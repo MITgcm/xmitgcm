@@ -433,9 +433,9 @@ def test_read_xy_chunk(all_mds_datadirs, memmap):
     data = _read_xy_chunk('T', file_metadata, use_mmap=memmap)
 
     if memmap:
-        assert type(data) == np.memmap
+        assert isinstance(data, np.memmap)
     else:
-        assert type(data) == np.ndarray
+        assert isinstance(data, np.ndarray)
 
     # test it fails for too large number of records
     with pytest.raises(ValueError):
@@ -462,9 +462,9 @@ def test_read_xy_chunk(all_mds_datadirs, memmap):
                                   use_mmap=memmap)
 
         if memmap:
-            assert type(data) == np.memmap
+            assert isinstance(data, np.memmap)
         else:
-            assert type(data) == np.ndarray
+            assert isinstance(data, np.ndarray)
 
 
 @pytest.mark.parametrize("memmap", [True, False])
@@ -507,7 +507,7 @@ def test_read_generic_data(all_mds_datadirs, memmap):
                               'has_faces': False})
 
     data = read_generic_data('T', file_metadata, use_mmap=memmap)
-    assert type(data) == dask.array.core.Array
+    assert isinstance(data, dask.array.core.Array)
     data.compute()
 
     # test 1d variable
@@ -515,7 +515,7 @@ def test_read_generic_data(all_mds_datadirs, memmap):
                           'vars': ['RC'], 'nx': 1, 'ny': 1})
 
     data = read_generic_data('RC', file_metadata, use_mmap=memmap)
-    assert type(data) == dask.array.core.Array
+    assert isinstance(data, dask.array.core.Array)
     data.compute()
 
 
@@ -562,8 +562,8 @@ def test_read_all_variables(all_mds_datadirs, memmap):
     dataset = read_all_variables(file_metadata['vars'], file_metadata,
                                  use_mmap=memmap)
 
-    assert type(dataset) == list
-    assert type(dataset[0]) == dask.array.core.Array
+    assert isinstance(dataset, list)
+    assert isinstance(dataset[0], dask.array.core.Array)
     assert len(dataset) == len(file_metadata['vars'])
 
     # test multiple variables in file
@@ -583,8 +583,8 @@ def test_read_all_variables(all_mds_datadirs, memmap):
     dataset = read_all_variables(file_metadata['vars'], file_metadata,
                                  use_mmap=memmap)
 
-    assert type(dataset) == list
-    assert type(dataset[0]) == dask.array.core.Array
+    assert isinstance(dataset, list)
+    assert isinstance(dataset[0], dask.array.core.Array)
     assert len(dataset) == len(file_metadata['vars'])
 
 
@@ -623,14 +623,14 @@ def test_pad_array(memmap, dtype):
     data_padded = _pad_array(data, file_metadata)
     assert data_padded.shape == (2, 2)
     if memmap:
-        assert type(data_padded) == np.memmap
+        assert isinstance(data_padded, np.memmap)
     else:
-        assert type(data_padded) == np.ndarray
+        assert isinstance(data_padded, np.ndarray)
 
     # test padding before
     file_metadata = {'pad_before_y': 2, 'has_faces': False, 'nx': nx}
     data_padded = _pad_array(data, file_metadata)
-    assert type(data_padded) == np.ndarray
+    assert isinstance(data_padded, np.ndarray)
     assert data_padded.shape == (4, 2)
     assert data_padded.min() == 0
     assert data_padded.max() == 4
@@ -640,7 +640,7 @@ def test_pad_array(memmap, dtype):
     file_metadata = {'pad_before_y': [2, 3], 'has_faces': True, 'nx': nx,
                      'face_facets': [0, 1]}
     data_padded = _pad_array(data, file_metadata, face=0)
-    assert type(data_padded) == np.ndarray
+    assert isinstance(data_padded, np.ndarray)
     assert data_padded.shape == (4, 2)
     assert data_padded.min() == 0
     assert data_padded.max() == 4
@@ -648,7 +648,7 @@ def test_pad_array(memmap, dtype):
     assert data_padded[3, 1] == 4
 
     data_padded = _pad_array(data, file_metadata, face=1)
-    assert type(data_padded) == np.ndarray
+    assert isinstance(data_padded, np.ndarray)
     assert data_padded.shape == (5, 2)
     assert data_padded.min() == 0
     assert data_padded.max() == 4
@@ -658,7 +658,7 @@ def test_pad_array(memmap, dtype):
     # test padding after
     file_metadata = {'pad_after_y': 2, 'has_faces': False, 'nx': nx}
     data_padded = _pad_array(data, file_metadata)
-    assert type(data_padded) == np.ndarray
+    assert isinstance(data_padded, np.ndarray)
     assert data_padded.shape == (4, 2)
     assert data_padded.min() == 0
     assert data_padded.max() == 4
@@ -668,7 +668,7 @@ def test_pad_array(memmap, dtype):
     file_metadata = {'pad_after_y': [2, 3], 'has_faces': True, 'nx': nx,
                      'face_facets': [0, 1]}
     data_padded = _pad_array(data, file_metadata, face=0)
-    assert type(data_padded) == np.ndarray
+    assert isinstance(data_padded, np.ndarray)
     assert data_padded.shape == (4, 2)
     assert data_padded.min() == 0
     assert data_padded.max() == 4
@@ -676,7 +676,7 @@ def test_pad_array(memmap, dtype):
     assert data_padded[1, 1] == 4
 
     data_padded = _pad_array(data, file_metadata, face=1)
-    assert type(data_padded) == np.ndarray
+    assert isinstance(data_padded, np.ndarray)
     assert data_padded.shape == (5, 2)
     assert data_padded.min() == 0
     assert data_padded.max() == 4

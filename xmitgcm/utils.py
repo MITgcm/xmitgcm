@@ -630,8 +630,6 @@ def read_generic_data(variable, file_metadata, use_mmap=False):
                    for lev in range(file_metadata['nz'])
                    for rec in range(file_metadata['nt'])}
 
-            data = dsa.Array(dsk, name, chunks,
-                             dtype=file_metadata['dtype'], shape=shape)
         else:
             def load_chunk(lev, rec):
                 return _read_xy_chunk(variable, file_metadata,
@@ -647,8 +645,8 @@ def read_generic_data(variable, file_metadata, use_mmap=False):
                    for lev in range(file_metadata['nz'])
                    for rec in range(file_metadata['nt'])}
 
-            data = dsa.Array(dsk, name, chunks,
-                             dtype=file_metadata['dtype'], shape=shape)
+        data = dsa.Array(dsk, name, chunks,
+                         dtype=file_metadata['dtype'], shape=shape)
 
     return data
 
@@ -798,7 +796,7 @@ def _pad_array(data, file_metadata, face=0):
 
     Returns
     -------
-    numpy.array
+    numpy.array or numpy.memmap
 
     """
 
