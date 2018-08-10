@@ -5,3 +5,4 @@ dependencies:
   - dask
   - numpydoc=0.7
   - sphinx=1.7.5
+  - nomkl
