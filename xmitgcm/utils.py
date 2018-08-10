@@ -655,6 +655,86 @@ def read_generic_data(variable, file_metadata, use_mmap=False,use_dask=True):
     return data
 
 
+def _read_3d_chunk(variable, file_metadata, rec=0, use_mmap=False):
+    """
+    Read a 3d chunk of variable nz
+
+    Parameters
+    ----------
+    variable : string
+               name of the variable to read
+    file_metadata : dict
+               file_metadata for binary file
+    rec      : integer, optional
+               time record to read (default=0)
+    use_mmap : bool, optional
+               Whether to read the data using a numpy.memmap
+
+    Returns
+    -------
+    numpy array or memmap
+    """
+
+    if file_metadata['has_faces']:
+        raise ValueError("_read_3d_chunk cannot be called with llc type grid")
+
+    # size of the data element
+    nbytes = file_metadata['dtype'].itemsize
+    # byte order
+    file_metadata['datatype'] = file_metadata['dtype'].newbyteorder(
+        file_metadata['endian'])
+    # find index of variable
+    idx_var = file_metadata['vars'].index(variable)
+
+    # 1. compute offset_variable, init to zero
+    offset_vars = 0
+    # loop on variables before the one to read
+    for jvar in np.arange(idx_var):
+        # inspect its dimensions
+        dims = file_metadata['dims_vars'][jvar]
+        # compute the byte size of this variable
+        nbytes_thisvar = 1*nbytes
+        for dim in dims:
+            nbytes_thisvar = nbytes_thisvar*file_metadata[dim]
+        # update offset from previous variables
+        offset_vars = offset_vars+nbytes_thisvar
+
+    # 2. get dimensions of desired variable
+    dims = file_metadata['dims_vars'][idx_var]
+    # inquire for values of dimensions, else return 1
+    nt, nz, ny, nx = [file_metadata.get(dimname, 1)
+                      for dimname in ('nt', 'nz', 'ny', 'nx')]
+
+    # 3. compute offset from previous records of current variable
+    if (rec > nt-1):
+        raise ValueError("time record %g greater than number of records %g" %
+                         (rec, nt))
+    else:
+        offset_timerecords = rec * nz * ny * nx * nbytes
+
+    # 4. compute the offset of the previous variables, records and levels
+    offset = offset_vars + offset_timerecords
+    shape = (nz, ny, nx,)
+
+    # check if we do a partial read of the file
+    if (nt > 1) or (nz > 1) or (len(file_metadata['vars']) > 1):
+        partial_read = True
+    else:
+        partial_read = False
+
+    # define the order (row/column major)
+    # in conventional grids, it's in C
+    order = 'C'
+
+    # 5. Do the actual read
+    data = read_raw_data(file_metadata['filename'],
+                         file_metadata['datatype'],
+                         shape, use_mmap=use_mmap, offset=offset,
+                         order=order, partial_read=partial_read)
+
+    return data
+
+
 def _read_xy_chunk(variable, file_metadata, rec=0, lev=0, face=0,
                    use_mmap=False):
     """
