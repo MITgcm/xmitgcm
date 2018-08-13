@@ -579,7 +579,7 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False,
                                          use_mmap=use_mmap))
         elif chunks == "big":
             out.append(read_big_chunks(variable, file_metadata,
-                                         use_mmap=use_mmap))
+                                       use_mmap=use_mmap))
 
     return out
 
