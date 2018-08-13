@@ -577,7 +577,7 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False):
     return out
 
 
-def read_generic_data(variable, file_metadata, use_mmap=False,use_dask=True):
+def read_small_chunks(variable, file_metadata, use_mmap=False,use_dask=True):
     """
     Return dask array for variable using the given file_metadata
 
@@ -605,10 +605,10 @@ def read_generic_data(variable, file_metadata, use_mmap=False,use_dask=True):
                                  offset=0, order='C', partial_read=False)
 
         shape = (file_metadata['nt'], file_metadata['nz'], 1,
-                 file_metadata['nx'], file_metadata['nx'])
+                 file_metadata['ny'], file_metadata['nx'])
         data_raw = np.reshape(data_raw, shape)
         chunks = (file_metadata['nt'], 1, 1,
-                  file_metadata['nx'], file_metadata['nx'])
+                  file_metadata['ny'], file_metadata['nx'])
         data = dsa.from_array(data_raw, chunks=chunks)
 
     else:
@@ -648,6 +648,48 @@ def read_generic_data(variable, file_metadata, use_mmap=False,use_dask=True):
         data = dsa.Array(dsk, name, chunks,
                          dtype=file_metadata['dtype'], shape=shape)
 
+
+    if not use_dask:
+        data = data.compute()
+
+    return data
+
+
+def read_big_chunks(variable, file_metadata, use_mmap=False,use_dask=True):
+    """
+    Return dask array for variable using the given file_metadata
+
+    Parameters
+    ----------
+    variable : string
+               name of the variable to read
+    file_metadata : dict
+               internal file_metadata for binary file
+    use_mmap : bool, optional
+               Whether to read the data using a numpy.memmap
+
+    Returns
+    -------
+    dask array
+
+    """
+
+
+    def load_chunk(rec):
+        return _read_3d_chunk(variable, file_metadata,
+                                  rec=rec,
+                                  use_mmap=use_mmap)[None]
+
+    chunks = (1, file_metadata['nz'], file_metadata['ny'], file_metadata['nx'])
+    shape = (file_metadata['nt'], file_metadata['nz'],
+             file_metadata['ny'], file_metadata['nx'])
+    name = 'reg-' + tokenize(file_metadata['filename'])
+
+    dsk = {(name, rec, 0, 0, 0): (load_chunk, rec)
+           for rec in range(file_metadata['nt'])}
+
+    data = dsa.Array(dsk, name, chunks,
+                     dtype=file_metadata['dtype'], shape=shape)
 
     if not use_dask:
         data = data.compute()
