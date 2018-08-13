@@ -552,7 +552,7 @@ def _llc_data_shape(llc_id, nz=None):
 
 
 def read_all_variables(variable_list, file_metadata, use_mmap=False,
-                       chunks="small"):
+                       use_dask=False, chunks="big"):
     """
     Return a dictionary of dask arrays for variables in a MDS file
 
@@ -577,15 +577,15 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False,
     for variable in variable_list:
         if chunks == "small":
             out.append(read_small_chunks(variable, file_metadata,
-                                         use_mmap=use_mmap))
+                                         use_mmap=use_mmap, use_dask=use_dask))
         elif chunks == "big":
             out.append(read_big_chunks(variable, file_metadata,
-                                       use_mmap=use_mmap))
+                                       use_mmap=use_mmap, use_dask=use_dask))
 
     return out
 
 
-def read_small_chunks(variable, file_metadata, use_mmap=False, use_dask=True):
+def read_small_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
     """
     Return dask array for variable, from the file described by file_metadata,
     using the "small chunks" method.
@@ -665,7 +665,7 @@ def read_small_chunks(variable, file_metadata, use_mmap=False, use_dask=True):
     return data
 
 
-def read_big_chunks(variable, file_metadata, use_mmap=False, use_dask=True):
+def read_big_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
     """
     Return dask array for variable, from the file described by file_metadata,
     using the "big chunks" method. Not suitable for llc data.

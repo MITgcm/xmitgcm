@@ -564,7 +564,10 @@ def test_read_small_chunks(all_mds_datadirs, memmap, usedask):
         assert isinstance(data, dask.array.core.Array)
         data.compute()  # check accessing data works
     else:
-        assert isinstance(data, np.ndarray)
+        if memmap:
+            assert isinstance(data, np.memmap)
+        else:
+            assert isinstance(data, np.ndarray)
 
     # test 1d variable
     file_metadata.update({'filename': dirname + '/' + 'RC' + '.data',
@@ -576,7 +579,10 @@ def test_read_small_chunks(all_mds_datadirs, memmap, usedask):
         assert isinstance(data, dask.array.core.Array)
         data.compute()
     else:
-        assert isinstance(data, np.ndarray)
+        if memmap:
+            assert isinstance(data, np.memmap)
+        else:
+            assert isinstance(data, np.ndarray)
 
 
 @pytest.mark.parametrize("memmap", [True, False])
@@ -632,7 +638,10 @@ def test_read_big_chunks(all_mds_datadirs, memmap, usedask):
             assert isinstance(data, dask.array.core.Array)
             data.compute()
         else:
-            assert isinstance(data, np.ndarray)
+            if memmap:
+                assert isinstance(data, np.memmap)
+            else:
+                assert isinstance(data, np.ndarray)
 
     # test 1d variable
     file_metadata.update({'filename': dirname + '/' + 'RC' + '.data',
@@ -644,12 +653,16 @@ def test_read_big_chunks(all_mds_datadirs, memmap, usedask):
         assert isinstance(data, dask.array.core.Array)
         data.compute()
     else:
-        assert isinstance(data, np.ndarray)
+            if memmap:
+                assert isinstance(data, np.memmap)
+            else:
+                assert isinstance(data, np.ndarray)
 
 
 @pytest.mark.parametrize("memmap", [True, False])
-@pytest.mark.parametrize("chunks", ["small", "big"])
-def test_read_all_variables(all_mds_datadirs, memmap, chunks):
+@pytest.mark.parametrize("usedask", [True, False])
+#@pytest.mark.parametrize("chunks", ["small", "big"])
+def test_read_all_variables(all_mds_datadirs, memmap, usedask): #, chunks):
 
     from xmitgcm.utils import read_all_variables
 
@@ -688,12 +701,44 @@ def test_read_all_variables(all_mds_datadirs, memmap, chunks):
                               'dims_vars': [('nz', 'ny', 'nx')],
                               'has_faces': False})
 
+    # test big chunks, fails on llc but not others
+    if file_metadata['geometry'] in ['llc']:
+        with pytest.raises(ValueError):
+            dataset = read_all_variables(file_metadata['vars'], file_metadata,
+                                         use_mmap=memmap, use_dask=usedask,
+                                         chunks="big")
+            if usedask:
+                dataset[0].compute()
+    else:
+        dataset = read_all_variables(file_metadata['vars'], file_metadata,
+                                     use_mmap=memmap, use_dask=usedask,
+                                     chunks="big")
+
+        assert isinstance(dataset, list)
+        assert len(dataset) == len(file_metadata['vars'])
+        if usedask:
+            assert isinstance(dataset[0], dask.array.core.Array)
+        else:
+            if memmap:
+                assert isinstance(dataset[0], np.memmap)
+            else:
+                assert isinstance(dataset[0], np.ndarray)
+
+
+    # test small chunks
     dataset = read_all_variables(file_metadata['vars'], file_metadata,
-                                 use_mmap=memmap, chunks=chunks)
+                                 use_mmap=memmap, use_dask=usedask,
+                                 chunks="small")
 
     assert isinstance(dataset, list)
-    assert isinstance(dataset[0], dask.array.core.Array)
     assert len(dataset) == len(file_metadata['vars'])
+    if usedask:
+        assert isinstance(dataset[0], dask.array.core.Array)
+    else:
+        if memmap:
+            assert isinstance(dataset[0], np.memmap)
+        else:
+            assert isinstance(dataset[0], np.ndarray)
 
     # test multiple variables in file
     # those tests are only available for llc experiment:
@@ -710,11 +755,18 @@ def test_read_all_variables(all_mds_datadirs, memmap, chunks):
                               'dims_vars': dimsvar})
 
     dataset = read_all_variables(file_metadata['vars'], file_metadata,
-                                 use_mmap=memmap, chunks=chunks)
+                                 use_mmap=memmap, use_dask=usedask,
+                                 chunks="small")
 
     assert isinstance(dataset, list)
-    assert isinstance(dataset[0], dask.array.core.Array)
     assert len(dataset) == len(file_metadata['vars'])
+    if usedask:
+        assert isinstance(dataset[0], dask.array.core.Array)
+    else:
+        if memmap:
+            assert isinstance(dataset[0], np.memmap)
+        else:
+            assert isinstance(dataset[0], np.ndarray)
 
 
 @pytest.mark.parametrize("dtype", ['>d', '>f', '>i'])
