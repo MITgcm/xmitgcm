@@ -673,11 +673,10 @@ def read_big_chunks(variable, file_metadata, use_mmap=False, use_dask=True):
 
     """
 
-
     def load_chunk(rec):
         return _read_3d_chunk(variable, file_metadata,
-                                  rec=rec,
-                                  use_mmap=use_mmap)[None]
+                              rec=rec,
+                              use_mmap=use_mmap)[None]
 
     chunks = (1, file_metadata['nz'], file_metadata['ny'], file_metadata['nx'])
     shape = (file_metadata['nt'], file_metadata['nz'],

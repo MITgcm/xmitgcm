@@ -562,7 +562,7 @@ def test_read_small_chunks(all_mds_datadirs, memmap, usedask):
                              use_dask=usedask)
     if usedask:
         assert isinstance(data, dask.array.core.Array)
-        data.compute() # check accessing data works
+        data.compute()  # check accessing data works
     else:
         assert isinstance(data, np.ndarray)
 
