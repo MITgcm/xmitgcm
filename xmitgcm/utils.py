@@ -554,7 +554,7 @@ def _llc_data_shape(llc_id, nz=None):
 def read_all_variables(variable_list, file_metadata, use_mmap=False,
                        chunks="small"):
     """
-    Return a dictionary of dask arrays
+    Return a dictionary of dask arrays for variables in a MDS file
 
     Parameters
     ----------
@@ -568,7 +568,8 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False,
                     Whether to read small (default) or big chunks
     Returns
     -------
-    list
+    list of dask arrays, corresponding to variables from given list
+    in the file described by file_metadata
 
     """
 
@@ -586,7 +587,8 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False,
 
 def read_small_chunks(variable, file_metadata, use_mmap=False, use_dask=True):
     """
-    Return dask array for variable using the given file_metadata
+    Return dask array for variable, from the file described by file_metadata,
+    using the "small chunks" method.
 
     Parameters
     ----------
@@ -596,10 +598,12 @@ def read_small_chunks(variable, file_metadata, use_mmap=False, use_dask=True):
                internal file_metadata for binary file
     use_mmap : bool, optional
                Whether to read the data using a numpy.memmap
+    use_dask : bool, optional
+               collect the data lazily or eagerly
 
     Returns
     -------
-    dask array
+    dask array for variable, with 2d (ny, nx) chunks
 
     """
 
@@ -663,7 +667,8 @@ def read_small_chunks(variable, file_metadata, use_mmap=False, use_dask=True):
 
 def read_big_chunks(variable, file_metadata, use_mmap=False, use_dask=True):
     """
-    Return dask array for variable using the given file_metadata
+    Return dask array for variable, from the file described by file_metadata,
+    using the "big chunks" method. Not suitable for llc data.
 
     Parameters
     ----------
@@ -673,10 +678,12 @@ def read_big_chunks(variable, file_metadata, use_mmap=False, use_dask=True):
                internal file_metadata for binary file
     use_mmap : bool, optional
                Whether to read the data using a numpy.memmap
+    use_dask : bool, optional
+               collect the data lazily or eagerly
 
     Returns
     -------
-    dask array
+    dask array for variable, with 3d (nz, ny, nx) chunks
 
     """
 
@@ -704,7 +711,8 @@ def read_big_chunks(variable, file_metadata, use_mmap=False, use_dask=True):
 
 def _read_3d_chunk(variable, file_metadata, rec=0, use_mmap=False):
     """
-    Read a 3d chunk of variable nz
+    Read a 3d chunk (x,y,z) of variable from file described in
+    file_metadata.
 
     Parameters
     ----------
@@ -786,7 +794,8 @@ def _read_3d_chunk(variable, file_metadata, rec=0, use_mmap=False):
 def _read_xy_chunk(variable, file_metadata, rec=0, lev=0, face=0,
                    use_mmap=False):
     """
-    Read a 2d chunk along (x,y)
+    Read a 2d chunk along (x,y) of variable from file described in
+    file_metadata.
 
     Parameters
     ----------
