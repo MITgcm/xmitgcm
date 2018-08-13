@@ -648,7 +648,8 @@ def test_read_big_chunks(all_mds_datadirs, memmap, usedask):
 
 
 @pytest.mark.parametrize("memmap", [True, False])
-def test_read_all_variables(all_mds_datadirs, memmap):
+@pytest.mark.parametrize("chunks", ["small", "big"])
+def test_read_all_variables(all_mds_datadirs, memmap, chunks):
 
     from xmitgcm.utils import read_all_variables
 
@@ -688,7 +689,7 @@ def test_read_all_variables(all_mds_datadirs, memmap):
                               'has_faces': False})
 
     dataset = read_all_variables(file_metadata['vars'], file_metadata,
-                                 use_mmap=memmap)
+                                 use_mmap=memmap, chunks=chunks)
 
     assert isinstance(dataset, list)
     assert isinstance(dataset[0], dask.array.core.Array)
@@ -709,7 +710,7 @@ def test_read_all_variables(all_mds_datadirs, memmap):
                               'dims_vars': dimsvar})
 
     dataset = read_all_variables(file_metadata['vars'], file_metadata,
-                                 use_mmap=memmap)
+                                 use_mmap=memmap, chunks=chunks)
 
     assert isinstance(dataset, list)
     assert isinstance(dataset[0], dask.array.core.Array)

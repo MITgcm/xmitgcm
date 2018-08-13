@@ -551,7 +551,8 @@ def _llc_data_shape(llc_id, nz=None):
     return data_shape
 
 
-def read_all_variables(variable_list, file_metadata, use_mmap=False):
+def read_all_variables(variable_list, file_metadata, use_mmap=False,
+                       chunks="small"):
     """
     Return a dictionary of dask arrays
 
@@ -563,6 +564,8 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False):
                     internal metadata for binary file
     use_mmap      : bool, optional
                     Whether to read the data using a numpy.memmap
+    chunks        : str, optional
+                    Whether to read small (default) or big chunks
     Returns
     -------
     list
@@ -571,8 +574,12 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False):
 
     out = []
     for variable in variable_list:
-        out.append(read_generic_data(variable, file_metadata,
-                                     use_mmap=use_mmap))
+        if chunks == "small":
+            out.append(read_small_chunks(variable, file_metadata,
+                                         use_mmap=use_mmap))
+        elif chunks == "big":
+            out.append(read_big_chunks(variable, file_metadata,
+                                         use_mmap=use_mmap))
 
     return out
 
