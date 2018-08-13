@@ -653,16 +653,16 @@ def test_read_big_chunks(all_mds_datadirs, memmap, usedask):
         assert isinstance(data, dask.array.core.Array)
         data.compute()
     else:
-            if memmap:
-                assert isinstance(data, np.memmap)
-            else:
-                assert isinstance(data, np.ndarray)
+        if memmap:
+            assert isinstance(data, np.memmap)
+        else:
+            assert isinstance(data, np.ndarray)
 
 
 @pytest.mark.parametrize("memmap", [True, False])
 @pytest.mark.parametrize("usedask", [True, False])
-#@pytest.mark.parametrize("chunks", ["small", "big"])
-def test_read_all_variables(all_mds_datadirs, memmap, usedask): #, chunks):
+# @pytest.mark.parametrize("chunks", ["small", "big"])
+def test_read_all_variables(all_mds_datadirs, memmap, usedask):  # , chunks):
 
     from xmitgcm.utils import read_all_variables
 
@@ -723,7 +723,6 @@ def test_read_all_variables(all_mds_datadirs, memmap, usedask): #, chunks):
                 assert isinstance(dataset[0], np.memmap)
             else:
                 assert isinstance(dataset[0], np.ndarray)
-
 
     # test small chunks
     dataset = read_all_variables(file_metadata['vars'], file_metadata,
