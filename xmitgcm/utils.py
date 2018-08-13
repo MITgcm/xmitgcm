@@ -577,7 +577,7 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False):
     return out
 
 
-def read_small_chunks(variable, file_metadata, use_mmap=False,use_dask=True):
+def read_small_chunks(variable, file_metadata, use_mmap=False, use_dask=True):
     """
     Return dask array for variable using the given file_metadata
 
@@ -648,14 +648,13 @@ def read_small_chunks(variable, file_metadata, use_mmap=False,use_dask=True):
         data = dsa.Array(dsk, name, chunks,
                          dtype=file_metadata['dtype'], shape=shape)
 
-
     if not use_dask:
         data = data.compute()
 
     return data
 
 
-def read_big_chunks(variable, file_metadata, use_mmap=False,use_dask=True):
+def read_big_chunks(variable, file_metadata, use_mmap=False, use_dask=True):
     """
     Return dask array for variable using the given file_metadata
 
@@ -717,8 +716,8 @@ def _read_3d_chunk(variable, file_metadata, rec=0, use_mmap=False):
     numpy array or memmap
     """
 
-    if file_metadata['has_faces'] and ( (file_metadata['nx'] > 1) or
-       (file_metadata['ny'] > 1) ):
+    if file_metadata['has_faces'] and ((file_metadata['nx'] > 1) or
+                                       (file_metadata['ny'] > 1)):
         raise ValueError("_read_3d_chunk cannot be called with llc type grid")
 
     # size of the data element

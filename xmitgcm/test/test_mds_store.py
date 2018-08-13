@@ -558,6 +558,7 @@ def test_read_small_chunks(all_mds_datadirs, memmap, usedask):
                               'dims_vars': [('nz', 'ny', 'nx')],
                               'has_faces': False})
 
+<<<<<<< HEAD
     data = read_small_chunks('T', file_metadata, use_mmap=memmap,
                              use_dask=usedask)
     if usedask:
@@ -633,7 +634,6 @@ def test_read_big_chunks(all_mds_datadirs, memmap, usedask):
             data.compute()
         else:
             assert isinstance(data, np.ndarray)
-
 
     # test 1d variable
     file_metadata.update({'filename': dirname + '/' + 'RC' + '.data',
