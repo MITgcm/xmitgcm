@@ -675,7 +675,8 @@ def _read_3d_chunk(variable, file_metadata, rec=0, use_mmap=False):
     numpy array or memmap
     """
 
-    if file_metadata['has_faces']:
+    if file_metadata['has_faces'] and ( (file_metadata['nx'] > 1) or
+       (file_metadata['ny'] > 1) ):
         raise ValueError("_read_3d_chunk cannot be called with llc type grid")
 
     # size of the data element

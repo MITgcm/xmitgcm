@@ -394,6 +394,57 @@ def test_read_raw_data_llc(llc_mds_datadirs, method, memmap):
 
 
 @pytest.mark.parametrize("memmap", [True, False])
+def test_read_3d_chunk(all_mds_datadirs, memmap):
+
+    from xmitgcm.utils import _read_3d_chunk
+
+    dirname, expected = all_mds_datadirs
+
+    file_metadata = expected
+    file_metadata.update({'filename': dirname + '/' + 'T.' +
+                          str(file_metadata['test_iternum']).zfill(10) +
+                          '.data', 'vars': ['T'], 'endian': '>'})
+    # set the size of dimensions (could be changed in _experiments)
+    if file_metadata['geometry'] in ['llc']:
+        file_metadata.update({'nx': file_metadata['shape'][3],
+                              'ny': file_metadata['shape'][2],
+                              'nface': file_metadata['shape'][1],
+                              'nz': file_metadata['shape'][0],
+                              'has_faces': True})
+        # function not designed for llc grids, except 1d variables
+        with pytest.raises(ValueError):
+            data = _read_3d_chunk('T', file_metadata, use_mmap=memmap)
+    else:
+        file_metadata.update({'nx': file_metadata['shape'][2],
+                              'ny': file_metadata['shape'][1],
+                              'nz': file_metadata['shape'][0],
+                              'dims_vars': [('nz', 'ny', 'nx')],
+                              'has_faces': False})
+
+        data = _read_3d_chunk('T', file_metadata, use_mmap=memmap)
+
+        if memmap:
+            assert isinstance(data, np.memmap)
+        else:
+            assert isinstance(data, np.ndarray)
+
+        # test it fails for too large number of records
+        with pytest.raises(ValueError):
+            data = _read_3d_chunk('T', file_metadata, rec=1, use_mmap=memmap)
+
+    # test 1d variable
+    file_metadata.update({'filename': dirname + '/' + 'RC' + '.data',
+                          'vars': ['RC'], 'nx': 1, 'ny': 1,
+                          'dims_vars': [('nz', 'ny', 'nx')]})
+
+    data = _read_3d_chunk('RC', file_metadata, use_mmap=memmap)
+    if memmap:
+        assert isinstance(data, np.memmap)
+    else:
+        assert isinstance(data, np.ndarray)
+
+
+@pytest.mark.parametrize("memmap", [True, False])
 def test_read_xy_chunk(all_mds_datadirs, memmap):
 
     from xmitgcm.utils import _read_xy_chunk
