@@ -621,7 +621,7 @@ def read_small_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
 
         shape = (file_metadata['nt'], file_metadata['nz'], 1,
                  file_metadata['ny'], file_metadata['nx'])
-        data_raw = np.reshape(data_raw, shape) # memmap -> ndarray
+        data_raw = np.reshape(data_raw, shape)  # memmap -> ndarray
         chunks = (file_metadata['nt'], 1, 1,
                   file_metadata['ny'], file_metadata['nx'])
         data = dsa.from_array(data_raw, chunks=chunks)
