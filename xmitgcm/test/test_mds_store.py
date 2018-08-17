@@ -580,7 +580,7 @@ def test_read_small_chunks(all_mds_datadirs, memmap, usedask):
         data.compute()
     else:
         if memmap:
-            assert isinstance(data, np.memmap)
+            assert isinstance(data, np.ndarray)
         else:
             assert isinstance(data, np.ndarray)
 
