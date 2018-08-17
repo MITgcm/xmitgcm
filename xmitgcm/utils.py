@@ -607,6 +607,7 @@ def read_small_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
     Returns
     -------
     dask array for variable, with 2d (ny, nx) chunks
+    or numpy.ndarray or memmap, depending on input args
 
     """
 
@@ -687,6 +688,7 @@ def read_big_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
     Returns
     -------
     dask array for variable, with 3d (nz, ny, nx) chunks
+    or numpy.ndarray or memmap, depending on input args
 
     """
 
