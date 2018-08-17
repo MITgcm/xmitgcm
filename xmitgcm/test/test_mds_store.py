@@ -394,9 +394,9 @@ def test_read_raw_data_llc(llc_mds_datadirs, method, memmap):
 
 
 @pytest.mark.parametrize("memmap", [True, False])
-def test_read_3d_chunk(all_mds_datadirs, memmap):
+def test_read_xyz_chunk(all_mds_datadirs, memmap):
 
-    from xmitgcm.utils import _read_3d_chunk
+    from xmitgcm.utils import _read_xyz_chunk
 
     dirname, expected = all_mds_datadirs
 
@@ -413,7 +413,7 @@ def test_read_3d_chunk(all_mds_datadirs, memmap):
                               'has_faces': True})
         # function not designed for llc grids, except 1d variables
         with pytest.raises(ValueError):
-            data = _read_3d_chunk('T', file_metadata, use_mmap=memmap)
+            data = _read_xyz_chunk('T', file_metadata, use_mmap=memmap)
     else:
         file_metadata.update({'nx': file_metadata['shape'][2],
                               'ny': file_metadata['shape'][1],
@@ -421,7 +421,7 @@ def test_read_3d_chunk(all_mds_datadirs, memmap):
                               'dims_vars': [('nz', 'ny', 'nx')],
                               'has_faces': False})
 
-        data = _read_3d_chunk('T', file_metadata, use_mmap=memmap)
+        data = _read_xyz_chunk('T', file_metadata, use_mmap=memmap)
 
         if memmap:
             assert isinstance(data, np.memmap)
@@ -430,14 +430,14 @@ def test_read_3d_chunk(all_mds_datadirs, memmap):
 
         # test it fails for too large number of records
         with pytest.raises(ValueError):
-            data = _read_3d_chunk('T', file_metadata, rec=1, use_mmap=memmap)
+            data = _read_xyz_chunk('T', file_metadata, rec=1, use_mmap=memmap)
 
     # test 1d variable
     file_metadata.update({'filename': dirname + '/' + 'RC' + '.data',
                           'vars': ['RC'], 'nx': 1, 'ny': 1,
                           'dims_vars': [('nz', 'ny', 'nx')]})
 
-    data = _read_3d_chunk('RC', file_metadata, use_mmap=memmap)
+    data = _read_xyz_chunk('RC', file_metadata, use_mmap=memmap)
     if memmap:
         assert isinstance(data, np.memmap)
     else:
