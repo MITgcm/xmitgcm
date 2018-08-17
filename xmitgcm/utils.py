@@ -566,10 +566,13 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False,
                     Whether to read the data using a numpy.memmap
     chunks        : str, optional
                     Whether to read small (default) or big chunks
+                    small chunks are reading 2d (x,y) levels and big chunks
+                    are reading the whole 3d (x,y,z) field
     Returns
     -------
-    list of dask arrays, corresponding to variables from given list
-    in the file described by file_metadata
+    list of data arrays (dask.array, numpy.ndarray or memmap)
+    corresponding to variables from given list in the file
+    described by file_metadata
 
     """
 
@@ -688,7 +691,7 @@ def read_big_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
     """
 
     def load_chunk(rec):
-        return _read_3d_chunk(variable, file_metadata,
+        return _read_xyz_chunk(variable, file_metadata,
                               rec=rec,
                               use_mmap=use_mmap)[None]
 
@@ -709,7 +712,7 @@ def read_big_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
     return data
 
 
-def _read_3d_chunk(variable, file_metadata, rec=0, use_mmap=False):
+def _read_xyz_chunk(variable, file_metadata, rec=0, use_mmap=False):
     """
     Read a 3d chunk (x,y,z) of variable from file described in
     file_metadata.
@@ -732,7 +735,7 @@ def _read_3d_chunk(variable, file_metadata, rec=0, use_mmap=False):
 
     if file_metadata['has_faces'] and ((file_metadata['nx'] > 1) or
                                        (file_metadata['ny'] > 1)):
-        raise ValueError("_read_3d_chunk cannot be called with llc type grid")
+        raise ValueError("_read_xyz_chunk cannot be called with llc type grid")
 
     # size of the data element
     nbytes = file_metadata['dtype'].itemsize
