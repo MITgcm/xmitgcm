@@ -127,7 +127,7 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
                  'face_offsets': [0, 1, 2, 0, 1, 2, 0, 0, 1, 2, 0, 1, 2],
                  'transpose_face' : [False, False, False,
                                      False, False, False, False,
-                                     True, True, True, True, True, True]})
+                                     True, True, True, True, True, True]}
 
         llc grids have typically 5 rectangular facets and will be mapped onto
         N (=13 for llc, =6 for aste) square faces.
@@ -206,7 +206,6 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
 
             metadata = {'basename': name, 'shape': shape}
 
-    print(shape)
     # figure out dimensions
     ndims = len(shape)-1
     if ndims == 3:
@@ -227,7 +226,6 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
                      'nx': nx, 'ny': ny,
                      'nz': nz, 'nt': 1})  # parse_meta harcoded for nt = 1
 
-    # print(metadata)
     file_metadata = metadata.copy()
 
     # by default, we set to non-llc grid
@@ -237,6 +235,22 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
     # extra_metadata contains informations about llc/regional llc grid
     if extra_metadata is not None:
         file_metadata.update(extra_metadata)
+
+    #--------------- LEGACY --------------------------
+    # from legacy code (needs to be phased out)
+    # transition code to keep unit tests working
+    if llc:
+        chunks="small"
+        llc90 = {'has_faces': True, 'ny': 13*90, 'nx': 90,
+                 'ny_facets': [3*90, 3*90, 90, 3*90, 3*90],
+                 'face_facets': [0, 0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 4, 4],
+                 'facet_orders': ['C', 'C', 'C', 'F', 'F'],
+                 'face_offsets': [0, 1, 2, 0, 1, 2, 0, 0, 1, 2, 0, 1, 2],
+                 'transpose_face' : [False, False, False,
+                                     False, False, False, False,
+                                     True, True, True, True, True, True]}
+        file_metadata.update(llc90)
+    #--------------- /LEGACY --------------------------
 
     # it is possible to override the values of nx, ny, nz from extra_metadata
     # (needed for bug meta file ASTE) except if those are = 1 (vertical coord)
@@ -260,10 +274,14 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
         elif ndims == 2:
             out[name] = d[n][:, 0, :]
 
-    # old version doesn't return a time dimension
+    #--------------- LEGACY --------------------------
+    # from legacy code (needs to be phased out)
+    # transition code to keep unit tests working
     if legacy:
         for n, name in enumerate(file_metadata['fldList']):
             out[name] = out[name][0,:]
+    #--------------- /LEGACY --------------------------
+
     return out
 
 

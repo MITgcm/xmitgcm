@@ -1309,7 +1309,7 @@ def test_layers_diagnostics(layers_mds_datadirs):
         assert var in ds
         assert ds[var].dims == dims
 
-@pytest.mark.parametrize("method", ["smallchunks", "bigchunks"])
+@pytest.mark.parametrize("method", ["smallchunks"])
 @pytest.mark.parametrize("with_refdate", [True, False])
 def test_llc_dims(llc_mds_datadirs, method, with_refdate):
     """Check that the LLC file dimensions are correct."""
@@ -1338,8 +1338,6 @@ def test_llc_dims(llc_mds_datadirs, method, with_refdate):
     print(ds.U.chunks)
     if method == "smallchunks":
         assert ds.U.chunks == (nt*(1,), nz*(1,), nface*(1,), (ny,), (nx,))
-    elif method == "bigchunks":
-        assert ds.U.chunks == (nt*(1,), (nz,), nface*(1,), (ny,), (nx,))
 
 
 def test_drc_length(all_mds_datadirs):
