@@ -84,7 +84,7 @@ def _get_useful_info_from_meta_file(metafile):
 
 def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
              dtype=None, dask_delayed=True, extra_metadata=None, chunks="big",
-             llc=False, llc_method="smallchunks"):
+             llc=False, llc_method="smallchunks",legacy=True):
     """Read an MITgcm .meta / .data file pair
 
 
@@ -199,6 +199,8 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
                           metadata, please specify the default dtype to \
                           avoid this error." % fname)
         else:
+            # add time dimensions
+            shape = (1,) + shape
             shape = list(shape)
             name = os.path.basename(fname)
 
@@ -258,6 +260,10 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
         elif ndims == 2:
             out[name] = d[n][:, 0, :]
 
+    # old version doesn't return a time dimension
+    if legacy:
+        for n, name in enumerate(file_metadata['fldList']):
+            out[name] = out[name][0,:]
     return out
 
 
