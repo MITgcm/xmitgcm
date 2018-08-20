@@ -81,9 +81,9 @@ def _get_useful_info_from_meta_file(metafile):
 
     return nrecs, shape, name, dtype, fldlist
 
-def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
-             shape=None, dtype=None, dask_delayed=True, llc=False,
-             llc_method="smallchunks"):
+def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
+             dtype=None, dask_delayed=True, extra_metadata=None, chunks="big",
+             llc=False, llc_method="smallchunks"):
     """Read an MITgcm .meta / .data file pair
 
 
@@ -95,8 +95,6 @@ def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
         The iteration number suffix
     use_mmap : bool, optional
         Whether to read the data using a numpy.memmap
-    force_dict : bool, optional
-        Whether to return a dictionary of ``{varname: data}`` pairs
     endian : {'>', '<', '|'}, optional
         Dndianness of the data
     dtype : numpy.dtype, optional
@@ -105,17 +103,66 @@ def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
         Shape of the data (will be inferred from the .meta file by default)
     dask_delayed : bool, optional
         Whether wrap the reading of the raw data in a ``dask.delayed`` object
-    llc : bool, optional
-        Whether the data is from an LLC geometry
-    llc_method : {'smalchunks', 'bigchunks'}
-        Which routine to use for reading raw LLC. "smallchunks" splits the file
-        into a individual dask chunk of size (nx x nx) for each face of each
-        level (i.e. the total number of chunks is 13 * nz). "bigchunks" loads
-        the whole raw data file (either into memory or as a numpy.memmap),
-        splits it into faces, and concatenates those faces together using
-        ``dask.array.concatenate``. The different methods will have different
-        memory and i/o performance depending on the details of the system
-        configuration.
+    extra_metadata : dict, optional
+        Dictionary containing some extra metadata that will be appended to
+        content of MITgcm meta file to create the file_metadata. This is needed
+        for llc type configurations (global or regional). In this case the extra
+        metadata used is of the form :
+
+        aste = {'has_faces': True, 'ny': 1350, 'nx': 270,
+                'ny_facets': [450,0,270,180,450],
+                'pad_before_y': [90,0,0,0,0],
+                'pad_after_y': [0,0,0,90,90],
+                'face_facets': [0, 0, 2, 3, 4, 4],
+                'facet_orders' : ['C', 'C', 'C', 'F', 'F'],
+                'face_offsets' : [0, 1, 0, 0, 0, 1],
+                'transpose_face' : [False, False, False,
+                                    True, True, True]}
+
+        llc90 = {'has_faces': True, 'ny': 13*90, 'nx': 90,
+                 'ny_facets': [3*90, 3*90, 90, 3*90, 3*90],
+                 'face_facets': [0, 0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 4, 4],
+                 'facet_orders': ['C', 'C', 'C', 'F', 'F'],
+                 'face_offsets': [0, 1, 2, 0, 1, 2, 0, 0, 1, 2, 0, 1, 2],
+                 'transpose_face' : [False, False, False,
+                                     False, False, False, False,
+                                     True, True, True, True, True, True]})
+
+        llc grids have typically 5 rectangular facets and will be mapped onto
+        N (=13 for llc, =6 for aste) square faces.
+
+        -bool:
+
+        * has_faces : True if domain is combination of connected grids
+
+        -list of len=nfacets:
+
+        * ny_facets : number of points in y direction of each facet
+                      (usually n * nx)
+        * pad_before_y (Regional configuration) : pad data with N zeros
+                                                  before array
+        * pad_after_y (Regional configuration) : pad data with N zeros
+                                                 after array
+        * facet_order : row/column major order of this facet
+
+        -list of len=nfaces:
+
+        * face_facets : facet of origin for this face
+
+        * face_offsets : position of the face in the facet (0 = start)
+
+        * transpose_face : transpose the data for this face
+
+    chunks : {'big', 'small'}
+        Which routine to use for chunking data. "smallchunks" splits the file
+        into a individual dask chunk of size (nx x nx) for each face (if llc)
+        of each record of each level.
+        "bigchunks" loads the whole raw data file (either into memory or as a
+        numpy.memmap) and is not suitable for llc configurations.
+        The different methods will have different memory and i/o performance
+        depending on the details of the system configuration.
+
+    obsolete : llc and llc_methods, kept for testing
 
     RETURNS
     -------
@@ -136,64 +183,81 @@ def read_mds(fname, iternum=None, use_mmap=True, force_dict=True, endian='>',
 
     # get metadata
     try:
-        nrecs, shape, name, dtype, fldlist = _get_useful_info_from_meta_file(metafile)
+        metadata = parse_meta_file(metafile)
+        nrecs, shape, name, dtype, fldlist = \
+        _get_useful_info_from_meta_file(metafile)
         dtype = dtype.newbyteorder(endian)
     except IOError:
         # we can recover from not having a .meta file if dtype and shape have
         # been specified already
         if shape is None:
-            raise IOError("Cannot find the shape associated to %s in the metadata." %fname)
+            raise IOError("Cannot find the shape associated to %s in the \
+                          metadata." %fname)
         elif dtype is None:
-            raise IOError("Cannot find the dtype associated to %s in the metadata, "
-                          "please specify the default dtype to avoid this error." %fname)
+            raise IOError("Cannot find the dtype associated to %s in the \
+                          metadata, please specify the default dtype to \
+                          avoid this error." %fname)
         else:
-            nrecs = 1
             shape = list(shape)
-            shape.insert(0, nrecs)
             name = os.path.basename(fname)
 
-    # TODO: refactor overall logic of the code below
+            metadata={'basename': name, 'shape': shape}
 
-    # this will exclude vertical profile files
-    if llc and shape[-1]>1:
-        # remeberer that the first dim is nrec
-        if len(shape)==4:
-            _, nz, ny, nx = shape
-        else:
-            _, ny, nx = shape
-            nz = 1
+    print(shape)
+    # figure out dimensions
+    ndims = len(shape)-1
+    if ndims == 3:
+        _, nz, ny, nx = shape
+        dims_vars = [('nz', 'ny', 'nx')]
+    elif ndims == 2:
+        _, ny, nx = shape
+        nz = 1
+        dims_vars = [('ny', 'nx')]
 
-        if llc_method=='bigchunks' and (not use_mmap):
-            # this would load a ton of data... need to delay it
-            d = dsa.from_delayed(
-                delayed(read_3d_llc_data)(datafile, nz, nx, dtype=dtype,
-                            memmap=memmap, nrecs=nrecs, method=llc_method)
-            )
-        else:
-            if llc_method=='smallchunks':
-                use_mmap=False
-            d = read_3d_llc_data(datafile, nz, nx, dtype=dtype, memmap=use_mmap,
-                              nrecs=nrecs, method=llc_method)
+    # and variables
+    if 'fldList' not in metadata:
+        metadata['fldList'] = [metadata['basename']]
 
-    elif dask_delayed:
-        d = dsa.from_delayed(
-              delayed(read_raw_data)(datafile, dtype, shape, use_mmap=use_mmap),
-              shape, dtype
-            )
-    else:
-        d = read_raw_data(datafile, dtype, shape, use_mmap=use_mmap)
+    # add extra dim information and set aside
+    metadata.update({'dims_vars': dims_vars,
+                     'dtype': dtype, 'endian': endian,
+                     'nx': nx, 'ny': ny,
+                     'nz': nz, 'nt': 1}) # parse_meta harcoded for nt = 1
 
-    if nrecs == 1:
-        if force_dict:
-            return {name: d[0]}
-        else:
-            return d[0]
-    else:
-        # need record names
-        out = {}
-        for n, name in enumerate(fldlist):
+    #print(metadata)
+    file_metadata = metadata.copy()
+
+    # by default, we set to non-llc grid
+    file_metadata.update({'filename':datafile, 'vars': metadata['fldList'],
+                          'has_faces': False})
+
+    # extra_metadata contains informations about llc/regional llc grid
+    if extra_metadata is not None:
+        file_metadata.update(extra_metadata)
+
+    # it is possible to override the values of nx, ny, nz from extra_metadata
+    # (needed for bug meta file ASTE) except if those are = 1 (vertical coord)
+    # where we override by values found in meta file
+    for dim in ['nx', 'ny', 'nz']:
+        if metadata[dim] == 1:
+            file_metadata.update({dim: 1})
+
+    use_dask=True if dask_delayed else False
+
+    # read all variables from file into the list d
+    d = read_all_variables(file_metadata['fldList'], file_metadata,
+                           use_mmap=use_mmap, use_dask=use_dask,
+                           chunks=chunks)
+
+    # convert list into dictionary
+    out = {}
+    for n, name in enumerate(file_metadata['fldList']):
+        if ndims == 3:
             out[name] = d[n]
-        return out
+        elif ndims == 2:
+            out[name] = d[n][:,0,:]
+
+    return out
 
 
 def read_raw_data(datafile, dtype, shape, use_mmap=False, offset=0,
