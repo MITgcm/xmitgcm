@@ -107,8 +107,8 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
     extra_metadata : dict, optional
         Dictionary containing some extra metadata that will be appended to
         content of MITgcm meta file to create the file_metadata. This is needed
-        for llc type configurations (global or regional). In this case the extra
-        metadata used is of the form :
+        for llc type configurations (global or regional). In this case the
+        extra metadata used is of the form :
 
         aste = {'has_faces': True, 'ny': 1350, 'nx': 270,
                 'ny_facets': [450,0,270,180,450],
