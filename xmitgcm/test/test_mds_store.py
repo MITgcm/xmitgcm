@@ -296,24 +296,45 @@ def test_read_mds(all_mds_datadirs):
 
     prefix = 'XC'
     basename = os.path.join(dirname, prefix)
+    # should be dask by default
     res = read_mds(basename)
     assert isinstance(res, dict)
     assert prefix in res
-    # should be dask by default
     assert isinstance(res[prefix], dask.array.core.Array)
 
     # try some options
-    res = read_mds(basename, force_dict=False, dask_delayed=False)
-    assert isinstance(res, np.memmap)
-    res = read_mds(basename, force_dict=False, use_mmap=False,
-                   dask_delayed=False)
-    assert isinstance(res, np.ndarray)
+    res = read_mds(basename, dask_delayed=False)
+    assert isinstance(res, dict)
+    assert prefix in res
+    assert isinstance(res[prefix], np.memmap)
+
+    res = read_mds(basename, dask_delayed=False, use_mmap=False)
+    assert isinstance(res, dict)
+    assert prefix in res
+    assert isinstance(res[prefix], np.ndarray)
+
+    res = read_mds(basename, chunks="small")
+    assert isinstance(res, dict)
+    assert prefix in res
+    assert isinstance(res[prefix], dask.array.core.Array)
+
+    res = read_mds(basename, chunks="small", dask_delayed=False)
+    assert isinstance(res, dict)
+    assert prefix in res
+    assert isinstance(res[prefix], np.memmap)
+
+    res = read_mds(basename, chunks="small", dask_delayed=False,
+                   use_mmap=False)
+    assert isinstance(res, dict)
+    assert prefix in res
+    assert isinstance(res[prefix], np.ndarray)
 
     # make sure endianness works
-    testval = res.newbyteorder('<')[0,0]
-    res_endian = read_mds(basename, force_dict=False, use_mmap=False,
+    res = read_mds(basename, dask_delayed=False, use_mmap=False)
+    testval = res[prefix].newbyteorder('<')[0,0]
+    res_endian = read_mds(basename, use_mmap=False,
                           endian='<', dask_delayed=False)
-    val_endian = res_endian[0,0]
+    val_endian = res_endian[prefix][0,0]
     np.testing.assert_allclose(testval, val_endian)
 
     # try reading with iteration number
@@ -322,6 +343,37 @@ def test_read_mds(all_mds_datadirs):
     iternum = expected['test_iternum']
     res = read_mds(basename, iternum=iternum)
     assert prefix in res
+    assert isinstance(res[prefix], dask.array.core.Array)
+
+    # try some options
+    res = read_mds(basename, iternum=iternum, dask_delayed=False)
+    assert isinstance(res, dict)
+    assert prefix in res
+    assert isinstance(res[prefix], np.memmap)
+
+    res = read_mds(basename, iternum=iternum, dask_delayed=False,
+                   use_mmap=False)
+    assert isinstance(res, dict)
+    assert prefix in res
+    assert isinstance(res[prefix], np.ndarray)
+
+    res = read_mds(basename,iternum=iternum, chunks="small")
+    assert isinstance(res, dict)
+    assert prefix in res
+    assert isinstance(res[prefix], dask.array.core.Array)
+
+    res = read_mds(basename,iternum=iternum, chunks="small",
+                   dask_delayed=False)
+    assert isinstance(res, dict)
+    assert prefix in res
+    print(type(res[prefix]))
+    assert isinstance(res[prefix], np.ndarray) # should be memmap
+
+    res = read_mds(basename,iternum=iternum, chunks="small",
+                   dask_delayed=False, use_mmap=False)
+    assert isinstance(res, dict)
+    assert prefix in res
+    assert isinstance(res[prefix], np.ndarray)
 
 def test_read_mds_no_meta(all_mds_datadirs):
     from xmitgcm.utils import read_mds
@@ -338,6 +390,8 @@ def test_read_mds_no_meta(all_mds_datadirs):
 
     shape_2d = (ny, nx)
     shape_3d = shape_2d if nz==1 else (nz,) + shape_2d
+    shape_2d = (1,) + shape_2d
+    shape_3d = (1,) + shape_3d
 
     prefixes = {'XC': shape_2d, 'hFacC': shape_3d}
 
