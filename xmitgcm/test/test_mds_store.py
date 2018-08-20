@@ -391,8 +391,6 @@ def test_read_mds_no_meta(all_mds_datadirs):
 
     shape_2d = (ny, nx)
     shape_3d = shape_2d if nz==1 else (nz,) + shape_2d
-    shape_2d = (1,) + shape_2d
-    shape_3d = (1,) + shape_3d
 
     prefixes = {'XC': shape_2d, 'hFacC': shape_3d}
 
@@ -402,12 +400,20 @@ def test_read_mds_no_meta(all_mds_datadirs):
             # can't read without specifying shape and dtype
             with pytest.raises(IOError) as ioe:
                 res = read_mds(basename)
-            res = read_mds(basename, shape=shape, dtype=dtype)
+            res = read_mds(basename, shape=shape, dtype=dtype, legacy=True)
             assert isinstance(res, dict)
             assert prefix in res
             # should be dask by default
             assert isinstance(res[prefix], dask.array.core.Array)
             assert res[prefix].shape == shape
+
+            res = read_mds(basename, shape=shape, dtype=dtype, legacy=False)
+            assert isinstance(res, dict)
+            assert prefix in res
+            # should be dask by default
+            assert isinstance(res[prefix], dask.array.core.Array)
+            assert res[prefix].shape == (1,) + shape
+
 
 @pytest.mark.parametrize("method", ["smallchunks", "bigchunks"])
 @pytest.mark.parametrize("memmap", [True, False])
