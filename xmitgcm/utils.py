@@ -81,6 +81,7 @@ def _get_useful_info_from_meta_file(metafile):
 
     return nrecs, shape, name, dtype, fldlist
 
+
 def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
              dtype=None, dask_delayed=True, extra_metadata=None, chunks="big",
              llc=False, llc_method="smallchunks"):
@@ -185,23 +186,23 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
     try:
         metadata = parse_meta_file(metafile)
         nrecs, shape, name, dtype, fldlist = \
-        _get_useful_info_from_meta_file(metafile)
+            _get_useful_info_from_meta_file(metafile)
         dtype = dtype.newbyteorder(endian)
     except IOError:
         # we can recover from not having a .meta file if dtype and shape have
         # been specified already
         if shape is None:
             raise IOError("Cannot find the shape associated to %s in the \
-                          metadata." %fname)
+                          metadata." % fname)
         elif dtype is None:
             raise IOError("Cannot find the dtype associated to %s in the \
                           metadata, please specify the default dtype to \
-                          avoid this error." %fname)
+                          avoid this error." % fname)
         else:
             shape = list(shape)
             name = os.path.basename(fname)
 
-            metadata={'basename': name, 'shape': shape}
+            metadata = {'basename': name, 'shape': shape}
 
     print(shape)
     # figure out dimensions
@@ -222,13 +223,13 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
     metadata.update({'dims_vars': dims_vars,
                      'dtype': dtype, 'endian': endian,
                      'nx': nx, 'ny': ny,
-                     'nz': nz, 'nt': 1}) # parse_meta harcoded for nt = 1
+                     'nz': nz, 'nt': 1})  # parse_meta harcoded for nt = 1
 
-    #print(metadata)
+    # print(metadata)
     file_metadata = metadata.copy()
 
     # by default, we set to non-llc grid
-    file_metadata.update({'filename':datafile, 'vars': metadata['fldList'],
+    file_metadata.update({'filename': datafile, 'vars': metadata['fldList'],
                           'has_faces': False})
 
     # extra_metadata contains informations about llc/regional llc grid
@@ -242,7 +243,7 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
         if metadata[dim] == 1:
             file_metadata.update({dim: 1})
 
-    use_dask=True if dask_delayed else False
+    use_dask = True if dask_delayed else False
 
     # read all variables from file into the list d
     d = read_all_variables(file_metadata['fldList'], file_metadata,
@@ -255,7 +256,7 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
         if ndims == 3:
             out[name] = d[n]
         elif ndims == 2:
-            out[name] = d[n][:,0,:]
+            out[name] = d[n][:, 0, :]
 
     return out
 
