@@ -45,7 +45,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     endian=">", chunks=None,
                     ignore_unknown_vars=False, default_dtype=None,
                     nx=None, ny=None, nz=None,
-                    llc_method="smallchunks",extra_metadata=None):
+                    llc_method="smallchunks", extra_metadata=None):
     """Open MITgcm-style mds (.data / .meta) file output as xarray datset.
 
     Parameters
@@ -371,16 +371,16 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                    'face_facets': [0, 0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 4, 4],
                    'facet_orders': ['C', 'C', 'C', 'F', 'F'],
                    'face_offsets': [0, 1, 2, 0, 1, 2, 0, 0, 1, 2, 0, 1, 2],
-                   'transpose_face' : [False, False, False,
-                                       False, False, False, False,
-                                       True, True, True, True, True, True]}
+                   'transpose_face': [False, False, False,
+                                      False, False, False, False,
+                                      True, True, True, True, True, True]}
             if extra_metadata is None:
                 # legacy behavior: not passing metadata
                 extra_metadata = llc
         # --------------- /LEGACY ----------------------
 
         self.extra_metadata = extra_metadata if extra_metadata is not None \
-                              else None
+            else None
 
         # put in local variable to make it more readable
         if extra_metadata is not None and 'has_faces' in extra_metadata:
@@ -390,7 +390,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
 
         # we don't need to know ny if using llc
         if has_faces and (nx is not None):
-             ny = nx
+            ny = nx
 
         # Now we need to figure out the horizontal dimensions nx, ny
         # nface is the number of llc faces
@@ -399,7 +399,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             # dimensions without reading any files
             self.ny, self.nx = ny, nx
             self.nface = len(extra_metadata['face_facets']) if has_faces \
-                         else None
+                else None
         else:
             # have to peek at the grid file metadata
             # this can't work for regional llc RD
@@ -422,7 +422,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             nyraw = self.ny
         self.default_shape_3D = (self.nz, nyraw, self.nx)
         self.default_shape_2D = (nyraw, self.nx)
-        self.llc_method=llc_method # obsolete RD
+        self.llc_method = llc_method  # obsolete RD
 
         # Now set up the corresponding coordinates.
         # Rather than assuming the dimension names, we use Comodo conventions
@@ -589,19 +589,19 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 ndims = len(self._all_data_variables[prefix]['dims'])
             except KeyError:
                 ndims = 3
-            if ndims==3 and self.nz > 1:
+            if ndims == 3 and self.nz > 1:
                 data_shape = self.default_shape_3D
-            elif ndims==2 or self.nz == 1:
+            elif ndims == 2 or self.nz == 1:
                 data_shape = self.default_shape_2D
             else:
                 raise ValueError("Can't determine shape "
-                                 "of variable %s" %  prefix)
+                                 "of variable %s" % prefix)
 
             vardata = read_mds(basename, iternum, endian=self.endian,
-                           dtype=self.default_dtype,
-                           shape=data_shape, llc=self.llc,
-                           llc_method=self.llc_method,
-                           extra_metadata=self.extra_metadata)
+                               dtype=self.default_dtype,
+                               shape=data_shape, llc=self.llc,
+                               llc_method=self.llc_method,
+                               extra_metadata=self.extra_metadata)
 
         for vname, data in vardata.items():
             # we now have to revert to the original prefix once the file is read
