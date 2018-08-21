@@ -241,15 +241,6 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
     # transition code to keep unit tests working
     if llc:
         chunks = "small"
-        llc90 = {'has_faces': True, 'ny': 13*90, 'nx': 90,
-                 'ny_facets': [3*90, 3*90, 90, 3*90, 3*90],
-                 'face_facets': [0, 0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 4, 4],
-                 'facet_orders': ['C', 'C', 'C', 'F', 'F'],
-                 'face_offsets': [0, 1, 2, 0, 1, 2, 0, 0, 1, 2, 0, 1, 2],
-                 'transpose_face': [False, False, False,
-                                    False, False, False, False,
-                                    True, True, True, True, True, True]}
-        file_metadata.update(llc90)
     # --------------- /LEGACY --------------------------
 
     # it is possible to override the values of nx, ny, nz from extra_metadata
