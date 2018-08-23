@@ -549,3 +549,429 @@ def _llc_data_shape(llc_id, nz=None):
     # should we accomodate multiple records?
     # no, not in this function
     return data_shape
+
+
+def read_all_variables(variable_list, file_metadata, use_mmap=False,
+                       use_dask=False, chunks="big"):
+    """
+    Return a dictionary of dask arrays for variables in a MDS file
+
+    Parameters
+    ----------
+    variable_list : list
+                    list of MITgcm variables, from fldList in .meta
+    file_metadata : dict
+                    internal metadata for binary file
+    use_mmap      : bool, optional
+                    Whether to read the data using a numpy.memmap
+    chunks        : str, optional
+                    Whether to read small (default) or big chunks
+                    small chunks are reading 2d (x,y) levels and big chunks
+                    are reading the whole 3d (x,y,z) field
+    Returns
+    -------
+    list of data arrays (dask.array, numpy.ndarray or memmap)
+    corresponding to variables from given list in the file
+    described by file_metadata
+
+    """
+
+    out = []
+    for variable in variable_list:
+        if chunks == "small":
+            out.append(read_small_chunks(variable, file_metadata,
+                                         use_mmap=use_mmap, use_dask=use_dask))
+        elif chunks == "big":
+            out.append(read_big_chunks(variable, file_metadata,
+                                       use_mmap=use_mmap, use_dask=use_dask))
+
+    return out
+
+
+def read_small_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
+    """
+    Return dask array for variable, from the file described by file_metadata,
+    using the "small chunks" method.
+
+    Parameters
+    ----------
+    variable : string
+               name of the variable to read
+    file_metadata : dict
+               internal file_metadata for binary file
+    use_mmap : bool, optional
+               Whether to read the data using a numpy.memmap
+    use_dask : bool, optional
+               collect the data lazily or eagerly
+
+    Returns
+    -------
+    dask array for variable, with 2d (ny, nx) chunks
+    or numpy.ndarray or memmap, depending on input args
+
+    """
+
+    if (file_metadata['nx'] == 1) and (file_metadata['ny'] == 1) and \
+       (len(file_metadata['vars']) == 1):
+            # vertical coordinate
+        data_raw = read_raw_data(file_metadata['filename'],
+                                 file_metadata['dtype'],
+                                 (file_metadata['nz'],), use_mmap=use_mmap,
+                                 offset=0, order='C', partial_read=False)
+
+        shape = (file_metadata['nt'], file_metadata['nz'], 1,
+                 file_metadata['ny'], file_metadata['nx'])
+        data_raw = np.reshape(data_raw, shape)  # memmap -> ndarray
+        chunks = (file_metadata['nt'], 1, 1,
+                  file_metadata['ny'], file_metadata['nx'])
+        data = dsa.from_array(data_raw, chunks=chunks)
+
+    else:
+        if file_metadata['has_faces']:
+            def load_chunk(face, lev, rec):
+                return _read_xy_chunk(variable, file_metadata, rec=rec,
+                                      lev=lev, face=face,
+                                      use_mmap=use_mmap)[None, None, None]
+
+            chunks = (1, 1, 1, file_metadata['nx'], file_metadata['nx'])
+            shape = (file_metadata['nt'], file_metadata['nz'],
+                     len(file_metadata['face_facets']),
+                     file_metadata['nx'], file_metadata['nx'])
+            name = 'llc-' + tokenize(file_metadata['filename'])
+
+            dsk = {(name, rec, lev, face, 0, 0): (load_chunk, face,
+                                                  lev, rec)
+                   for face in range(len(file_metadata['face_facets']))
+                   for lev in range(file_metadata['nz'])
+                   for rec in range(file_metadata['nt'])}
+
+        else:
+            def load_chunk(lev, rec):
+                return _read_xy_chunk(variable, file_metadata,
+                                      rec=rec, lev=lev,
+                                      face=0, use_mmap=use_mmap)[None, None]
+
+            chunks = (1, 1, file_metadata['ny'], file_metadata['nx'])
+            shape = (file_metadata['nt'], file_metadata['nz'],
+                     file_metadata['ny'], file_metadata['nx'])
+            name = 'reg-' + tokenize(file_metadata['filename'])
+
+            dsk = {(name, rec, lev, 0, 0): (load_chunk, lev, rec)
+                   for lev in range(file_metadata['nz'])
+                   for rec in range(file_metadata['nt'])}
+
+        data = dsa.Array(dsk, name, chunks,
+                         dtype=file_metadata['dtype'], shape=shape)
+
+    if not use_dask:
+        data = data.compute()
+
+    return data
+
+
+def read_big_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
+    """
+    Return dask array for variable, from the file described by file_metadata,
+    using the "big chunks" method. Not suitable for llc data.
+
+    Parameters
+    ----------
+    variable : string
+               name of the variable to read
+    file_metadata : dict
+               internal file_metadata for binary file
+    use_mmap : bool, optional
+               Whether to read the data using a numpy.memmap
+    use_dask : bool, optional
+               collect the data lazily or eagerly
+
+    Returns
+    -------
+    dask array for variable, with 3d (nz, ny, nx) chunks
+    or numpy.ndarray or memmap, depending on input args
+
+    """
+
+    def load_chunk(rec):
+        return _read_xyz_chunk(variable, file_metadata,
+                               rec=rec,
+                               use_mmap=use_mmap)[None]
+
+    chunks = (1, file_metadata['nz'], file_metadata['ny'], file_metadata['nx'])
+    shape = (file_metadata['nt'], file_metadata['nz'],
+             file_metadata['ny'], file_metadata['nx'])
+    name = 'reg-' + tokenize(file_metadata['filename'])
+
+    dsk = {(name, rec, 0, 0, 0): (load_chunk, rec)
+           for rec in range(file_metadata['nt'])}
+
+    data = dsa.Array(dsk, name, chunks,
+                     dtype=file_metadata['dtype'], shape=shape)
+
+    if not use_dask:
+        data = data.compute()
+
+    return data
+
+
+def _read_xyz_chunk(variable, file_metadata, rec=0, use_mmap=False):
+    """
+    Read a 3d chunk (x,y,z) of variable from file described in
+    file_metadata.
+
+    Parameters
+    ----------
+    variable : string
+               name of the variable to read
+    file_metadata : dict
+               file_metadata for binary file
+    rec      : integer, optional
+               time record to read (default=0)
+    use_mmap : bool, optional
+               Whether to read the data using a numpy.memmap
+
+    Returns
+    -------
+    numpy array or memmap
+    """
+
+    if file_metadata['has_faces'] and ((file_metadata['nx'] > 1) or
+                                       (file_metadata['ny'] > 1)):
+        raise ValueError("_read_xyz_chunk cannot be called with llc type grid")
+
+    # size of the data element
+    nbytes = file_metadata['dtype'].itemsize
+    # byte order
+    file_metadata['datatype'] = file_metadata['dtype'].newbyteorder(
+        file_metadata['endian'])
+    # find index of variable
+    idx_var = file_metadata['vars'].index(variable)
+
+    # 1. compute offset_variable, init to zero
+    offset_vars = 0
+    # loop on variables before the one to read
+    for jvar in np.arange(idx_var):
+        # inspect its dimensions
+        dims = file_metadata['dims_vars'][jvar]
+        # compute the byte size of this variable
+        nbytes_thisvar = 1*nbytes
+        for dim in dims:
+            nbytes_thisvar = nbytes_thisvar*file_metadata[dim]
+        # update offset from previous variables
+        offset_vars = offset_vars+nbytes_thisvar
+
+    # 2. get dimensions of desired variable
+    dims = file_metadata['dims_vars'][idx_var]
+    # inquire for values of dimensions, else return 1
+    nt, nz, ny, nx = [file_metadata.get(dimname, 1)
+                      for dimname in ('nt', 'nz', 'ny', 'nx')]
+
+    # 3. compute offset from previous records of current variable
+    if (rec > nt-1):
+        raise ValueError("time record %g greater than number of records %g" %
+                         (rec, nt))
+    else:
+        offset_timerecords = rec * nz * ny * nx * nbytes
+
+    # 4. compute the offset of the previous variables, records and levels
+    offset = offset_vars + offset_timerecords
+    shape = (nz, ny, nx,)
+
+    # check if we do a partial read of the file
+    if (nt > 1) or (len(file_metadata['vars']) > 1):
+        partial_read = True
+    else:
+        partial_read = False
+
+    # define the order (row/column major)
+    # in conventional grids, it's in C
+    order = 'C'
+
+    # 5. Do the actual read
+    data = read_raw_data(file_metadata['filename'],
+                         file_metadata['datatype'],
+                         shape, use_mmap=use_mmap, offset=offset,
+                         order=order, partial_read=partial_read)
+
+    return data
+
+
+def _read_xy_chunk(variable, file_metadata, rec=0, lev=0, face=0,
+                   use_mmap=False):
+    """
+    Read a 2d chunk along (x,y) of variable from file described in
+    file_metadata.
+
+    Parameters
+    ----------
+    variable : string
+               name of the variable to read
+    file_metadata : dict
+               file_metadata for binary file
+    rec      : integer, optional
+               time record to read (default=0)
+    lev      : integer, optional
+               vertical level to read (default=0)
+    face     : integer, optional
+               face to read for llc configurations (default=0)
+    use_mmap : bool, optional
+               Whether to read the data using a numpy.memmap
+
+    Returns
+    -------
+    numpy array or memmap
+    """
+
+    # size of the data element
+    nbytes = file_metadata['dtype'].itemsize
+    # byte order
+    file_metadata['datatype'] = file_metadata['dtype'].newbyteorder(
+        file_metadata['endian'])
+    # find index of variable
+    idx_var = file_metadata['vars'].index(variable)
+
+    # 1. compute offset_variable, init to zero
+    offset_vars = 0
+    # loop on variables before the one to read
+    for jvar in np.arange(idx_var):
+        # inspect its dimensions
+        dims = file_metadata['dims_vars'][jvar]
+        # compute the byte size of this variable
+        nbytes_thisvar = 1*nbytes
+        for dim in dims:
+            nbytes_thisvar = nbytes_thisvar*file_metadata[dim]
+        # update offset from previous variables
+        offset_vars = offset_vars+nbytes_thisvar
+
+    # 2. get dimensions of desired variable
+    dims = file_metadata['dims_vars'][idx_var]
+    # inquire for values of dimensions, else return 1
+    nt, nz, ny, nx = [file_metadata.get(dimname, 1)
+                      for dimname in ('nt', 'nz', 'ny', 'nx')]
+
+    # 3. compute offset from previous records of current variable
+    if (rec > nt-1):
+        raise ValueError("time record %g greater than number of records %g" %
+                         (rec, nt))
+    else:
+        offset_timerecords = rec * nz * ny * nx * nbytes
+
+    # 4. compute offset from previous vertical levels of current variable
+    if (lev > nz-1):
+        raise ValueError("level %g is greater than number of levels %g" %
+                         (lev, nz))
+    else:
+        offset_verticallevels = lev * ny * nx * nbytes
+
+    # 5. compute the offset of the previous variables, records and levels
+    offset = offset_vars + offset_timerecords + offset_verticallevels
+
+    # 6. compute offset due to faces
+    if file_metadata['has_faces']:
+        # determin which facet the face belong to
+        facet_origin = file_metadata['face_facets'][face]
+        # compute the offset from previous facets
+        ny_facets = np.array(file_metadata['ny_facets'])
+        nyglo_facets = np.concatenate(([0], ny_facets.cumsum()[:-1]), axis=0)
+        offset_facets = nyglo_facets[facet_origin] * \
+            file_metadata['nx'] * nbytes
+        # update offset
+        offset = offset + offset_facets
+        # shape if shape of the facet
+        shape = (file_metadata['ny_facets'][facet_origin], nx,)
+    else:
+        # no need to update offset and shape is simply:
+        shape = (ny, nx,)
+
+    # check if we do a partial read of the file
+    if (nt > 1) or (nz > 1) or (len(file_metadata['vars']) > 1) or \
+       file_metadata['has_faces']:
+        partial_read = True
+    else:
+        partial_read = False
+
+    # define the order (row/column major)
+    if file_metadata['has_faces']:
+        # in llc, we can have either C or F
+        order = file_metadata['facet_orders'][facet_origin]
+    else:
+        # in conventional grids, it's in C
+        order = 'C'
+
+    # 7. Do the actual read
+    data_raw = read_raw_data(file_metadata['filename'],
+                             file_metadata['datatype'],
+                             shape, use_mmap=use_mmap, offset=offset,
+                             order=order, partial_read=partial_read)
+
+    # 8. Pad data, if needed
+    data_padded_after = _pad_array(data_raw, file_metadata, face=face)
+
+    # 9. extract the face from the facet
+    if file_metadata['has_faces'] and ('face_offsets' in file_metadata):
+        face_slice = slice(nx*file_metadata['face_offsets'][face],
+                           nx*(file_metadata['face_offsets'][face]+1))
+
+        data = data_padded_after[face_slice]
+    else:
+        data = data_padded_after
+
+    # 10. Transpose face, if needed
+    if file_metadata['has_faces'] and ('transpose_face' in file_metadata):
+        if file_metadata['transpose_face'][face]:
+            data = data.transpose()
+
+    return data
+
+
+def _pad_array(data, file_metadata, face=0):
+    """
+    Return a padded array. If input data is a numpy.memmap and no padding
+    is necessary, the function preserves its type. Otherwise, the concatenate
+    forces it to load into memory.
+
+    Parameters
+    ----------
+
+    data          : numpy array or memmap
+                    input data
+    file_metadata : dict
+                    metadata for file
+    face          : int, optional
+                    llc face if applicable
+
+    Returns
+    -------
+    numpy.array or numpy.memmap
+
+    """
+
+    # Pad data before in y direction
+    if 'pad_before_y' in file_metadata:
+        if file_metadata['has_faces']:
+            facet_origin = file_metadata['face_facets'][face]
+            nypad_before = file_metadata['pad_before_y'][facet_origin]
+        else:
+            nypad_before = file_metadata['pad_before_y']
+
+        pad_before = np.zeros((nypad_before, file_metadata['nx']))
+        data_padded_before = np.concatenate(
+            (pad_before, data), axis=0)
+    else:
+        data_padded_before = data
+
+    # Pad data after in y direction
+    if 'pad_after_y' in file_metadata:
+        if file_metadata['has_faces']:
+            facet_origin = file_metadata['face_facets'][face]
+            nypad_after = file_metadata['pad_after_y'][facet_origin]
+        else:
+            nypad_after = file_metadata['pad_after_y']
+
+        pad_after = np.zeros((nypad_after, file_metadata['nx']))
+        data_padded_after = np.concatenate(
+            (data_padded_before, pad_after), axis=0)
+    else:
+        data_padded_after = data_padded_before
+
+    return data_padded_after
