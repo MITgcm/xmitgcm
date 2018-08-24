@@ -210,18 +210,25 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
     ndims = len(shape)-1
     if ndims == 3:
         _, nz, ny, nx = shape
-        dims_vars = [('nz', 'ny', 'nx')]
+        dims_vars = ('nz', 'ny', 'nx')
     elif ndims == 2:
         _, ny, nx = shape
         nz = 1
-        dims_vars = [('ny', 'nx')]
+        dims_vars = ('ny', 'nx')
 
     # and variables
     if 'fldList' not in metadata:
         metadata['fldList'] = [metadata['basename']]
 
+    # if not provided in extra_metadata, we assume that the variables in file
+    # have the same shape
+    if extra_metadata is None or 'dims_vars' not in extra_metadata:
+        dims_vars_list = []
+        for var in metadata['fldList']:
+            dims_vars_list.append(dims_vars)
+
     # add extra dim information and set aside
-    metadata.update({'dims_vars': dims_vars,
+    metadata.update({'dims_vars': dims_vars_list,
                      'dtype': dtype, 'endian': endian,
                      'nx': nx, 'ny': ny,
                      'nz': nz, 'nt': 1})  # parse_meta harcoded for nt = 1
