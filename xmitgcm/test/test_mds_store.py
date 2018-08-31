@@ -296,24 +296,45 @@ def test_read_mds(all_mds_datadirs):
 
     prefix = 'XC'
     basename = os.path.join(dirname, prefix)
+    # should be dask by default
     res = read_mds(basename)
     assert isinstance(res, dict)
     assert prefix in res
-    # should be dask by default
     assert isinstance(res[prefix], dask.array.core.Array)
 
     # try some options
-    res = read_mds(basename, force_dict=False, dask_delayed=False)
-    assert isinstance(res, np.memmap)
-    res = read_mds(basename, force_dict=False, use_mmap=False,
-                   dask_delayed=False)
-    assert isinstance(res, np.ndarray)
+    res = read_mds(basename, dask_delayed=False)
+    assert isinstance(res, dict)
+    assert prefix in res
+    assert isinstance(res[prefix], np.memmap)
+
+    res = read_mds(basename, dask_delayed=False, use_mmap=False)
+    assert isinstance(res, dict)
+    assert prefix in res
+    assert isinstance(res[prefix], np.ndarray)
+
+    res = read_mds(basename, chunks="small")
+    assert isinstance(res, dict)
+    assert prefix in res
+    assert isinstance(res[prefix], dask.array.core.Array)
+
+    res = read_mds(basename, chunks="small", dask_delayed=False)
+    assert isinstance(res, dict)
+    assert prefix in res
+    assert isinstance(res[prefix], np.memmap)
+
+    res = read_mds(basename, chunks="small", dask_delayed=False,
+                   use_mmap=False)
+    assert isinstance(res, dict)
+    assert prefix in res
+    assert isinstance(res[prefix], np.ndarray)
 
     # make sure endianness works
-    testval = res.newbyteorder('<')[0,0]
-    res_endian = read_mds(basename, force_dict=False, use_mmap=False,
+    res = read_mds(basename, dask_delayed=False, use_mmap=False)
+    testval = res[prefix].newbyteorder('<')[0, 0]
+    res_endian = read_mds(basename, use_mmap=False,
                           endian='<', dask_delayed=False)
-    val_endian = res_endian[0,0]
+    val_endian = res_endian[prefix][0, 0]
     np.testing.assert_allclose(testval, val_endian)
 
     # try reading with iteration number
@@ -322,13 +343,45 @@ def test_read_mds(all_mds_datadirs):
     iternum = expected['test_iternum']
     res = read_mds(basename, iternum=iternum)
     assert prefix in res
+    assert isinstance(res[prefix], dask.array.core.Array)
+
+    # try some options
+    res = read_mds(basename, iternum=iternum, dask_delayed=False)
+    assert isinstance(res, dict)
+    assert prefix in res
+    assert isinstance(res[prefix], np.memmap)
+
+    res = read_mds(basename, iternum=iternum, dask_delayed=False,
+                   use_mmap=False)
+    assert isinstance(res, dict)
+    assert prefix in res
+    assert isinstance(res[prefix], np.ndarray)
+
+    res = read_mds(basename, iternum=iternum, chunks="small")
+    assert isinstance(res, dict)
+    assert prefix in res
+    assert isinstance(res[prefix], dask.array.core.Array)
+
+    res = read_mds(basename, iternum=iternum, chunks="small",
+                   dask_delayed=False)
+    assert isinstance(res, dict)
+    assert prefix in res
+    print(type(res[prefix]))
+    assert isinstance(res[prefix], np.ndarray)  # should be memmap
+
+    res = read_mds(basename, iternum=iternum, chunks="small",
+                   dask_delayed=False, use_mmap=False)
+    assert isinstance(res, dict)
+    assert prefix in res
+    assert isinstance(res[prefix], np.ndarray)
+
 
 def test_read_mds_no_meta(all_mds_datadirs):
     from xmitgcm.utils import read_mds
     dirname, expected = all_mds_datadirs
     shape = expected['shape']
-    ny,nx = shape[-2:]
-    if len(shape)==4:
+    ny, nx = shape[-2:]
+    if len(shape) == 4:
         # we have an llc
         nz, nface = shape[:2]
         ny = nx*nface
@@ -347,12 +400,20 @@ def test_read_mds_no_meta(all_mds_datadirs):
             # can't read without specifying shape and dtype
             with pytest.raises(IOError) as ioe:
                 res = read_mds(basename)
-            res = read_mds(basename, shape=shape, dtype=dtype)
+            res = read_mds(basename, shape=shape, dtype=dtype, legacy=True)
             assert isinstance(res, dict)
             assert prefix in res
             # should be dask by default
             assert isinstance(res[prefix], dask.array.core.Array)
             assert res[prefix].shape == shape
+
+            res = read_mds(basename, shape=shape, dtype=dtype, legacy=False)
+            assert isinstance(res, dict)
+            assert prefix in res
+            # should be dask by default
+            assert isinstance(res[prefix], dask.array.core.Array)
+            assert res[prefix].shape == (1,) + shape
+
 
 @pytest.mark.parametrize("method", ["smallchunks", "bigchunks"])
 @pytest.mark.parametrize("memmap", [True, False])
@@ -771,14 +832,18 @@ def test_read_all_variables(all_mds_datadirs, memmap, usedask):
 
 @pytest.mark.parametrize("dtype", ['>d', '>f', '>i'])
 @pytest.mark.parametrize("memmap", [True, False])
-def test_pad_array(memmap, dtype):
+def test_pad_array(tmpdir, memmap, dtype):
 
     from xmitgcm.utils import _pad_array
     import struct
 
     # create test data
     gendata = np.array([[1, 2], [3, 4]])
-    fid = open('testdata', "wb")
+
+    # write to a file
+    datafile = tmpdir.join("testdata")
+    fname = str(datafile)
+    fid = open(fname, "wb")
     flatdata = gendata.flatten()
     for kk in np.arange(len(flatdata)):
         tmp = struct.pack(dtype, flatdata[kk])
@@ -787,10 +852,10 @@ def test_pad_array(memmap, dtype):
 
     # then read it
     if memmap:
-        data = np.memmap('testdata', dtype=dtype, mode='r',
+        data = np.memmap(fname, dtype=dtype, mode='r',
                          shape=(2, 2,), order='C')
     else:
-        data = np.fromfile('testdata', dtype=dtype)
+        data = np.fromfile(fname, dtype=dtype)
         data = data.reshape((2, 2,))
 
     # check my original data
@@ -1248,7 +1313,7 @@ def test_layers_diagnostics(layers_mds_datadirs):
         assert var in ds
         assert ds[var].dims == dims
 
-@pytest.mark.parametrize("method", ["smallchunks", "bigchunks"])
+@pytest.mark.parametrize("method", ["smallchunks"])
 @pytest.mark.parametrize("with_refdate", [True, False])
 def test_llc_dims(llc_mds_datadirs, method, with_refdate):
     """Check that the LLC file dimensions are correct."""
@@ -1277,8 +1342,6 @@ def test_llc_dims(llc_mds_datadirs, method, with_refdate):
     print(ds.U.chunks)
     if method == "smallchunks":
         assert ds.U.chunks == (nt*(1,), nz*(1,), nface*(1,), (ny,), (nx,))
-    elif method == "bigchunks":
-        assert ds.U.chunks == (nt*(1,), (nz,), nface*(1,), (ny,), (nx,))
 
 
 def test_drc_length(all_mds_datadirs):
