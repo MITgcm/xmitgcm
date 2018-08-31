@@ -329,6 +329,24 @@ def test_read_mds(all_mds_datadirs):
     assert prefix in res
     assert isinstance(res[prefix], np.ndarray)
 
+    # test the extra_metadata
+    if expected['geometry'] == 'llc':
+        emeta = {'has_faces': True, 'ny': 13*90, 'nx': 90,
+                 'ny_facets': [3*90, 3*90, 90, 3*90, 3*90],
+                 'face_facets': [0, 0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 4, 4],
+                 'facet_orders': ['C', 'C', 'C', 'F', 'F'],
+                 'face_offsets': [0, 1, 2, 0, 1, 2, 0, 0, 1, 2, 0, 1, 2],
+                 'transpose_face' : [False, False, False,
+                                     False, False, False, False,
+                                     True, True, True, True, True, True]}
+    else:
+        emeta = {'has_faces': False}
+    res = read_mds(basename, chunks="small", dask_delayed=False,
+                   use_mmap=False, extra_metadata=emeta)
+    assert isinstance(res, dict)
+    assert prefix in res
+    assert isinstance(res[prefix], np.ndarray)
+
     # make sure endianness works
     res = read_mds(basename, dask_delayed=False, use_mmap=False)
     testval = res[prefix].newbyteorder('<')[0, 0]
