@@ -336,9 +336,9 @@ def test_read_mds(all_mds_datadirs):
                  'face_facets': [0, 0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 4, 4],
                  'facet_orders': ['C', 'C', 'C', 'F', 'F'],
                  'face_offsets': [0, 1, 2, 0, 1, 2, 0, 0, 1, 2, 0, 1, 2],
-                 'transpose_face' : [False, False, False,
-                                     False, False, False, False,
-                                     True, True, True, True, True, True]}
+                 'transpose_face': [False, False, False,
+                                    False, False, False, False,
+                                    True, True, True, True, True, True]}
     else:
         emeta = {'has_faces': False}
     res = read_mds(basename, chunks="small", dask_delayed=False,
