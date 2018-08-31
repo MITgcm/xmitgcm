@@ -934,7 +934,12 @@ def test_read_grid(all_mds_datadirs):
                 geometry=expected['geometry'])
 
     for vname in _EXPECTED_GRID_VARS:
-        assert vname in ds
+        assert vname in ds.variables
+
+    # make sure angle is present
+    if expected['geometry'] in ['llc', 'curvilinear']:
+        assert 'CS' in ds.coords
+        assert 'SN' in ds.coords
 
     # actually load the data, to check for dask-related errors
     ds.load()

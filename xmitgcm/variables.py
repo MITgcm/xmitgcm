@@ -75,6 +75,17 @@ horizontal_coordinates_spherical = OrderedDict(
                 units="degrees_north", coordinates="YG XG"))
 )
 
+horizontal_coordinates_llc = horizontal_coordinates_spherical.copy()
+horizontal_coordinates_llc.update(OrderedDict(
+        CS = dict(dims=["j", "i"], attrs=dict(standard_name="Cos of grid orientation angle",
+               long_name="AngleCS", units=" ", coordinate="YC XC"),
+               filename='AngleCS'),
+        SN = dict(dims=["j", "i"], attrs=dict(standard_name="Sin of grid orientation angle",
+               long_name="AngleSN", units=" ", coordinate="YC XC"),
+               filename='AngleSN')
+    )
+)
+
 horizontal_coordinates_curvcart = OrderedDict(
     XC = dict(dims=["j", "i"], attrs=dict(
                 standard_name="plane_x_coordinate", long_name="x coordinate",
