@@ -19,221 +19,221 @@ from xarray.core.pycompat import OrderedDict
 # There is no "data" to go with these. They are just indices.
 dimensions = OrderedDict(
     # x direction
-    i = dict(dims=['i'], attrs=dict(
-                standard_name="x_grid_index", axis='X',
-                long_name="x-dimension of the t grid",
-                swap_dim='XC')),
-    i_g = dict(dims=['i_g'], attrs=dict(
-                standard_name="x_grid_index_at_u_location", axis='X',
-                long_name="x-dimension of the u grid", c_grid_axis_shift=-0.5,
-                swap_dim='XG')),
+    i=dict(dims=['i'], attrs=dict(
+        standard_name="x_grid_index", axis='X',
+        long_name="x-dimension of the t grid",
+        swap_dim='XC')),
+    i_g=dict(dims=['i_g'], attrs=dict(
+        standard_name="x_grid_index_at_u_location", axis='X',
+        long_name="x-dimension of the u grid", c_grid_axis_shift=-0.5,
+        swap_dim='XG')),
     # i_z = dict(dims=['i_z'], swap_dim='XG', attrs=dict(
     #             standard_name="x_grid_index_at_f_location", axis='X',
     #             long_name="x-dimension of the f grid", c_grid_axis_shift=-0.5)),
     # y direction
-    j = dict(dims=['j'], attrs=dict(
-                standard_name="y_grid_index", axis='Y',
-                long_name="y-dimension of the t grid", swap_dim='YC')),
-    j_g = dict(dims=['j_g'], attrs=dict(
-                standard_name="y_grid_index_at_v_location", axis='Y',
-                long_name="y-dimension of the v grid", c_grid_axis_shift=-0.5,
-                swap_dim='YG')),
+    j=dict(dims=['j'], attrs=dict(
+        standard_name="y_grid_index", axis='Y',
+        long_name="y-dimension of the t grid", swap_dim='YC')),
+    j_g=dict(dims=['j_g'], attrs=dict(
+        standard_name="y_grid_index_at_v_location", axis='Y',
+        long_name="y-dimension of the v grid", c_grid_axis_shift=-0.5,
+        swap_dim='YG')),
     # j_z = dict(dims=['j_z'], swap_dim='YG', attrs=dict(
     #             standard_name="y_grid_index_at_f_location", axis='Y',
     #             long_name="y-dimension of the f grid", c_grid_axis_shift=-0.5)),
     # x direction
-    k = dict(dims=['k'], attrs=dict(
-                standard_name="z_grid_index", axis="Z",
-                long_name="z-dimension of the t grid", swap_dim='Z')),
-    k_u = dict(dims=['k_u'], attrs=dict(
-                standard_name="z_grid_index_at_lower_w_location",
-                axis="Z", long_name="z-dimension of the w grid",
-                c_grid_axis_shift=0.5, swap_dim='Zu')),
-    k_l = dict(dims=['k_l'], attrs=dict(
-                standard_name="z_grid_index_at_upper_w_location",
-                axis="Z", long_name="z-dimension of the w grid",
-                c_grid_axis_shift=-0.5, swap_dim='Zl')),
+    k=dict(dims=['k'], attrs=dict(
+        standard_name="z_grid_index", axis="Z",
+        long_name="z-dimension of the t grid", swap_dim='Z')),
+    k_u=dict(dims=['k_u'], attrs=dict(
+        standard_name="z_grid_index_at_lower_w_location",
+        axis="Z", long_name="z-dimension of the w grid",
+        c_grid_axis_shift=0.5, swap_dim='Zu')),
+    k_l=dict(dims=['k_l'], attrs=dict(
+        standard_name="z_grid_index_at_upper_w_location",
+        axis="Z", long_name="z-dimension of the w grid",
+        c_grid_axis_shift=-0.5, swap_dim='Zl')),
     # this is complicated because it is offset in both directions - allowed by comodo?
-    k_p1 = dict(dims=['k_p1'], attrs=dict(
-                standard_name="z_grid_index_at_w_location",
-                axis="Z", long_name="z-dimension of the w grid",
-                c_grid_axis_shift=(-0.5,0.5), swap_dim='Zp1'))
+    k_p1=dict(dims=['k_p1'], attrs=dict(
+        standard_name="z_grid_index_at_w_location",
+        axis="Z", long_name="z-dimension of the w grid",
+        c_grid_axis_shift=(-0.5, 0.5), swap_dim='Zp1'))
 )
 
 horizontal_coordinates_spherical = OrderedDict(
-    XC = dict(dims=["j", "i"], attrs=dict(
-                standard_name="longitude", long_name="longitude",
-                units="degrees_east", coordinate="YC XC")),
-    YC = dict(dims=["j", "i"], attrs=dict(
-                standard_name="latitude", long_name="latitude",
-                units="degrees_north", coordinate="YC XC")),
-    XG = dict(dims=["j_g", "i_g"], attrs=dict(
-                standard_name="longitude_at_f_location", long_name="longitude",
-                units="degrees_east", coordinate="YG XG")),
-    YG = dict(dims=["j_g", "i_g"], attrs=dict(
-                standard_name="latitude_at_f_location", long_name="latitude",
-                units="degrees_north", coordinates="YG XG"))
+    XC=dict(dims=["j", "i"], attrs=dict(
+        standard_name="longitude", long_name="longitude",
+        units="degrees_east", coordinate="YC XC")),
+    YC=dict(dims=["j", "i"], attrs=dict(
+        standard_name="latitude", long_name="latitude",
+        units="degrees_north", coordinate="YC XC")),
+    XG=dict(dims=["j_g", "i_g"], attrs=dict(
+        standard_name="longitude_at_f_location", long_name="longitude",
+        units="degrees_east", coordinate="YG XG")),
+    YG=dict(dims=["j_g", "i_g"], attrs=dict(
+        standard_name="latitude_at_f_location", long_name="latitude",
+        units="degrees_north", coordinates="YG XG"))
 )
 
 horizontal_coordinates_llc = horizontal_coordinates_spherical.copy()
 horizontal_coordinates_llc.update(OrderedDict(
-        CS = dict(dims=["j", "i"], attrs=dict(standard_name="Cos of grid orientation angle",
-               long_name="AngleCS", units=" ", coordinate="YC XC"),
-               filename='AngleCS'),
-        SN = dict(dims=["j", "i"], attrs=dict(standard_name="Sin of grid orientation angle",
-               long_name="AngleSN", units=" ", coordinate="YC XC"),
-               filename='AngleSN')
-    )
+    CS=dict(dims=["j", "i"], attrs=dict(standard_name="Cos of grid orientation angle",
+                                        long_name="AngleCS", units=" ", coordinate="YC XC"),
+            filename='AngleCS'),
+    SN=dict(dims=["j", "i"], attrs=dict(standard_name="Sin of grid orientation angle",
+                                        long_name="AngleSN", units=" ", coordinate="YC XC"),
+            filename='AngleSN')
+)
 )
 
 horizontal_coordinates_curvcart = OrderedDict(
-    XC = dict(dims=["j", "i"], attrs=dict(
-                standard_name="plane_x_coordinate", long_name="x coordinate",
-                units="m", coordinate="YC XC")),
-    YC = dict(dims=["j", "i"], attrs=dict(
-                standard_name="plane_y_coordinate", long_name="y coordinate",
-                units="m", coordinate="YC XC")),
-    XG = dict(dims=["j_g", "i_g"], attrs=dict(
-                standard_name="plane_x_coordinate_at_f_location",
-                long_name="x coordinate", units="m", coordinate="YG XG")),
-    YG = dict(dims=["j_g", "i_g"], attrs=dict(
-                standard_name="plane_y_coordinate_at_f_location",
-                long_name="y coordinate", units="m", coordinates="YG XG")),
-    CS  = dict(dims=["j", "i"], attrs=dict(standard_name="Cos of grid orientation angle",
-               long_name="AngleCS", units=" ", coordinate="YC XC"),
-               filename='AngleCS'),
-    SN  = dict(dims=["j", "i"], attrs=dict(standard_name="Sin of grid orientation angle",
-               long_name="AngleSN", units=" ", coordinate="YC XC"),
-               filename='AngleSN')
+    XC=dict(dims=["j", "i"], attrs=dict(
+        standard_name="plane_x_coordinate", long_name="x coordinate",
+        units="m", coordinate="YC XC")),
+    YC=dict(dims=["j", "i"], attrs=dict(
+        standard_name="plane_y_coordinate", long_name="y coordinate",
+        units="m", coordinate="YC XC")),
+    XG=dict(dims=["j_g", "i_g"], attrs=dict(
+        standard_name="plane_x_coordinate_at_f_location",
+        long_name="x coordinate", units="m", coordinate="YG XG")),
+    YG=dict(dims=["j_g", "i_g"], attrs=dict(
+        standard_name="plane_y_coordinate_at_f_location",
+        long_name="y coordinate", units="m", coordinates="YG XG")),
+    CS=dict(dims=["j", "i"], attrs=dict(standard_name="Cos of grid orientation angle",
+                                        long_name="AngleCS", units=" ", coordinate="YC XC"),
+            filename='AngleCS'),
+    SN=dict(dims=["j", "i"], attrs=dict(standard_name="Sin of grid orientation angle",
+                                        long_name="AngleSN", units=" ", coordinate="YC XC"),
+            filename='AngleSN')
 )
 
 horizontal_coordinates_cartesian = OrderedDict(
-    XC = dict(dims=["j", "i"], attrs=dict(
-                standard_name="plane_x_coordinate", long_name="x coordinate",
-                units="m", coordinate="YC XC")),
-    YC = dict(dims=["j", "i"], attrs=dict(
-                standard_name="plane_y_coordinate", long_name="y coordinate",
-                units="m", coordinate="YC XC")),
-    XG = dict(dims=["j_g", "i_g"], attrs=dict(
-                standard_name="plane_x_coordinate_at_f_location",
-                long_name="x coordinate", units="m", coordinate="YG XG")),
-    YG = dict(dims=["j_g", "i_g"], attrs=dict(
-                standard_name="plane_y_coordinate_at_f_location",
-                long_name="y coordinate", units="m", coordinates="YG XG"))
+    XC=dict(dims=["j", "i"], attrs=dict(
+        standard_name="plane_x_coordinate", long_name="x coordinate",
+        units="m", coordinate="YC XC")),
+    YC=dict(dims=["j", "i"], attrs=dict(
+        standard_name="plane_y_coordinate", long_name="y coordinate",
+        units="m", coordinate="YC XC")),
+    XG=dict(dims=["j_g", "i_g"], attrs=dict(
+        standard_name="plane_x_coordinate_at_f_location",
+        long_name="x coordinate", units="m", coordinate="YG XG")),
+    YG=dict(dims=["j_g", "i_g"], attrs=dict(
+        standard_name="plane_y_coordinate_at_f_location",
+        long_name="y coordinate", units="m", coordinates="YG XG"))
 )
 
 vertical_coordinates = OrderedDict(
-    Z = dict(dims=["k"], attrs=dict(
-                standard_name="depth",
-                long_name="vertical coordinate of cell center",
-                units="m", positive="down"),
-            filename="RC", slice=(slice(None),0,0)),
-    Zp1 = dict(dims=["k_p1"], attrs=dict(
-                standard_name="depth_at_w_location",
-                long_name="vertical coordinate of cell interface",
-                units="m", positive="down"),
-            filename="RF", slice=(slice(None),0,0)),
-    Zu= dict(dims=["k_u"], attrs=dict(
-                standard_name="depth_at_lower_w_location",
-                long_name="vertical coordinate of lower cell interface",
-                units="m", positive="down"),
-            filename="RF", slice=(slice(1,None),0,0)),
-    Zl= dict(dims=["k_l"], attrs=dict(
-                standard_name="depth_at_upper_w_location",
-                long_name="vertical coordinate of upper cell interface",
-                units="m", positive="down"),
-            filename="RF", slice=(slice(None,-1),0,0))
+    Z=dict(dims=["k"], attrs=dict(
+        standard_name="depth",
+        long_name="vertical coordinate of cell center",
+        units="m", positive="down"),
+        filename="RC", slice=(slice(None), 0, 0)),
+    Zp1=dict(dims=["k_p1"], attrs=dict(
+        standard_name="depth_at_w_location",
+        long_name="vertical coordinate of cell interface",
+        units="m", positive="down"),
+        filename="RF", slice=(slice(None), 0, 0)),
+    Zu=dict(dims=["k_u"], attrs=dict(
+        standard_name="depth_at_lower_w_location",
+        long_name="vertical coordinate of lower cell interface",
+        units="m", positive="down"),
+        filename="RF", slice=(slice(1, None), 0, 0)),
+    Zl=dict(dims=["k_l"], attrs=dict(
+        standard_name="depth_at_upper_w_location",
+        long_name="vertical coordinate of upper cell interface",
+        units="m", positive="down"),
+        filename="RF", slice=(slice(None, -1), 0, 0))
 )
 
 # I got these variable names from the default MITgcm netcdf output
 horizontal_grid_variables = OrderedDict(
     # tracer cell
-    rA  = dict(dims=["j", "i"], attrs=dict(standard_name="cell_area",
-                long_name="cell area", units="m2", coordinate="YC XC"),
-               filename='RAC'),
-    dxG = dict(dims=["j_g", "i"], attrs=dict(
-                standard_name="cell_x_size_at_v_location",
-                long_name="cell x size", units="m", coordinate="YG XC"),
-               filename='DXG'),
-    dyG = dict(dims=["j", "i_g"], attrs=dict(
-                standard_name="cell_y_size_at_u_location",
-                long_name="cell y size", units="m", coordinate="YC XG"),
-               filename='DYG'),
-    Depth=dict(dims=["j", "i"], attrs=dict( standard_name="ocean_depth",
-                long_name="ocean depth", units="m", coordinate="XC YC")),
+    rA=dict(dims=["j", "i"], attrs=dict(standard_name="cell_area",
+                                        long_name="cell area", units="m2", coordinate="YC XC"),
+            filename='RAC'),
+    dxG=dict(dims=["j_g", "i"], attrs=dict(
+        standard_name="cell_x_size_at_v_location",
+        long_name="cell x size", units="m", coordinate="YG XC"),
+        filename='DXG'),
+    dyG=dict(dims=["j", "i_g"], attrs=dict(
+        standard_name="cell_y_size_at_u_location",
+        long_name="cell y size", units="m", coordinate="YC XG"),
+        filename='DYG'),
+    Depth=dict(dims=["j", "i"], attrs=dict(standard_name="ocean_depth",
+                                           long_name="ocean depth", units="m", coordinate="XC YC")),
     # vorticity cell
-    rAz  = dict(dims=["j_g", "i_g"], attrs=dict(
-                standard_name="cell_area_at_f_location",
-                long_name="cell area", units="m", coordinate="YG XG"),
-               filename='RAZ'),
-    dxC = dict(dims=["j", "i_g"], attrs=dict(
-                standard_name="cell_x_size_at_u_location",
-                long_name="cell x size", units="m", coordinate="YC XG"),
-               filename='DXC'),
-    dyC = dict(dims=["j_g", "i"], attrs=dict(
-                standard_name="cell_y_size_at_v_location",
-                long_name="cell y size", units="m", coordinate="YG XC"),
-               filename='DYC'),
+    rAz=dict(dims=["j_g", "i_g"], attrs=dict(
+        standard_name="cell_area_at_f_location",
+        long_name="cell area", units="m", coordinate="YG XG"),
+        filename='RAZ'),
+    dxC=dict(dims=["j", "i_g"], attrs=dict(
+        standard_name="cell_x_size_at_u_location",
+        long_name="cell x size", units="m", coordinate="YC XG"),
+        filename='DXC'),
+    dyC=dict(dims=["j_g", "i"], attrs=dict(
+        standard_name="cell_y_size_at_v_location",
+        long_name="cell y size", units="m", coordinate="YG XC"),
+        filename='DYC'),
     # u cell
-    rAw = dict(dims=["j", "i_g"], attrs=dict(
-                standard_name="cell_area_at_u_location",
-                long_name="cell area", units="m2", coordinate="YG XC"),
-               filename='RAW'),
+    rAw=dict(dims=["j", "i_g"], attrs=dict(
+        standard_name="cell_area_at_u_location",
+        long_name="cell area", units="m2", coordinate="YG XC"),
+        filename='RAW'),
     # v cell
-    rAs = dict(dims=["j_g", "i"], attrs=dict(
-                standard_name="cell_area_at_v_location",
-                long_name="cell area", units="m2", coordinates="YG XC"),
-               filename='RAZ'),
+    rAs=dict(dims=["j_g", "i"], attrs=dict(
+        standard_name="cell_area_at_v_location",
+        long_name="cell area", units="m2", coordinates="YG XC"),
+        filename='RAZ'),
 )
 
 vertical_grid_variables = OrderedDict(
-    drC = dict(dims=['k_p1'], attrs=dict(
-                standard_name="cell_z_size_at_w_location",
-                long_name="cell z size", units="m"), filename='DRC'),
-    drF = dict(dims=['k'], attrs=dict(
-                standard_name="cell_z_size",
-                long_name="cell z size", units="m"), filename='DRF'),
-    PHrefC = dict(dims=['k'], attrs=dict(
-                standard_name="cell_reference_pressure",
-                long_name='Reference Hydrostatic Pressure', units='m2 s-2')),
-    PHrefF = dict(dims=['k_p1'], attrs=dict(
-                standard_name="cell_reference_pressure",
-                long_name='Reference Hydrostatic Pressure', units='m2 s-2'))
+    drC=dict(dims=['k_p1'], attrs=dict(
+        standard_name="cell_z_size_at_w_location",
+        long_name="cell z size", units="m"), filename='DRC'),
+    drF=dict(dims=['k'], attrs=dict(
+        standard_name="cell_z_size",
+        long_name="cell z size", units="m"), filename='DRF'),
+    PHrefC=dict(dims=['k'], attrs=dict(
+        standard_name="cell_reference_pressure",
+        long_name='Reference Hydrostatic Pressure', units='m2 s-2')),
+    PHrefF=dict(dims=['k_p1'], attrs=dict(
+        standard_name="cell_reference_pressure",
+        long_name='Reference Hydrostatic Pressure', units='m2 s-2'))
 )
 
 volume_grid_variables = OrderedDict(
-    hFacC = dict(dims=['k','j','i'], attrs=dict(
-                    standard_name="cell_vertical_fraction",
-                    long_name="vertical fraction of open cell")),
-    hFacW = dict(dims=['k','j','i_g'], attrs=dict(
-                    standard_name="cell_vertical_fraction_at_u_location",
-                    long_name="vertical fraction of open cell")),
-    hFacS = dict(dims=['k','j_g','i'], attrs=dict(
-                    standard_name="cell_vertical_fraction_at_v_location",
-                    long_name="vertical fraction of open cell"))
+    hFacC=dict(dims=['k', 'j', 'i'], attrs=dict(
+        standard_name="cell_vertical_fraction",
+        long_name="vertical fraction of open cell")),
+    hFacW=dict(dims=['k', 'j', 'i_g'], attrs=dict(
+        standard_name="cell_vertical_fraction_at_u_location",
+        long_name="vertical fraction of open cell")),
+    hFacS=dict(dims=['k', 'j_g', 'i'], attrs=dict(
+        standard_name="cell_vertical_fraction_at_v_location",
+        long_name="vertical fraction of open cell"))
 )
 
 # this a template: NAME gets replaced with the layer name (e.g. 1RHO)
 #                  dim gets prepended with the layer number (e.g. l1_b)
 layers_grid_variables = OrderedDict(
-    layer_NAME_bounds = dict(dims=['l_b'], attrs=dict(
-                standard_name="ocean_layer_coordinate_NAME_bounds",
-                long_name="boundaries points of layer NAME",
-                axis="NAME", c_grid_axis_shift=-0.5),
-            filename="layersNAME", slice=(slice(None),0,0)),
-    layer_NAME_center = dict(dims=['l_c'], attrs=dict(
-                standard_name="ocean_layer_coordinate_NAME_center",
-                long_name="center points of layer NAME",
-                axis="NAME"),
-            filename="layersNAME", slice=(slice(None),0,0),
-            # if we don't convert to array, dask can't tokenize
-            # https://github.com/pydata/xarray/issues/1014
-            transform=(lambda x: np.asarray(0.5*(x[1:] + x[:-1])))),
-    layer_NAME_interface = dict(dims=['l_i'], attrs=dict(
-                standard_name="ocean_layer_coordinate_NAME_interface",
-                long_name="interface points of layer NAME",
-                axis="NAME", c_grid_axis_shift=-0.5),
-            filename="layersNAME", slice=(slice(1,-1),0,0))
+    layer_NAME_bounds=dict(dims=['l_b'], attrs=dict(
+        standard_name="ocean_layer_coordinate_NAME_bounds",
+        long_name="boundaries points of layer NAME",
+        axis="NAME", c_grid_axis_shift=-0.5),
+        filename="layersNAME", slice=(slice(None), 0, 0)),
+    layer_NAME_center=dict(dims=['l_c'], attrs=dict(
+        standard_name="ocean_layer_coordinate_NAME_center",
+        long_name="center points of layer NAME",
+        axis="NAME"),
+        filename="layersNAME", slice=(slice(None), 0, 0),
+        # if we don't convert to array, dask can't tokenize
+        # https://github.com/pydata/xarray/issues/1014
+        transform=(lambda x: np.asarray(0.5*(x[1:] + x[:-1])))),
+    layer_NAME_interface=dict(dims=['l_i'], attrs=dict(
+        standard_name="ocean_layer_coordinate_NAME_interface",
+        long_name="interface points of layer NAME",
+        axis="NAME", c_grid_axis_shift=-0.5),
+        filename="layersNAME", slice=(slice(1, -1), 0, 0))
 )
 
 # _grid_special_mapping = {
