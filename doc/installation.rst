@@ -18,10 +18,19 @@ command::
 If you are using earlier versions of these packages, you should update before
 installing xmitgcm.
 
+Installation via conda
+^^^^^^^^^^^^^^^^^^^^^^
+
+If you just want to use xmitgcm, anaconda users can install with::
+
+    conda install -c conda-forge xmitgcm
+
+This will install the latest conda-forge build.
+
 Installation via pip
 ^^^^^^^^^^^^^^^^^^^^
 
-If you just want to use xmitgcm, the easiest way is to install via pip::
+Alternatively, xmitgcm can be installed via pip::
 
     pip install xmitgcm
 
