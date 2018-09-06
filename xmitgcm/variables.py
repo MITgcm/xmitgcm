@@ -522,33 +522,33 @@ package_state_variables = {
         units='N m-2')),
     'FV': dict(dims=['j_g', 'i'], attrs=dict(
         standard_name="downward_northward_stress_at_sea_ice_base", mate='FU',
-       long_name='SEAICE surface stress on ocean in y/j-direction',
-       units='N m-2')),
+        long_name='SEAICE surface stress on ocean in y/j-direction',
+        units='N m-2')),
     'AREAtave': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="sea_ice_area_fraction",
-       long_name='SEAICE time averaged sea fractional ice area',
-       units=' ')),
-   'HEFFtave': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="sea_ice_thickness",
-       long_name='SEAICE mean sea ice thickness per grid cell',
-       units='m')),
-   'UICEtave': dict(dims=['j', 'i_g'], attrs=dict(
-       standard_name="sea_ice_x_velocity", mate='VICEtave',
-       long_name='SEAICE ice drift velocity in x/i-direction',
-       units='m s-1')),
-   'VICEtave': dict(dims=['j_g', 'i'], attrs=dict(
-       standard_name="sea_ice_y_velocity", mate='UICEtave',
-       long_name='SEAICE ice drift velocity in y/j-direction',
-       units='m s-1')),
-   'FUtave': dict(dims=['j', 'i_g'], attrs=dict(
-       standard_name="downward_eastward_stress_at_sea_ice_base", mate='FVtave',
-       long_name='SEAICE surface stress on ocean in x/i-direction',
-       units='N m-2')),
-   'FVtave': dict(dims=['j_g', 'i'], attrs=dict(
-       standard_name="downward_northward_stress_at_sea_ice_base", mate='FUtave',
+        standard_name="sea_ice_area_fraction",
+        long_name='SEAICE time averaged sea fractional ice area',
+        units=' ')),
+    'HEFFtave': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="sea_ice_thickness",
+        long_name='SEAICE mean sea ice thickness per grid cell',
+        units='m')),
+    'UICEtave': dict(dims=['j', 'i_g'], attrs=dict(
+        standard_name="sea_ice_x_velocity", mate='VICEtave',
+        long_name='SEAICE ice drift velocity in x/i-direction',
+        units='m s-1')),
+    'VICEtave': dict(dims=['j_g', 'i'], attrs=dict(
+        standard_name="sea_ice_y_velocity", mate='UICEtave',
+        long_name='SEAICE ice drift velocity in y/j-direction',
+        units='m s-1')),
+    'FUtave': dict(dims=['j', 'i_g'], attrs=dict(
+        standard_name="downward_eastward_stress_at_sea_ice_base", mate='FVtave',
+        long_name='SEAICE surface stress on ocean in x/i-direction',
+        units='N m-2')),
+    'FVtave': dict(dims=['j_g', 'i'], attrs=dict(
+        standard_name="downward_northward_stress_at_sea_ice_base", mate='FUtave',
        long_name='SEAICE surface stress on ocean in y/j-direction',
        units='N m-2')),
-   'EmPmRtave': dict(dims=['j', 'i'], attrs=dict(
+    'EmPmRtave': dict(dims=['j', 'i'], attrs=dict(
        standard_name="surface_net_upward_freshwater_flux",
        long_name='SEAICE upward freshwater flux (+=up)',
        units='kg m-2 s-1')),
