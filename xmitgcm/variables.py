@@ -477,30 +477,30 @@ package_state_variables = {
         units=' ')),
     # pkg/seaice variables
     'AREA': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="sea_ice_area_fraction",
-       long_name='SEAICE sea fractional ice area',
-       units=' ')),
-   'HEFF': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="sea_ice_thickness",
-       long_name='SEAICE mean sea ice thickness per grid cell',
-       units='m')),
-   'HSNOW': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="snow_thickness",
-       long_name='SEAICE mean snow ice thickness per grid cell',
-       units='m')),
-   'UICE': dict(dims=['j', 'i_g'], attrs=dict(
-       standard_name="sea_ice_x_velocity", mate='VICE',
-       long_name='SEAICE ice drift velocity in x/i-direction',
-       units='m s-1')),
-   'VICE': dict(dims=['j_g', 'i'], attrs=dict(
-       standard_name="sea_ice_y_velocity", mate='UICE',
-       long_name='SEAICE ice drift velocity in y/j-direction',
-       units='m s-1')),
-   'Qnet': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="surface_net_upward_heat_flux",
+        standard_name="sea_ice_area_fraction",
+        long_name='SEAICE sea fractional ice area',
+        units=' ')),
+    'HEFF': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="sea_ice_thickness",
+        long_name='SEAICE mean sea ice thickness per grid cell',
+        units='m')),
+    'HSNOW': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="snow_thickness",
+        long_name='SEAICE mean snow ice thickness per grid cell',
+        units='m')),
+    'UICE': dict(dims=['j', 'i_g'], attrs=dict(
+        standard_name="sea_ice_x_velocity", mate='VICE',
+        long_name='SEAICE ice drift velocity in x/i-direction',
+        units='m s-1')),
+    'VICE': dict(dims=['j_g', 'i'], attrs=dict(
+        standard_name="sea_ice_y_velocity", mate='UICE',
+        long_name='SEAICE ice drift velocity in y/j-direction',
+        units='m s-1')),
+    'Qnet': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="surface_net_upward_heat_flux",
        long_name='SEAICE net upward heat flux (+=up)',
        units='W m-2')),
-   'Qsw': dict(dims=['j', 'i'], attrs=dict(
+    'Qsw': dict(dims=['j', 'i'], attrs=dict(
        standard_name="surface_net_upward_shortwave_flux",
        long_name='SEAICE upward shortwave heat flux (+=up)',
        units='W m-2')),
