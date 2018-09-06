@@ -498,33 +498,33 @@ package_state_variables = {
         units='m s-1')),
     'Qnet': dict(dims=['j', 'i'], attrs=dict(
         standard_name="surface_net_upward_heat_flux",
-       long_name='SEAICE net upward heat flux (+=up)',
-       units='W m-2')),
+        long_name='SEAICE net upward heat flux (+=up)',
+        units='W m-2')),
     'Qsw': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="surface_net_upward_shortwave_flux",
-       long_name='SEAICE upward shortwave heat flux (+=up)',
-       units='W m-2')),
-   'EmPmR': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="surface_net_upward_freshwater_flux",
-       long_name='SEAICE upward freshwater flux (+=up)',
-       units='kg m-2 s-1')),
-   'UWIND': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="x_wind", mate='VWIND',
-       long_name='SEAICE wind forcing in x/i-direction',
-       units='m s-1')),
-   'VWIND': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="y_wind", mate='UWIND',
-       long_name='SEAICE wind forcing in y/j-direction',
-       units='m s-1')),
-   'FU': dict(dims=['j', 'i_g'], attrs=dict(
-       standard_name="downward_eastward_stress_at_sea_ice_base", mate='FV',
-       long_name='SEAICE surface stress on ocean in x/i-direction',
-       units='N m-2')),
-   'FV': dict(dims=['j_g', 'i'], attrs=dict(
-       standard_name="downward_northward_stress_at_sea_ice_base", mate='FU',
+        standard_name="surface_net_upward_shortwave_flux",
+        long_name='SEAICE upward shortwave heat flux (+=up)',
+        units='W m-2')),
+    'EmPmR': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="surface_net_upward_freshwater_flux",
+        long_name='SEAICE upward freshwater flux (+=up)',
+        units='kg m-2 s-1')),
+    'UWIND': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="x_wind", mate='VWIND',
+        long_name='SEAICE wind forcing in x/i-direction',
+        units='m s-1')),
+    'VWIND': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="y_wind", mate='UWIND',
+        long_name='SEAICE wind forcing in y/j-direction',
+        units='m s-1')),
+    'FU': dict(dims=['j', 'i_g'], attrs=dict(
+        standard_name="downward_eastward_stress_at_sea_ice_base", mate='FV',
+        long_name='SEAICE surface stress on ocean in x/i-direction',
+        units='N m-2')),
+    'FV': dict(dims=['j_g', 'i'], attrs=dict(
+        standard_name="downward_northward_stress_at_sea_ice_base", mate='FU',
        long_name='SEAICE surface stress on ocean in y/j-direction',
        units='N m-2')),
-   'AREAtave': dict(dims=['j', 'i'], attrs=dict(
+    'AREAtave': dict(dims=['j', 'i'], attrs=dict(
        standard_name="sea_ice_area_fraction",
        long_name='SEAICE time averaged sea fractional ice area',
        units=' ')),
