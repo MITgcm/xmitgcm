@@ -401,26 +401,166 @@ for n in range(1,100):
 # unconventional variable names and no meta files
 aliases = {'Eta': 'ETAN', 'PhiBot': 'PHIBOT', 'Salt': 'SALT', 'Theta': 'THETA'}
 
-package_state_variables = {'KPPviscAz':dict(dims=['k_l','j','i'], attrs=dict(
-		 standard_name="KPP_vertical_eddy_visc",
-                 long_name='KPP vertical eddy viscosity coefficient',
-		 units='m2 s-1')),
-		'KPPdiffKzS': dict(dims=['k_l','j','i'], attrs=dict(
-                 standard_name="KPP_diff_tracer_salt",
-                 long_name='KPP vertical diffusion coefficient for salt and tracers',
-                 units='m2 s-1')),
-                'KPPdiffKzT': dict(dims=['k_l','j','i'], attrs=dict(
-                 standard_name="KPP_diff_temp",
-                 long_name='KPP vertical diffusion coefficient for heat',
-                 units='m2 s-1')),
-                'KPPghat' : dict(dims=['k_l','j','i'], attrs=dict(
-                 standard_name="KPP_non_local_coeff",
-                 long_name='non-local transfer coefficient',
-                 units='s m-2 ')),
-	        'KPPhbl' : dict(dims=['j','i'], attrs=dict(
-                 standard_name="KPP_boundary_layer",
-                 long_name='KPP boundary layer depth, bulk Ri criterion',
-                 units='m'))}
+package_state_variables = {
+   'KPPviscAz':dict(dims=['k_l','j','i'], attrs=dict(
+      standard_name="KPP_vertical_eddy_visc",
+      long_name='KPP vertical eddy viscosity coefficient',
+      units='m2 s-1')),
+   'KPPdiffKzS': dict(dims=['k_l','j','i'], attrs=dict(
+      standard_name="KPP_diff_tracer_salt",
+      long_name='KPP vertical diffusion coefficient for salt and tracers',
+      units='m2 s-1')),
+   'KPPdiffKzT': dict(dims=['k_l','j','i'], attrs=dict(
+      standard_name="KPP_diff_temp",
+      long_name='KPP vertical diffusion coefficient for heat',
+      units='m2 s-1')),
+   'KPPghat' : dict(dims=['k_l','j','i'], attrs=dict(
+      standard_name="KPP_non_local_coeff",
+      long_name='non-local transfer coefficient',
+      units='s m-2 ')),
+   'KPPhbl' : dict(dims=['j','i'], attrs=dict(
+      standard_name="KPP_boundary_layer",
+      long_name='KPP boundary layer depth, bulk Ri criterion',
+      units='m')),
+   # pkg/thsice variables
+   'ice_fract'  : dict(dims=['j','i'], attrs=dict(
+      standard_name="THSICE_iceMask",
+      long_name='sea fractional ice area',
+      units=' ')),
+   'ice_iceH'   : dict(dims=['j','i'], attrs=dict(
+      standard_name="THSICE_iceHeight",
+      long_name='actual sea ice thickness',
+      units='m')),
+   'ice_snowH'  : dict(dims=['j','i'], attrs=dict(
+      standard_name="THSICE_snowHeight",
+      long_name='actual snow thickness',
+      units='m')),
+   'ice_snowAge': dict(dims=['j','i'], attrs=dict(
+      standard_name="THSICE_snowAge",
+      long_name='snow age',
+      units='s')),
+   'ice_Tsrf'   : dict(dims=['j','i'], attrs=dict(
+      standard_name="THSICE_Tsrf",
+      long_name='temperature at surface ',
+      units='degC')),
+   'ice_Tice1'  : dict(dims=['j','i'], attrs=dict(
+      standard_name="THSICE_Tice1",
+      long_name='THSICE temperature of ice layer 1',
+      units='degC')),
+   'ice_Tice2'  : dict(dims=['j','i'], attrs=dict(
+      standard_name="THSICE_Tice2",
+      long_name='THSICE temperature of ice layer 2',
+      units='degC')),
+   'ice_Qice1'  : dict(dims=['j','i'], attrs=dict(
+      standard_name="THSICE_Qice1",
+      long_name='THSICE enthalpy of ice layer 1',
+      units='J kg-1')),
+   'ice_Qice2'  : dict(dims=['j','i'], attrs=dict(
+      standard_name="THSICE_Qice2",
+      long_name='THSICE enthalpy of ice layer 2',
+      units='J kg-1')),
+   'ice_flxAtm' : dict(dims=['j','i'], attrs=dict(
+      standard_name="THSICE_flxAtm",
+      long_name='heat flux over ice from the atmosphere (+=down)',
+      units='W m-2')),
+   'ice_frwAtm' : dict(dims=['j','i'], attrs=dict(
+      standard_name="THSICE_frwAtm",
+      long_name='freshwater flux (E-P) over ice to the atmosphere (+=up)',
+      units='kg m-2 s-1')),
+   'ice_tOceMxL': dict(dims=['j','i'], attrs=dict(
+      standard_name="THSICE_tOceMxL",
+      long_name='temperature of ocean mixed layer',
+      units='degC')),
+   'ice_sOceMxL': dict(dims=['j','i'], attrs=dict(
+      standard_name="THSICE_sOceMxL",
+      long_name='salinity of ocean mixed layer',
+      units=' ')),
+   # pkg/seaice variables
+   'AREA'  : dict(dims=['j','i'], attrs=dict(
+      standard_name="AREA",
+      long_name='SEAICE sea fractional ice area',
+      units=' ')),
+   'HEFF'  : dict(dims=['j','i'], attrs=dict(
+      standard_name="HEFF",
+      long_name='SEAICE mean sea ice thickness per grid cell',
+      units='m')),
+   'HSNOW' : dict(dims=['j','i'], attrs=dict(
+      standard_name="HSNOW",
+      long_name='SEAICE mean snow ice thickness per grid cell',
+      units='m')),
+   'UICE'  : dict(dims=['j','i_g'], attrs=dict(
+      standard_name="sea_ice_x_velocity", mate='VICE',
+      long_name='SEAICE ice drift velocity in x/i-direction',
+      units='m s-1')),
+   'VICE'  : dict(dims=['j_g','i'], attrs=dict(
+      standard_name="sea_ice_y_velocity", mate='UICE',
+      long_name='SEAICE ice drift velocity in y/j-direction',
+      units='m s-1')),
+   'Qnet'  : dict(dims=['j','i'], attrs=dict(
+      standard_name="Qnet",
+      long_name='SEAICE net upward heat flux (+=up)',
+      units='W m-2')),
+   'Qsw'   : dict(dims=['j','i'], attrs=dict(
+      standard_name="Qsw",
+      long_name='SEAICE upward shortwave heat flux (+=up)',
+      units='W m-2')),
+   'EmPmR' : dict(dims=['j','i'], attrs=dict(
+      standard_name="HSNOW",
+      long_name='SEAICE upward freshwater flux (+=up)',
+      units='kg m-2 s-1')),
+   'UWIND' : dict(dims=['j','i'], attrs=dict(
+      standard_name="UWIND", mate='VWIND',
+      long_name='SEAICE wind forcing in x/i-direction',
+      units='m s-1')),
+   'VWIND' : dict(dims=['j','i'], attrs=dict(
+      standard_name="VWIND", mate='UWIND',
+      long_name='SEAICE wind forcing in y/j-direction',
+      units='m s-1')),
+   'FU'    : dict(dims=['j','i'], attrs=dict(
+      standard_name="FU", mate='FV',
+      long_name='SEAICE surface stress on ocean in x/i-direction',
+      units='N m-2')),
+   'FV'    : dict(dims=['j','i'], attrs=dict(
+      standard_name="FV", mate='FU',
+      long_name='SEAICE surface stress on ocean in y/j-direction',
+      units='N m-2')),
+   'AREAtave' : dict(dims=['j','i'], attrs=dict(
+      standard_name="AREA",
+      long_name='SEAICE time averaged sea fractional ice area',
+      units=' ')),
+   'HEFFtave' : dict(dims=['j','i'], attrs=dict(
+      standard_name="HEFF",
+      long_name='SEAICE mean sea ice thickness per grid cell',
+      units='m')),
+   'UICEtave' : dict(dims=['j','i_g'], attrs=dict(
+      standard_name="sea_ice_x_velocity", mate='VICEtave',
+      long_name='SEAICE ice drift velocity in x/i-direction',
+      units='m s-1')),
+   'VICEtave' : dict(dims=['j_g','i'], attrs=dict(
+      standard_name="sea_ice_y_velocity", mate='UICEtave',
+      long_name='SEAICE ice drift velocity in y/j-direction',
+      units='m s-1')),
+   'FUtave'  : dict(dims=['j','i'], attrs=dict(
+      standard_name="FU", mate='FVtave',
+      long_name='SEAICE surface stress on ocean in x/i-direction',
+      units='N m-2')), 
+   'FVtave'  : dict(dims=['j','i'], attrs=dict(
+      standard_name="FV", mate='FUtave',
+      long_name='SEAICE surface stress on ocean in y/j-direction', 
+      units='N m-2')),
+   'EmPmRtave': dict(dims=['j','i'], attrs=dict(
+      standard_name="HSNOW",
+      long_name='SEAICE upward freshwater flux (+=up)',
+      units='kg m-2 s-1')),
+   'QNETtave' : dict(dims=['j','i'], attrs=dict(
+      standard_name="Qnet",
+      long_name='SEAICE net upward heat flux (+=up)',
+      units='W m-2')),
+   'QSWtave'  : dict(dims=['j','i'], attrs=dict(
+      standard_name="HSNOW",
+      long_name='SEAICE upward freshwater flux (+=up)',
+      units='kg m-2 s-1'))
+}
 
 
 # Nptracers=99
