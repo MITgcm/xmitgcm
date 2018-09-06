@@ -408,30 +408,30 @@ package_state_variables = {
         units='m2 s-1')),
     'KPPdiffKzS': dict(dims=['k_l', 'j', 'i'], attrs=dict(
         standard_name="KPP_diff_tracer_salt",
-       long_name='KPP vertical diffusion coefficient for salt and tracers',
-       units='m2 s-1')),
+        long_name='KPP vertical diffusion coefficient for salt and tracers',
+        units='m2 s-1')),
     'KPPdiffKzT': dict(dims=['k_l', 'j', 'i'], attrs=dict(
-       standard_name="KPP_diff_temp",
-       long_name='KPP vertical diffusion coefficient for heat',
-       units='m2 s-1')),
-   'KPPghat': dict(dims=['k_l', 'j', 'i'], attrs=dict(
-       standard_name="KPP_non_local_coeff",
-       long_name='non-local transfer coefficient',
-       units='s m-2 ')),
-   'KPPhbl': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="KPP_boundary_layer",
-       long_name='KPP boundary layer depth, bulk Ri criterion',
-       units='m')),
-   # pkg/thsice variables
-   'ice_fract': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="sea_ice_area_fraction",
-       long_name='THSICE sea fractional ice area',
-       units=' ')),
-   'ice_iceH': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="sea_ice_thickness",
+        standard_name="KPP_diff_temp",
+        long_name='KPP vertical diffusion coefficient for heat',
+        units='m2 s-1')),
+    'KPPghat': dict(dims=['k_l', 'j', 'i'], attrs=dict(
+        standard_name="KPP_non_local_coeff",
+        long_name='non-local transfer coefficient',
+        units='s m-2 ')),
+    'KPPhbl': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="KPP_boundary_layer",
+        long_name='KPP boundary layer depth, bulk Ri criterion',
+        units='m')),
+    # pkg/thsice variables
+    'ice_fract': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="sea_ice_area_fraction",
+        long_name='THSICE sea fractional ice area',
+        units=' ')),
+    'ice_iceH': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="sea_ice_thickness",
        long_name='THSICE actual sea ice thickness',
        units='m')),
-   'ice_snowH': dict(dims=['j', 'i'], attrs=dict(
+    'ice_snowH': dict(dims=['j', 'i'], attrs=dict(
        standard_name="snow_thickness",
        long_name='THSICE actual snow thickness',
        units='m')),
