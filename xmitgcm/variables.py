@@ -429,33 +429,33 @@ package_state_variables = {
         units=' ')),
     'ice_iceH': dict(dims=['j', 'i'], attrs=dict(
         standard_name="sea_ice_thickness",
-       long_name='THSICE actual sea ice thickness',
-       units='m')),
+        long_name='THSICE actual sea ice thickness',
+        units='m')),
     'ice_snowH': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="snow_thickness",
-       long_name='THSICE actual snow thickness',
-       units='m')),
-   'ice_snowAge': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="snow_age",
-       long_name='THSICE snow age',
-       units='s')),
-   'ice_Tsrf': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="surface_temperature",
-       long_name='temperature at surface',
-       units='degC')),
-   'ice_Tice1': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="temperature_of_sea_ice_layer1",
-       long_name='THSICE temperature of ice layer 1',
-       units='degC')),
-   'ice_Tice2': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="temperature_of_sea_ice_layer2",
-       long_name='THSICE temperature of ice layer 2',
-       units='degC')),
-   'ice_Qice1': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="enthalpy_content_of_sea_ice_layer1",
+        standard_name="snow_thickness",
+        long_name='THSICE actual snow thickness',
+        units='m')),
+    'ice_snowAge': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="snow_age",
+        long_name='THSICE snow age',
+        units='s')),
+    'ice_Tsrf': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="surface_temperature",
+        long_name='temperature at surface',
+        units='degC')),
+    'ice_Tice1': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="temperature_of_sea_ice_layer1",
+        long_name='THSICE temperature of ice layer 1',
+        units='degC')),
+    'ice_Tice2': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="temperature_of_sea_ice_layer2",
+        long_name='THSICE temperature of ice layer 2',
+        units='degC')),
+    'ice_Qice1': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="enthalpy_content_of_sea_ice_layer1",
        long_name='THSICE enthalpy of ice layer 1',
        units='J kg-1')),
-   'ice_Qice2': dict(dims=['j', 'i'], attrs=dict(
+    'ice_Qice2': dict(dims=['j', 'i'], attrs=dict(
        standard_name="enthalpy_content_of_sea_ice_layer2",
        long_name='THSICE enthalpy of ice layer 2',
        units='J kg-1')),
