@@ -453,30 +453,30 @@ package_state_variables = {
         units='degC')),
     'ice_Qice1': dict(dims=['j', 'i'], attrs=dict(
         standard_name="enthalpy_content_of_sea_ice_layer1",
-       long_name='THSICE enthalpy of ice layer 1',
-       units='J kg-1')),
+        long_name='THSICE enthalpy of ice layer 1',
+        units='J kg-1')),
     'ice_Qice2': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="enthalpy_content_of_sea_ice_layer2",
-       long_name='THSICE enthalpy of ice layer 2',
-       units='J kg-1')),
-   'ice_flxAtm': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="surface_net_downward_heat_flux",
-       long_name='THSICE heat flux over ice from the atmosphere (+=down)',
-       units='W m-2')),
-   'ice_frwAtm': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="surface_upward_freshwater_flux",
-       long_name='freshwater flux (E-P) over ice to the atmosphere (+=up)',
-       units='kg m-2 s-1')),
-   'ice_tOceMxL': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="temperature_of_ocean_mixed_layer",
-       long_name='temperature of ocean mixed layer',
-       units='degC')),
-   'ice_sOceMxL': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="salinity_of_ocean_mixed_layer",
-       long_name='salinity of ocean mixed layer',
-       units=' ')),
-   # pkg/seaice variables
-   'AREA': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="enthalpy_content_of_sea_ice_layer2",
+        long_name='THSICE enthalpy of ice layer 2',
+        units='J kg-1')),
+    'ice_flxAtm': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="surface_net_downward_heat_flux",
+        long_name='THSICE heat flux over ice from the atmosphere (+=down)',
+        units='W m-2')),
+    'ice_frwAtm': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="surface_upward_freshwater_flux",
+        long_name='freshwater flux (E-P) over ice to the atmosphere (+=up)',
+        units='kg m-2 s-1')),
+    'ice_tOceMxL': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="temperature_of_ocean_mixed_layer",
+        long_name='temperature of ocean mixed layer',
+        units='degC')),
+    'ice_sOceMxL': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="salinity_of_ocean_mixed_layer",
+        long_name='salinity of ocean mixed layer',
+        units=' ')),
+    # pkg/seaice variables
+    'AREA': dict(dims=['j', 'i'], attrs=dict(
        standard_name="sea_ice_area_fraction",
        long_name='SEAICE sea fractional ice area',
        units=' ')),
