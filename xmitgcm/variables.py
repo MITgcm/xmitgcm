@@ -516,11 +516,11 @@ package_state_variables = {
       standard_name="VWIND", mate='UWIND',
       long_name='SEAICE wind forcing in y/j-direction',
       units='m s-1')),
-   'FU'    : dict(dims=['j','i'], attrs=dict(
+   'FU'    : dict(dims=['j','i_g'], attrs=dict(
       standard_name="FU", mate='FV',
       long_name='SEAICE surface stress on ocean in x/i-direction',
       units='N m-2')),
-   'FV'    : dict(dims=['j','i'], attrs=dict(
+   'FV'    : dict(dims=['j_g','i'], attrs=dict(
       standard_name="FV", mate='FU',
       long_name='SEAICE surface stress on ocean in y/j-direction',
       units='N m-2')),
@@ -540,11 +540,11 @@ package_state_variables = {
       standard_name="sea_ice_y_velocity", mate='UICEtave',
       long_name='SEAICE ice drift velocity in y/j-direction',
       units='m s-1')),
-   'FUtave'  : dict(dims=['j','i'], attrs=dict(
+   'FUtave'  : dict(dims=['j','i_g'], attrs=dict(
       standard_name="FU", mate='FVtave',
       long_name='SEAICE surface stress on ocean in x/i-direction',
       units='N m-2')), 
-   'FVtave'  : dict(dims=['j','i'], attrs=dict(
+   'FVtave'  : dict(dims=['j_g','i'], attrs=dict(
       standard_name="FV", mate='FUtave',
       long_name='SEAICE surface stress on ocean in y/j-direction', 
       units='N m-2')),
