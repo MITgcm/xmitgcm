@@ -546,20 +546,20 @@ package_state_variables = {
         units='N m-2')),
     'FVtave': dict(dims=['j_g', 'i'], attrs=dict(
         standard_name="downward_northward_stress_at_sea_ice_base", mate='FUtave',
-       long_name='SEAICE surface stress on ocean in y/j-direction',
-       units='N m-2')),
+        long_name='SEAICE surface stress on ocean in y/j-direction',
+        units='N m-2')),
     'EmPmRtave': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="surface_net_upward_freshwater_flux",
-       long_name='SEAICE upward freshwater flux (+=up)',
-       units='kg m-2 s-1')),
-   'QNETtave': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="surface_net_upward_shortwave_flux",
-       long_name='SEAICE net upward heat flux (+=up)',
-       units='W m-2')),
-   'QSWtave': dict(dims=['j', 'i'], attrs=dict(
-       standard_name="surface_net_upward_shortwave_flux",
-       long_name='SEAICE upward freshwater flux (+=up)',
-       units='kg m-2 s-1'))
+        standard_name="surface_net_upward_freshwater_flux",
+        long_name='SEAICE upward freshwater flux (+=up)',
+        units='kg m-2 s-1')),
+    'QNETtave': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="surface_net_upward_shortwave_flux",
+        long_name='SEAICE net upward heat flux (+=up)',
+        units='W m-2')),
+    'QSWtave': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="surface_net_upward_shortwave_flux",
+        long_name='SEAICE upward freshwater flux (+=up)',
+        units='kg m-2 s-1'))
 }
 
 
