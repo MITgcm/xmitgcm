@@ -45,7 +45,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     endian=">", chunks=None,
                     ignore_unknown_vars=False, default_dtype=None,
                     nx=None, ny=None, nz=None,
-                    llc_method="smallchunks"):
+                    llc_method="smallchunks", extra_metadata=None):
     """Open MITgcm-style mds (.data / .meta) file output as xarray datset.
 
     Parameters
@@ -99,6 +99,22 @@ def open_mdsdataset(data_dir, grid_dir=None,
         ``dask.array.concatenate``. The different methods will have different
         memory and i/o performance depending on the details of the system
         configuration.
+    extra_metadata : dict, optional
+        Allow to pass information on llc type grid (global or regional).
+        The additional metadata is typically such as :
+
+        aste = {'has_faces': True, 'ny': 1350, 'nx': 270,
+                'ny_facets': [450,0,270,180,450],
+                'pad_before_y': [90,0,0,0,0],
+                'pad_after_y': [0,0,0,90,90],
+                'face_facets': [0, 0, 2, 3, 4, 4],
+                'facet_orders' : ['C', 'C', 'C', 'F', 'F'],
+                'face_offsets' : [0, 1, 0, 0, 0, 1],
+                'transpose_face' : [False, False, False,
+                                    True, True, True]}
+
+        For global llc grids, no extra metadata is required and code
+        will set up to global llc default configuration.
 
     Returns
     -------
@@ -175,7 +191,8 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     endian=endian, chunks=chunks,
                     ignore_unknown_vars=ignore_unknown_vars,
                     default_dtype=default_dtype,
-                    nx=nx, ny=ny, nz=nz, llc_method=llc_method)
+                    nx=nx, ny=ny, nz=nz, llc_method=llc_method,
+                    extra_metadata=extra_metadata)
                 datasets = [open_mdsdataset(
                         data_dir, iters=iternum, read_grid=False, **kwargs)
                     for iternum in iters]
@@ -201,7 +218,8 @@ def open_mdsdataset(data_dir, grid_dir=None,
                           geometry, endian,
                           ignore_unknown_vars=ignore_unknown_vars,
                           default_dtype=default_dtype,
-                          nx=nx, ny=ny, nz=nz, llc_method=llc_method)
+                          nx=nx, ny=ny, nz=nz, llc_method=llc_method,
+                          extra_metadata=extra_metadata)
     ds = xr.Dataset.load_store(store)
 
     if swap_dims:
@@ -296,7 +314,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                  geometry='sphericalpolar',
                  endian='>', ignore_unknown_vars=False,
                  default_dtype=np.dtype('f4'),
-                 nx=None, ny=None, nz=None, llc_method="smallchunks"):
+                 nx=None, ny=None, nz=None, llc_method="smallchunks",
+                 extra_metadata=None):
         """
         This is not a user-facing class. See open_mdsdataset for argument
         documentation. The only ones which are distinct are.
@@ -345,9 +364,32 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         else:
             self.nz = nz
 
+        # --------------- LEGACY ----------------------
+        if self.llc:
+            # default to global llc metadata
+            llc = {'has_faces': True,
+                   'face_facets': [0, 0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 4, 4],
+                   'facet_orders': ['C', 'C', 'C', 'F', 'F'],
+                   'face_offsets': [0, 1, 2, 0, 1, 2, 0, 0, 1, 2, 0, 1, 2],
+                   'transpose_face': [False, False, False,
+                                      False, False, False, False,
+                                      True, True, True, True, True, True]}
+            if extra_metadata is None:
+                # legacy behavior: not passing metadata
+                extra_metadata = llc
+        # --------------- /LEGACY ----------------------
+
+        self.extra_metadata = extra_metadata if extra_metadata is not None \
+            else None
+
+        # put in local variable to make it more readable
+        if extra_metadata is not None and 'has_faces' in extra_metadata:
+            has_faces = extra_metadata['has_faces']
+        else:
+            has_faces = False
 
         # we don't need to know ny if using llc
-        if self.llc and (nx is not None):
+        if has_faces and (nx is not None):
             ny = nx
 
         # Now we need to figure out the horizontal dimensions nx, ny
@@ -356,21 +398,31 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             # we have been passed enough information to determine the
             # dimensions without reading any files
             self.ny, self.nx = ny, nx
-            self.nface = LLC_NUM_FACES if self.llc else None
+            self.nface = len(extra_metadata['face_facets']) if has_faces \
+                else None
         else:
             # have to peek at the grid file metadata
+            # this can't work for regional llc RD
             self.nface, self.ny, self.nx = (
                 _guess_model_horiz_dims(self.grid_dir, self.llc))
 
+        # --------------- LEGACY ----------------------
+        if self.llc:
+            if 'ny_facets' not in extra_metadata:
+                # default to llc
+                extra_metadata['ny_facets'] = [3*self.nx, 3*self.nx, self.nx,
+                                               3*self.nx, 3*self.nx]
+        # --------------- /LEGACY ----------------------
+
         self.layers = _guess_layers(data_dir)
 
-        if self.llc:
+        if has_faces:
             nyraw = self.nx*self.nface
         else:
             nyraw = self.ny
         self.default_shape_3D = (self.nz, nyraw, self.nx)
         self.default_shape_2D = (nyraw, self.nx)
-        self.llc_method=llc_method
+        self.llc_method = llc_method  # obsolete RD
 
         # Now set up the corresponding coordinates.
         # Rather than assuming the dimension names, we use Comodo conventions
@@ -405,7 +457,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         # possibly add the llc dimension
         # seems sloppy to hard code this here
         # TODO: move this metadata to variables.py
-        if self.llc:
+        if has_faces:
             self._dimensions.append(LLC_FACE_DIMNAME)
             data = np.arange(self.nface)
             attrs = {'standard_name': 'face_index'}
@@ -528,7 +580,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         basename = os.path.join(ddir, fname_base)
         try:
             vardata = read_mds(basename, iternum, endian=self.endian,
-                               llc=self.llc, llc_method=self.llc_method)
+                               llc=self.llc, llc_method=self.llc_method,
+                               extra_metadata=self.extra_metadata)
         except IOError as ioe:
             # that might have failed because there was no meta file present
             # we can try to get around this by specifying the shape and dtype
@@ -536,18 +589,19 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 ndims = len(self._all_data_variables[prefix]['dims'])
             except KeyError:
                 ndims = 3
-            if ndims==3 and self.nz > 1:
+            if ndims == 3 and self.nz > 1:
                 data_shape = self.default_shape_3D
-            elif ndims==2 or self.nz == 1:
+            elif ndims == 2 or self.nz == 1:
                 data_shape = self.default_shape_2D
             else:
                 raise ValueError("Can't determine shape "
-                                 "of variable %s" %  prefix)
+                                 "of variable %s" % prefix)
 
             vardata = read_mds(basename, iternum, endian=self.endian,
-                           dtype=self.default_dtype,
-                           shape=data_shape, llc=self.llc,
-                           llc_method=self.llc_method)
+                               dtype=self.default_dtype,
+                               shape=data_shape, llc=self.llc,
+                               llc_method=self.llc_method,
+                               extra_metadata=self.extra_metadata)
 
         for vname, data in vardata.items():
             # we now have to revert to the original prefix once the file is read
@@ -595,7 +649,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 # The answer appears to be yes: 2D (x|y,z) data retains the
                 # missing dimension as an axis of length 1.
                 dims = dims[1:]
-            elif len(dims) == 1 and (data.ndim == 2 or data.ndim == 3):
+            elif len(dims) == 1 and (data.ndim == 2 or data.ndim == 3 or
+                                     data.ndim == 4):
                 # this is for certain profile data like RC, PHrefC, etc.
                 # for some reason, dask arrays don't work here
                 # ok to promote to numpy array because data is always 1D
