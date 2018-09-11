@@ -1,18 +1,11 @@
 import pytest
 import os
 import tarfile
-import xarray as xr
 import numpy as np
 import dask
 from contextlib import contextmanager
 import py
 import tempfile
-from glob import glob
-from shutil import copyfile
-import dask
-import dask.array as dsa
-
-import xmitgcm
 
 _TESTDATA_FILENAME = 'testdata.tar.gz'
 _TESTDATA_ITERS = [39600, ]
@@ -67,8 +60,10 @@ _experiments = {
                           'dtype': np.dtype('f4'),
                           'layers': {'1RHO': 31},
                           'diagnostics': ('DiagGAD-T',
-                                          ['TOTTTEND', 'ADVr_TH', 'ADVx_TH', 'ADVy_TH',
-                                           'DFrE_TH', 'DFxE_TH', 'DFyE_TH', 'DFrI_TH',
+                                          ['TOTTTEND', 'ADVr_TH',
+                                           'ADVx_TH', 'ADVy_TH',
+                                           'DFrE_TH', 'DFxE_TH',
+                                           'DFyE_TH', 'DFrI_TH',
                                            'UTHMASS', 'VTHMASS', 'WTHMASS'])},
     'barotropic_gyre': {'geometry': 'cartesian',
                         'shape': (1, 60, 60), 'test_iternum': 10,
@@ -99,13 +94,31 @@ _experiments = {
                          'shape': (50, 13, 90, 90), 'test_iternum': 8,
                          'dtype': np.dtype('f4'),
                          'expected_values': {'XC': ((2, 3, 5), -32.5)},
-                         'diagnostics': ('state_2d_set1', ['ETAN', 'SIarea',
-                                                           'SIheff', 'SIhsnow', 'DETADT2', 'PHIBOT',
-                                                           'sIceLoad', 'MXLDEPTH', 'oceSPDep', 'SIatmQnt',
-                                                           'SIatmFW', 'oceQnet', 'oceFWflx', 'oceTAUX',
-                                                           'oceTAUY', 'ADVxHEFF', 'ADVyHEFF', 'DFxEHEFF',
-                                                           'DFyEHEFF', 'ADVxSNOW', 'ADVySNOW', 'DFxESNOW',
-                                                           'DFyESNOW', 'SIuice', 'SIvice'])},
+                         'diagnostics': ('state_2d_set1', ['ETAN',
+                                                           'SIarea',
+                                                           'SIheff',
+                                                           'SIhsnow',
+                                                           'DETADT2',
+                                                           'PHIBOT',
+                                                           'sIceLoad',
+                                                           'MXLDEPTH',
+                                                           'oceSPDep',
+                                                           'SIatmQnt',
+                                                           'SIatmFW',
+                                                           'oceQnet',
+                                                           'oceFWflx',
+                                                           'oceTAUX',
+                                                           'oceTAUY',
+                                                           'ADVxHEFF',
+                                                           'ADVyHEFF',
+                                                           'DFxEHEFF',
+                                                           'DFyEHEFF',
+                                                           'ADVxSNOW',
+                                                           'ADVySNOW',
+                                                           'DFxESNOW',
+                                                           'DFyESNOW',
+                                                           'SIuice',
+                                                           'SIvice'])},
     'curvilinear_leman': {'geometry': 'curvilinear',
                           'delta_t': 20,
                           'ref_date': "2013-11-12 12:00",
