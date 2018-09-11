@@ -131,28 +131,31 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
 
         llc grids have typically 5 rectangular facets and will be mapped onto
         N (=13 for llc, =6 for aste) square faces.
+        Keys for the extra_metadata dictionary can be of different types and
+        length:
 
-        -bool:
 
-        * has_faces : True if domain is combination of connected grids
+        * bool:
 
-        -list of len=nfacets:
+        #. has_faces : True if domain is combination of connected grids
 
-        * ny_facets : number of points in y direction of each facet
+        * list of len=nfacets:
+
+        #. ny_facets : number of points in y direction of each facet
                       (usually n * nx)
-        * pad_before_y (Regional configuration) : pad data with N zeros
+        #. pad_before_y (Regional configuration) : pad data with N zeros
                                                   before array
-        * pad_after_y (Regional configuration) : pad data with N zeros
+        #. pad_after_y (Regional configuration) : pad data with N zeros
                                                  after array
-        * facet_order : row/column major order of this facet
+        #. facet_order : row/column major order of this facet
 
-        -list of len=nfaces:
+        * list of len=nfaces:
 
-        * face_facets : facet of origin for this face
+        #. face_facets : facet of origin for this face
 
-        * face_offsets : position of the face in the facet (0 = start)
+        #. face_offsets : position of the face in the facet (0 = start)
 
-        * transpose_face : transpose the data for this face
+        #. transpose_face : transpose the data for this face
 
     chunks : {'big', 'small'}
         Which routine to use for chunking data. "smallchunks" splits the file
