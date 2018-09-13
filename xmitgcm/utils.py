@@ -1072,3 +1072,60 @@ def _pad_array(data, file_metadata, face=0):
         data_padded_after = data_padded_before
 
     return data_padded_after
+
+
+def get_extra_metadata(domain='llc', nx=90):
+    """ Return the extra_metadata dictionay for selected domains
+
+    PARAMETERS:
+    -----------
+    domain: str
+    domain can be llc, aste, cs
+    nx:     int
+    size of the face in the x direction
+    RETURNS:
+    --------
+    dict of extra_metadata
+    """
+
+    available_domains = ['llc', 'aste', 'cs']
+    if domain not in available_domains:
+        raise ValueError('not an available domain')
+
+    # domains
+    llc = {'has_faces': True, 'ny': 13*nx, 'nx': nx,
+           'ny_facets': [3*nx, 3*nx, nx, 3*nx, 3*nx],
+           'face_facets': [0, 0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 4, 4],
+           'facet_orders': ['C', 'C', 'C', 'F', 'F'],
+           'face_offsets': [0, 1, 2, 0, 1, 2, 0, 0, 1, 2, 0, 1, 2],
+           'transpose_face': [False, False, False,
+                              False, False, False, False,
+                              True, True, True, True, True, True]}
+
+    aste = {'has_faces': True, 'ny': 5*nx, 'nx': nx,
+            'ny_facets': [int(5*nx/3.), 0, nx,
+                          int(2*nx/3.), int(5*nx/3.)],
+            'pad_before_y': [int(1*nx/3.), 0, 0, 0, 0],
+            'pad_after_y': [0, 0, 0, int(1*nx/3.), int(1*nx/3.)],
+            'face_facets': [0, 0, 2, 3, 4, 4],
+            'facet_orders' : ['C', 'C', 'C', 'F', 'F'],
+            'face_offsets' : [0, 1, 0, 0, 0, 1],
+            'transpose_face' : [False, False, False,
+                                True, True, True]}
+
+    cs = {'has_faces': True, 'ny': nx, 'nx': nx,
+          'ny_facets': [nx, nx, nx, nx, nx, nx],
+          'face_facets': [0, 1, 2, 3 ,4 ,5],
+          'facet_orders' : ['F', 'F', 'F', 'F', 'F', 'F'],
+          'face_offsets' : [0, 0, 0, 0, 0, 0],
+          'transpose_face' : [False, False, False,
+                              False, False, False]}
+
+    if domain == 'llc':
+        extra_metadata = llc
+    elif domain == 'aste':
+        extra_metadata = aste
+    elif domain == 'cs':
+        extra_metadata = cs
+
+    return extra_metadata

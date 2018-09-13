@@ -990,3 +990,13 @@ def test_parse_diagnostics(all_mds_datadirs):
 
     for key, val in expected_diags.items():
         assert ad[key] == val
+
+@pytest.mark.parametrize("domain", ['llc', 'aste', 'cs'])
+@pytest.mark.parametrize("nx", [90, 270])
+def test_get_extra_metadata(domain, nx):
+    from xmitgcm.utils import get_extra_metadata
+    em = get_extra_metadata(domain=domain, nx=nx)
+    assert(type(em), dict)
+
+    with pytest.raises(ValueError):
+        em = get_extra_metadata(domain='notinlist', nx=nx)
