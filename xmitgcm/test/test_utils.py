@@ -270,26 +270,26 @@ def test_read_raw_data(tmpdir, dtype):
         # test it breaks when it should
         with pytest.raises(IOError):
             # read with wrong shape
-            _ = read_raw_data(fname, dtype, shape_subset,
-                              offset=0, partial_read=False)
+            read_raw_data(fname, dtype, shape_subset,
+                          offset=0, partial_read=False)
         with pytest.raises(IOError):
-            _ = read_raw_data(fname, dtype, shape_subset,
-                              offset=0, partial_read=False, use_mmap=True)
+            read_raw_data(fname, dtype, shape_subset,
+                          offset=0, partial_read=False, use_mmap=True)
         with pytest.raises(ValueError):
             # use offset when trying to read global file
-            _ = read_raw_data(fname, dtype, shape_subset,
-                              offset=4, partial_read=False)
+            read_raw_data(fname, dtype, shape_subset,
+                          offset=4, partial_read=False)
         with pytest.raises(ValueError):
-            _ = read_raw_data(fname, dtype, shape_subset,
-                              offset=4, partial_read=False, use_mmap=True)
+            read_raw_data(fname, dtype, shape_subset,
+                          offset=4, partial_read=False, use_mmap=True)
             # offset is too big
         with pytest.raises(ValueError):
-            _ = read_raw_data(fname, dtype, shape, offset=(
-                shape[0]*shape[1]*shape[2]*dtype.itemsize), partial_read=True)
+            read_raw_data(fname, dtype, shape, offset=(
+            shape[0]*shape[1]*shape[2]*dtype.itemsize), partial_read=True)
         with pytest.raises(ValueError):
-            _ = read_raw_data(fname, dtype, shape, offset=(
-                shape[0]*shape[1]*shape[2]*dtype.itemsize), partial_read=True,
-                use_mmap=True)
+            read_raw_data(fname, dtype, shape, offset=(
+            shape[0]*shape[1]*shape[2]*dtype.itemsize), partial_read=True,
+            use_mmap=True)
 
 # a meta test
 
@@ -435,7 +435,7 @@ def test_read_mds_no_meta(all_mds_datadirs):
         basename = os.path.join(dirname, prefix)
         with hide_file(dirname, prefix + '.meta'):
             # can't read without specifying shape and dtype
-            with pytest.raises(IOError) as ioe:
+            with pytest.raises(IOError):
                 res = read_mds(basename)
             res = read_mds(basename, shape=shape, dtype=dtype, legacy=True)
             assert isinstance(res, dict)
