@@ -1108,18 +1108,18 @@ def get_extra_metadata(domain='llc', nx=90):
             'pad_before_y': [int(1*nx/3.), 0, 0, 0, 0],
             'pad_after_y': [0, 0, 0, int(1*nx/3.), int(1*nx/3.)],
             'face_facets': [0, 0, 2, 3, 4, 4],
-            'facet_orders' : ['C', 'C', 'C', 'F', 'F'],
-            'face_offsets' : [0, 1, 0, 0, 0, 1],
-            'transpose_face' : [False, False, False,
-                                True, True, True]}
+            'facet_orders': ['C', 'C', 'C', 'F', 'F'],
+            'face_offsets': [0, 1, 0, 0, 0, 1],
+            'transpose_face': [False, False, False,
+                               True, True, True]}
 
     cs = {'has_faces': True, 'ny': nx, 'nx': nx,
           'ny_facets': [nx, nx, nx, nx, nx, nx],
-          'face_facets': [0, 1, 2, 3 ,4 ,5],
-          'facet_orders' : ['F', 'F', 'F', 'F', 'F', 'F'],
-          'face_offsets' : [0, 0, 0, 0, 0, 0],
-          'transpose_face' : [False, False, False,
-                              False, False, False]}
+          'face_facets': [0, 1, 2, 3, 4, 5],
+          'facet_orders': ['F', 'F', 'F', 'F', 'F', 'F'],
+          'face_offsets': [0, 0, 0, 0, 0, 0],
+          'transpose_face': [False, False, False,
+                             False, False, False]}
 
     if domain == 'llc':
         extra_metadata = llc
