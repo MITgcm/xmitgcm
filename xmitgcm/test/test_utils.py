@@ -285,11 +285,11 @@ def test_read_raw_data(tmpdir, dtype):
             # offset is too big
         with pytest.raises(ValueError):
             read_raw_data(fname, dtype, shape, offset=(
-            shape[0]*shape[1]*shape[2]*dtype.itemsize), partial_read=True)
+                shape[0]*shape[1]*shape[2]*dtype.itemsize), partial_read=True)
         with pytest.raises(ValueError):
             read_raw_data(fname, dtype, shape, offset=(
-            shape[0]*shape[1]*shape[2]*dtype.itemsize), partial_read=True,
-            use_mmap=True)
+                shape[0]*shape[1]*shape[2]*dtype.itemsize), partial_read=True,
+                use_mmap=True)
 
 # a meta test
 
