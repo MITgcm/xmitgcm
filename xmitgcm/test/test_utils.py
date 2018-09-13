@@ -239,7 +239,7 @@ def test_read_raw_data(tmpdir, dtype):
     # make sure errors are correct
     wrongshape = (2, 5)
     with pytest.raises(IOError):
-        _ = read_raw_data(fname, dtype, wrongshape)
+        read_raw_data(fname, dtype, wrongshape)
 
     # test optional functionalities
     shape = (5, 15, 10)
