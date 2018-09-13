@@ -991,6 +991,7 @@ def test_parse_diagnostics(all_mds_datadirs):
     for key, val in expected_diags.items():
         assert ad[key] == val
 
+
 @pytest.mark.parametrize("domain", ['llc', 'aste', 'cs'])
 @pytest.mark.parametrize("nx", [90, 270])
 def test_get_extra_metadata(domain, nx):
