@@ -252,14 +252,7 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
     if llc:
         chunks = "small"
         # will be moved up into mds_store in next PR
-        llc = {'has_faces': True, 'ny': 13*nx, 'nx': nx,
-               'ny_facets': [3*nx, 3*nx, nx, 3*nx, 3*nx],
-               'face_facets': [0, 0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 4, 4],
-               'facet_orders': ['C', 'C', 'C', 'F', 'F'],
-               'face_offsets': [0, 1, 2, 0, 1, 2, 0, 0, 1, 2, 0, 1, 2],
-               'transpose_face': [False, False, False,
-                                  False, False, False, False,
-                                  True, True, True, True, True, True]}
+        llc = get_extra_metadata(domain='llc', nx=nx)
         file_metadata.update(llc)
     # --------------- /LEGACY --------------------------
 
