@@ -83,7 +83,7 @@ def _get_useful_info_from_meta_file(metafile):
 
 
 def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
-             dtype=None, dask_delayed=True, extra_metadata=None, chunks="big",
+             dtype=None, use_dask=True, extra_metadata=None, chunks="big",
              llc=False, llc_method="smallchunks", legacy=True):
     """Read an MITgcm .meta / .data file pair
 
@@ -102,7 +102,7 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
         Data type of the data (will be inferred from the .meta file by default)
     shape : tuple, optional
         Shape of the data (will be inferred from the .meta file by default)
-    dask_delayed : bool, optional
+    use_dask : bool, optional
         Whether wrap the reading of the raw data in a ``dask.delayed`` object
     extra_metadata : dict, optional
         Dictionary containing some extra metadata that will be appended to
@@ -269,8 +269,6 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
     for dim in ['nx', 'ny', 'nz']:
         if metadata[dim] == 1:
             file_metadata.update({dim: 1})
-
-    use_dask = True if dask_delayed else False
 
     # read all variables from file into the list d
     d = read_all_variables(file_metadata['fldList'], file_metadata,
