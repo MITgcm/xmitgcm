@@ -595,7 +595,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 # The answer appears to be yes: 2D (x|y,z) data retains the
                 # missing dimension as an axis of length 1.
                 dims = dims[1:]
-            elif len(dims) == 1 and (data.ndim == 2 or data.ndim == 3):
+            elif len(dims) == 1 and data.ndim > 1:
                 # this is for certain profile data like RC, PHrefC, etc.
                 # for some reason, dask arrays don't work here
                 # ok to promote to numpy array because data is always 1D
