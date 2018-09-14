@@ -10,6 +10,7 @@ _xc_meta_content = """ simulation = { 'global_oce_latlon' };
  nrecords = [     1 ];
 """
 
+
 def test_parse_meta(tmpdir):
     """Check the parsing of MITgcm .meta into python dictionary."""
 
@@ -472,7 +473,7 @@ def test_read_2D_chunks(all_mds_datadirs, memmap, usedask):
                               'has_faces': False})
 
     data = read_2D_chunks('T', file_metadata, use_mmap=memmap,
-                             use_dask=usedask)
+                          use_dask=usedask)
     if usedask:
         assert isinstance(data, dask.array.core.Array)
         data.compute()  # check accessing data works
@@ -487,7 +488,7 @@ def test_read_2D_chunks(all_mds_datadirs, memmap, usedask):
                           'vars': ['RC'], 'nx': 1, 'ny': 1})
 
     data = read_2D_chunks('RC', file_metadata, use_mmap=memmap,
-                             use_dask=usedask)
+                          use_dask=usedask)
     if usedask:
         assert isinstance(data, dask.array.core.Array)
         data.compute()
@@ -541,12 +542,12 @@ def test_read_3D_chunks(all_mds_datadirs, memmap, usedask):
     if file_metadata['geometry'] in ['llc']:
         with pytest.raises(ValueError):
             data = read_3D_chunks('T', file_metadata, use_mmap=memmap,
-                                   use_dask=usedask)
+                                  use_dask=usedask)
             if usedask:
                 data.compute()
     else:
         data = read_3D_chunks('T', file_metadata, use_mmap=memmap,
-                               use_dask=usedask)
+                              use_dask=usedask)
         if usedask:
             assert isinstance(data, dask.array.core.Array)
             data.compute()
@@ -561,7 +562,7 @@ def test_read_3D_chunks(all_mds_datadirs, memmap, usedask):
                           'vars': ['RC'], 'nx': 1, 'ny': 1})
 
     data = read_3D_chunks('RC', file_metadata, use_mmap=memmap,
-                           use_dask=usedask)
+                          use_dask=usedask)
     if usedask:
         assert isinstance(data, dask.array.core.Array)
         data.compute()

@@ -7,6 +7,7 @@ from contextlib import contextmanager
 import py
 import tempfile
 
+
 @contextmanager
 def hide_file(origdir, *basenames):
     """Temporarily hide files within the context."""
