@@ -83,7 +83,7 @@ def _get_useful_info_from_meta_file(metafile):
 
 
 def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
-             dtype=None, use_dask=True, extra_metadata=None, chunks="big",
+             dtype=None, use_dask=True, extra_metadata=None, chunks="3D",
              llc=False, llc_method="smallchunks", legacy=True):
     """Read an MITgcm .meta / .data file pair
 
@@ -157,11 +157,11 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
 
         #. transpose_face : transpose the data for this face
 
-    chunks : {'big', 'small'}
-        Which routine to use for chunking data. "smallchunks" splits the file
+    chunks : {'3D', '2D'}
+        Which routine to use for chunking data. '2D' splits the file
         into a individual dask chunk of size (nx x nx) for each face (if llc)
         of each record of each level.
-        "bigchunks" loads the whole raw data file (either into memory or as a
+        '3D' loads the whole raw data file (either into memory or as a
         numpy.memmap) and is not suitable for llc configurations.
         The different methods will have different memory and i/o performance
         depending on the details of the system configuration.
@@ -250,7 +250,7 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
     # from legacy code (needs to be phased out)
     # transition code to keep unit tests working
     if llc:
-        chunks = "small"
+        chunks = "2D"
         # will be moved up into mds_store in next PR
         llc = get_extra_metadata(domain='llc', nx=nx)
         file_metadata.update(llc)
@@ -642,7 +642,7 @@ def _llc_data_shape(llc_id, nz=None):
 
 
 def read_all_variables(variable_list, file_metadata, use_mmap=False,
-                       use_dask=False, chunks="big"):
+                       use_dask=False, chunks="3D"):
     """
     Return a dictionary of dask arrays for variables in a MDS file
 
@@ -655,9 +655,9 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False,
     use_mmap      : bool, optional
                     Whether to read the data using a numpy.memmap
     chunks        : str, optional
-                    Whether to read small (default) or big chunks
-                    small chunks are reading 2d (x,y) levels and big chunks
-                    are reading the whole 3d (x,y,z) field
+                    Whether to read 2D (default) or 3D chunks
+                    2D chunks are reading (x,y) levels and 3D chunks
+                    are reading the a (x,y,z) field
     Returns
     -------
     list of data arrays (dask.array, numpy.ndarray or memmap)
@@ -668,20 +668,20 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False,
 
     out = []
     for variable in variable_list:
-        if chunks == "small":
-            out.append(read_small_chunks(variable, file_metadata,
-                                         use_mmap=use_mmap, use_dask=use_dask))
-        elif chunks == "big":
-            out.append(read_big_chunks(variable, file_metadata,
-                                       use_mmap=use_mmap, use_dask=use_dask))
+        if chunks == "2D":
+            out.append(read_2D_chunks(variable, file_metadata,
+                                      use_mmap=use_mmap, use_dask=use_dask))
+        elif chunks == "3D":
+            out.append(read_3D_chunks(variable, file_metadata,
+                                      use_mmap=use_mmap, use_dask=use_dask))
 
     return out
 
 
-def read_small_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
+def read_2D_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
     """
     Return dask array for variable, from the file described by file_metadata,
-    using the "small chunks" method.
+    reading 2D chunks.
 
     Parameters
     ----------
@@ -759,10 +759,10 @@ def read_small_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
     return data
 
 
-def read_big_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
+def read_3D_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
     """
     Return dask array for variable, from the file described by file_metadata,
-    using the "big chunks" method. Not suitable for llc data.
+    reading 3D chunks. Not suitable for llc data.
 
     Parameters
     ----------
