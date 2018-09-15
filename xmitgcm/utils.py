@@ -251,9 +251,6 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
     # transition code to keep unit tests working
     if llc:
         chunks = "2D"
-        # will be moved up into mds_store in next PR
-        llc = get_extra_metadata(domain='llc', nx=nx)
-        file_metadata.update(llc)
     # --------------- /LEGACY --------------------------
 
     # it is possible to override the values of nx, ny, nz from extra_metadata
