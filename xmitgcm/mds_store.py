@@ -365,9 +365,6 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         else:
             self.nz = nz
 
-        self.extra_metadata = extra_metadata if extra_metadata is not None \
-            else None
-
         # put in local variable to make it more readable
         if extra_metadata is not None and 'has_faces' in extra_metadata:
             has_faces = extra_metadata['has_faces']
@@ -381,7 +378,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 # default to llc90, we only need number of facets
                 # and we cannot know nx at this point
                 llc = get_extra_metadata(domain='llc', nx=90)
-                self.extra_metadata = llc
+                extra_metadata = llc
         # --------------- /LEGACY ----------------------
 
         # we don't need to know ny if using llc
@@ -394,7 +391,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             # we have been passed enough information to determine the
             # dimensions without reading any files
             self.ny, self.nx = ny, nx
-            self.nface = len(self.extra_metadata['face_facets']) if has_faces \
+            self.nface = len(extra_metadata['face_facets']) if has_faces \
                 else None
         else:
             # have to peek at the grid file metadata
@@ -406,7 +403,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             if extra_metadata is None or 'ny_facets' not in extra_metadata:
                 # default to llc
                 llc = get_extra_metadata(domain='llc', nx=self.nx)
-                self.extra_metadata = llc
+                extra_metadata = llc
         # --------------- /LEGACY ----------------------
 
         self.layers = _guess_layers(data_dir)
@@ -514,7 +511,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
 
         for p in prefixes:
             # use a generator to loop through the variables in each file
-            for (vname, dims, data, attrs) in self.load_from_prefix(p, iternum):
+            for (vname, dims, data, attrs) in \
+                self.load_from_prefix(p, iternum, extra_metadata):
                 # print(vname, dims, data.shape)
                 #Sizes of grid variables can vary between mitgcm versions. Check for
                 #such inconsistency and correct if so
@@ -536,7 +534,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 data = drc_data
         return vname, dims, data, attrs
 
-    def load_from_prefix(self, prefix, iternum=None):
+    def load_from_prefix(self, prefix, iternum=None, extra_metadata=None):
         """Read data and look up metadata for grid variable `name`.
 
         Parameters
@@ -576,7 +574,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         try:
             vardata = read_mds(basename, iternum, endian=self.endian,
                                llc=self.llc, llc_method=self.llc_method,
-                               extra_metadata=self.extra_metadata)
+                               extra_metadata=extra_metadata)
         except IOError as ioe:
             # that might have failed because there was no meta file present
             # we can try to get around this by specifying the shape and dtype
@@ -596,7 +594,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                                dtype=self.default_dtype,
                                shape=data_shape, llc=self.llc,
                                llc_method=self.llc_method,
-                               extra_metadata=self.extra_metadata)
+                               extra_metadata=extra_metadata)
 
         for vname, data in vardata.items():
             # we now have to revert to the original prefix once the file is read
