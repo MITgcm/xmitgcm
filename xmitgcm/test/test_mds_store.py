@@ -489,7 +489,8 @@ def test_llc_extra_metadata(llc_mds_datadirs, method):
 
     ds = xmitgcm.open_mdsdataset(dirname,
                                  iters=expected['test_iternum'],
-                                 geometry=expected['geometry'], llc_method=method,
+                                 geometry=expected['geometry'],
+                                 llc_method=method,
                                  extra_metadata=llc)
 
     assert ds.dims['face'] == 13
