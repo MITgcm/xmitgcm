@@ -514,8 +514,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             for (vname, dims, data, attrs) in \
                     self.load_from_prefix(p, iternum, extra_metadata):
                 # print(vname, dims, data.shape)
-                # Sizes of grid variables can vary between mitgcm versions. Check for
-                # such inconsistency and correct if so
+                # Sizes of grid variables can vary between mitgcm versions.
+                # Check for such inconsistency and correct if so
                 (vname, dims, data, attrs) = self.fix_inconsistent_variables(
                     vname, dims, data, attrs)
 
