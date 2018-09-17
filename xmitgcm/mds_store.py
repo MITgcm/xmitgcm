@@ -651,7 +651,6 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 data = np.atleast_1d(np.asarray(data).squeeze())
 
             if self.llc:
-                print(dims, data)
                 dims, data = _reshape_for_llc(dims, data)
 
             # need to add an extra dimension at the beginning if we have a time
