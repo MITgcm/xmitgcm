@@ -488,10 +488,9 @@ def test_llc_extra_metadata(llc_mds_datadirs, method):
     llc = xmitgcm.utils.get_extra_metadata(domain='llc', nx=nx)
 
     ds = xmitgcm.open_mdsdataset(dirname,
-                            iters=expected['test_iternum'],
-                            geometry=expected['geometry'], llc_method=method,
-                            extra_metadata=llc)
-
+                                 iters=expected['test_iternum'],
+                                 geometry=expected['geometry'], llc_method=method,
+                                 extra_metadata=llc)
 
     assert ds.dims['face'] == 13
     assert ds.rA.dims == ('face', 'j', 'i')
@@ -503,4 +502,3 @@ def test_llc_extra_metadata(llc_mds_datadirs, method):
 
     if method == "smallchunks":
         assert ds.U.chunks == (nt*(1,), nz*(1,), nface*(1,), (ny,), (nx,))
-
