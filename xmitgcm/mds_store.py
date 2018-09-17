@@ -25,7 +25,7 @@ from .variables import dimensions, \
 # for variable dictionaries
 
 from .utils import parse_meta_file, read_mds, parse_available_diagnostics,\
-                   get_extra_metadata
+    get_extra_metadata
 
 # Python2/3 compatibility
 if (sys.version_info > (3, 0)):
