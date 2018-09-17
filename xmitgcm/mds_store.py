@@ -505,18 +505,19 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         # add data files
         prefixes = (prefixes +
                     _get_all_matching_prefixes(
-                                               data_dir,
-                                               iternum,
-                                               file_prefixes))
+                        data_dir,
+                        iternum,
+                        file_prefixes))
 
         for p in prefixes:
             # use a generator to loop through the variables in each file
             for (vname, dims, data, attrs) in \
-                self.load_from_prefix(p, iternum, extra_metadata):
+                    self.load_from_prefix(p, iternum, extra_metadata):
                 # print(vname, dims, data.shape)
-                #Sizes of grid variables can vary between mitgcm versions. Check for
-                #such inconsistency and correct if so
-                (vname, dims, data, attrs) = self.fix_inconsistent_variables(vname, dims, data, attrs)
+                # Sizes of grid variables can vary between mitgcm versions. Check for
+                # such inconsistency and correct if so
+                (vname, dims, data, attrs) = self.fix_inconsistent_variables(
+                    vname, dims, data, attrs)
 
                 thisvar = xr.Variable(dims, data, attrs)
                 self._variables[vname] = thisvar
