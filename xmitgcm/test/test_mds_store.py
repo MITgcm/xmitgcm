@@ -476,3 +476,30 @@ def test_ref_date(mds_datadirs_with_refdate, swap_dims, read_grid, load):
                                  read_grid=read_grid, swap_dims=swap_dims)
     if load:
         ds.time.load()
+
+
+@pytest.mark.parametrize("method", ["smallchunks"])
+def test_llc_extra_metadata(llc_mds_datadirs, method):
+    """Check that the LLC reads properly when using extra_metadata."""
+    dirname, expected = llc_mds_datadirs
+    nz, nface, ny, nx = expected['shape']
+    nt = 1
+
+    llc = xmitgcm.utils.get_extra_metadata(domain='llc', nx=nx)
+
+    ds = xmitgcm.open_mdsdataset(dirname,
+                                 iters=expected['test_iternum'],
+                                 geometry=expected['geometry'],
+                                 llc_method=method,
+                                 extra_metadata=llc)
+
+    assert ds.dims['face'] == 13
+    assert ds.rA.dims == ('face', 'j', 'i')
+    assert ds.rA.values.shape == (nface, ny, nx)
+    assert ds.U.dims == ('time', 'k', 'face', 'j', 'i_g')
+    assert ds.U.values.shape == (nt, nz, nface, ny, nx)
+    assert ds.V.dims == ('time', 'k', 'face', 'j_g', 'i')
+    assert ds.V.values.shape == (nt, nz, nface, ny, nx)
+
+    if method == "smallchunks":
+        assert ds.U.chunks == (nt*(1,), nz*(1,), nface*(1,), (ny,), (nx,))
