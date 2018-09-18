@@ -83,7 +83,8 @@ def _get_useful_info_from_meta_file(metafile):
 
 
 def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
-             dtype=None, use_dask=True, extra_metadata=None, chunks="3D",
+             dtype=None, use_dask=True, extra_metadata=None,
+             chunking_method="3D",
              llc=False, llc_method="smallchunks", legacy=True):
     """Read an MITgcm .meta / .data file pair
 
@@ -157,7 +158,7 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
 
         #. transpose_face : transpose the data for this face
 
-    chunks : {'3D', '2D'}
+    chunking_method : {'3D', '2D', 'CS'}
         Which routine to use for chunking data. '2D' splits the file
         into a individual dask chunk of size (nx x nx) for each face (if llc)
         of each record of each level.
@@ -165,6 +166,7 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
         numpy.memmap) and is not suitable for llc configurations.
         The different methods will have different memory and i/o performance
         depending on the details of the system configuration.
+        'CS' loads 2d (nx, ny) chunks for each face of the Cube Sphere model.
 
     obsolete : llc and llc_methods, kept for testing
 
@@ -250,7 +252,7 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
     # from legacy code (needs to be phased out)
     # transition code to keep unit tests working
     if llc:
-        chunks = "2D"
+        chunking_method = "2D"
     # --------------- /LEGACY --------------------------
 
     # it is possible to override the values of nx, ny, nz from extra_metadata
@@ -263,7 +265,7 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
     # read all variables from file into the list d
     d = read_all_variables(file_metadata['fldList'], file_metadata,
                            use_mmap=use_mmap, use_dask=use_dask,
-                           chunks=chunks)
+                           chunking_method=chunking_method)
 
     # convert list into dictionary
     out = {}
@@ -639,22 +641,22 @@ def _llc_data_shape(llc_id, nz=None):
 
 
 def read_all_variables(variable_list, file_metadata, use_mmap=False,
-                       use_dask=False, chunks="3D"):
+                       use_dask=False, chunking_method="3D"):
     """
     Return a dictionary of dask arrays for variables in a MDS file
 
     Parameters
     ----------
-    variable_list : list
-                    list of MITgcm variables, from fldList in .meta
-    file_metadata : dict
-                    internal metadata for binary file
-    use_mmap      : bool, optional
-                    Whether to read the data using a numpy.memmap
-    chunks        : str, optional
-                    Whether to read 2D (default) or 3D chunks
-                    2D chunks are reading (x,y) levels and 3D chunks
-                    are reading the a (x,y,z) field
+    variable_list   : list
+                      list of MITgcm variables, from fldList in .meta
+    file_metadata   : dict
+                      internal metadata for binary file
+    use_mmap        : bool, optional
+                      Whether to read the data using a numpy.memmap
+    chunking_method : str, optional
+                      Whether to read 2D (default) or 3D chunks
+                      2D chunks are reading (x,y) levels and 3D chunks
+                      are reading the a (x,y,z) field
     Returns
     -------
     list of data arrays (dask.array, numpy.ndarray or memmap)
@@ -665,15 +667,74 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False,
 
     out = []
     for variable in variable_list:
-        if chunks == "2D":
+        if chunking_method == "2D":
             out.append(read_2D_chunks(variable, file_metadata,
                                       use_mmap=use_mmap, use_dask=use_dask))
-        elif chunks == "3D":
+        elif chunking_method == "3D":
             out.append(read_3D_chunks(variable, file_metadata,
+                                      use_mmap=use_mmap, use_dask=use_dask))
+        elif chunking_method == "CS":
+            out.append(read_CS_chunks(variable, file_metadata,
                                       use_mmap=use_mmap, use_dask=use_dask))
 
     return out
 
+
+def read_CS_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
+    """
+    Return dask array for variable, from the file described by file_metadata,
+    using the "cube sphere chunks" method.
+
+    Parameters
+    ----------
+    variable : string
+               name of the variable to read
+    file_metadata : dict
+               internal file_metadata for binary file
+    use_mmap : bool, optional
+               Whether to read the data using a numpy.memmap
+    use_dask : bool, optional (not working yet)
+               collect the data lazily or eagerly
+
+    Returns
+    -------
+    dask array for variable, with 2d (ny, nx) chunks
+    or numpy.ndarray or memmap, depending on input args
+
+    """
+
+    if (file_metadata['nx'] == 1) and (file_metadata['ny'] == 1) and \
+       (len(file_metadata['vars']) == 1):
+            # vertical coordinate
+        data_raw = read_raw_data(file_metadata['filename'],
+                                 file_metadata['dtype'],
+                                 (file_metadata['nz'],), use_mmap=use_mmap,
+                                 offset=0, order='C', partial_read=False)
+
+        shape = (file_metadata['nt'], file_metadata['nz'], 1,
+                 file_metadata['ny'], file_metadata['nx'])
+        data_raw = np.reshape(data_raw, shape)  # memmap -> ndarray
+        chunks = (file_metadata['nt'], 1, 1,
+                  file_metadata['ny'], file_metadata['nx'])
+        data = dsa.from_array(data_raw, chunks=chunks)
+
+    else:
+        shape = (file_metadata['nt'], file_metadata['nz'],
+                 file_metadata['ny'], 6, file_metadata['nx'])
+
+        data_raw = read_raw_data(file_metadata['filename'],
+                                 file_metadata['dtype'],
+                                 shape, use_mmap=use_mmap,
+                                 offset=0, order='C', partial_read=False)
+        #data_raw = np.reshape(data_raw, shape)  # memmap -> ndarray
+        chunks = (file_metadata['nt'], 1,
+                  file_metadata['ny'], 1, file_metadata['nx'])
+        data = dsa.from_array(data_raw, chunks=chunks)
+
+    if not use_dask:
+        data = data.compute()
+
+    return data
 
 def read_2D_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
     """
