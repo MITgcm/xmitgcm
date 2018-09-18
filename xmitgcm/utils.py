@@ -726,7 +726,7 @@ def read_CS_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
                                  file_metadata['dtype'],
                                  shape, use_mmap=use_mmap,
                                  offset=0, order='C', partial_read=False)
-        #data_raw = np.reshape(data_raw, shape)  # memmap -> ndarray
+        # data_raw = np.reshape(data_raw, shape)  # memmap -> ndarray
         chunks = (file_metadata['nt'], 1,
                   file_metadata['ny'], 1, file_metadata['nx'])
         data = dsa.from_array(data_raw, chunks=chunks)
