@@ -523,38 +523,38 @@ def read_3d_llc_data(fname, nz, nx, dtype='>f8', memmap=True, nrecs=1,
     data : dask.array.Array
         The data
     """
-    dtype=np.dtype(dtype)
+    dtype = np.dtype(dtype)
 
-    if method=="smallchunks":
+    if method == "smallchunks":
 
         def load_chunk(nface, nlev):
             return _read_2d_face(fname, nface, nlev, nx,
-                            dtype=dtype, memmap=memmap)[None, None, None]
+                                 dtype=dtype, memmap=memmap)[None, None, None]
 
         chunks = (1, 1, 1, nx, nx)
         shape = (nrecs, nz, LLC_NUM_FACES, nx, nx)
-        name = 'llc-' + tokenize(fname, shape, nface, nlev)  # unique identifier
+        name = 'llc-' + tokenize(fname, shape, nface,
+                                 nlev)  # unique identifier
         # we hack the record number as extra vertical levels
         dsk = {(name, nrec, nlev, nface, 0, 0): (load_chunk, nface,
                                                  nlev + nz*nrec)
-                 for nface in range(LLC_NUM_FACES)
-                 for nlev in range(nz)
-                 for nrec in range(nrecs)}
+               for nface in range(LLC_NUM_FACES)
+               for nlev in range(nz)
+               for nrec in range(nrecs)}
 
         data = dsa.Array(dsk, name, chunks, dtype=dtype, shape=shape)
 
-    elif method=="bigchunks":
+    elif method == "bigchunks":
         shape = (nrecs, nz, LLC_NUM_FACES*nx, nx)
         # the dimension that needs to be reshaped
         jdim = 2
         data = read_raw_data(fname, dtype, shape, use_mmap=memmap)
-        data= _reshape_llc_data(data, jdim)
+        data = _reshape_llc_data(data, jdim)
 
     # automatically squeeze off z dimension; this matches mds file behavior
-    if nz==1:
-        data = data[:,0]
+    if nz == 1:
+        data = data[:, 0]
     return data
-
 
 
 # a deprecated function that I can't bear to delete because it was painful to
