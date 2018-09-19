@@ -533,7 +533,7 @@ def read_3d_llc_data(fname, nz, nx, dtype='>f8', memmap=True, nrecs=1,
 
         chunks = (1, 1, 1, nx, nx)
         shape = (nrecs, nz, LLC_NUM_FACES, nx, nx)
-        name = 'llc-' + tokenize(fname)  # unique identifier
+        name = 'llc-' + tokenize(fname, shape, nface, nlev)  # unique identifier
         # we hack the record number as extra vertical levels
         dsk = {(name, nrec, nlev, nface, 0, 0): (load_chunk, nface,
                                                  nlev + nz*nrec)
@@ -724,7 +724,7 @@ def read_2D_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
             shape = (file_metadata['nt'], file_metadata['nz'],
                      len(file_metadata['face_facets']),
                      file_metadata['nx'], file_metadata['nx'])
-            name = 'llc-' + tokenize(file_metadata['filename'])
+            name = 'llcmds-' + tokenize(file_metadata, variable)
 
             dsk = {(name, rec, lev, face, 0, 0): (load_chunk, face,
                                                   lev, rec)
@@ -741,7 +741,7 @@ def read_2D_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
             chunks = (1, 1, file_metadata['ny'], file_metadata['nx'])
             shape = (file_metadata['nt'], file_metadata['nz'],
                      file_metadata['ny'], file_metadata['nx'])
-            name = 'reg-' + tokenize(file_metadata['filename'])
+            name = 'mds-' + tokenize(file_metadata, variable)
 
             dsk = {(name, rec, lev, 0, 0): (load_chunk, lev, rec)
                    for lev in range(file_metadata['nz'])
@@ -787,7 +787,7 @@ def read_3D_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
     chunks = (1, file_metadata['nz'], file_metadata['ny'], file_metadata['nx'])
     shape = (file_metadata['nt'], file_metadata['nz'],
              file_metadata['ny'], file_metadata['nx'])
-    name = 'reg-' + tokenize(file_metadata['filename'])
+    name = 'mds-' + tokenize(file_metadata, variable)
 
     dsk = {(name, rec, 0, 0, 0): (load_chunk, rec)
            for rec in range(file_metadata['nt'])}

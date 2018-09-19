@@ -229,6 +229,23 @@ def test_read_mds(all_mds_datadirs):
     assert isinstance(res[prefix], np.ndarray)
 
 
+def test_read_mds_tokens(mds_datadirs_with_diagnostics):
+    from xmitgcm.utils import read_mds
+    dirname, expected = mds_datadirs_with_diagnostics
+    diagnostics = expected['diagnostics']
+    prefix = diagnostics[0]
+    basename = os.path.join(dirname, prefix)
+    iternum = expected['test_iternum']
+    data = read_mds(basename, iternum=iternum)
+    dask_keys = set()
+    for varname, da in data.items():
+        keys = list(da.dask.keys())
+        for k in keys:
+            dask_keys.add(k)
+        single_key_len = len(k)
+    assert len(dask_keys) == single_key_len * len(data)
+         
+
 def test_read_mds_no_meta(all_mds_datadirs):
     from xmitgcm.utils import read_mds
     dirname, expected = all_mds_datadirs
