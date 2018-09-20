@@ -533,7 +533,8 @@ def read_3d_llc_data(fname, nz, nx, dtype='>f8', memmap=True, nrecs=1,
 
         chunks = (1, 1, 1, nx, nx)
         shape = (nrecs, nz, LLC_NUM_FACES, nx, nx)
-        name = 'llc-' + tokenize(fname, shape, dtype, method)  # unique identifier
+        name = 'llc-' + tokenize(fname, shape, dtype,
+                                 method)  # unique identifier
         # we hack the record number as extra vertical levels
         dsk = {(name, nrec, nlev, nface, 0, 0): (load_chunk, nface,
                                                  nlev + nz*nrec)
