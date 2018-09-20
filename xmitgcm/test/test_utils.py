@@ -241,9 +241,10 @@ def test_read_mds_tokens(mds_datadirs_with_diagnostics):
     for varname, da in data.items():
         keys = list(da.dask.keys())
         for k in keys:
-            dask_keys.add(k)
-        single_key_len = len(k)
-    assert len(dask_keys) == single_key_len * len(data)
+            token = k[0]
+            if 'mds' in token:
+                dask_keys.add(token)
+    assert len(dask_keys) == len(data)
 
 
 def test_read_mds_no_meta(all_mds_datadirs):
