@@ -88,15 +88,21 @@ def test_open_mdsdataset_minimal(all_mds_datadirs):
     assert ds['k_l'].attrs['axis'] == 'Z'
     assert ds['k_l'].attrs['c_grid_axis_shift'] == -0.5
 
+
 def test_read_grid(all_mds_datadirs):
     """Make sure we read all the grid variables."""
     dirname, expected = all_mds_datadirs
     ds = xmitgcm.open_mdsdataset(
-                dirname, iters=None, read_grid=True,
-                geometry=expected['geometry'])
+        dirname, iters=None, read_grid=True,
+        geometry=expected['geometry'])
 
     for vname in _EXPECTED_GRID_VARS:
-        assert vname in ds
+        assert vname in ds.variables
+
+    # make sure angle is present
+    if expected['geometry'] in ['llc', 'curvilinear']:
+        assert 'CS' in ds.coords
+        assert 'SN' in ds.coords
 
     # actually load the data, to check for dask-related errors
     ds.load()

@@ -18,7 +18,7 @@ import sys
 # we keep the metadata in its own module to keep this one cleaner
 from .variables import dimensions, \
     horizontal_coordinates_spherical, horizontal_coordinates_cartesian, \
-    horizontal_coordinates_curvcart, \
+    horizontal_coordinates_curvcart, horizontal_coordinates_llc, \
     vertical_coordinates, horizontal_grid_variables, vertical_grid_variables, \
     volume_grid_variables, state_variables, aliases, package_state_variables
 # would it be better to import mitgcm_variables and then automate the search
@@ -721,12 +721,11 @@ def _guess_layers(data_dir):
 
 def _get_all_grid_variables(geometry, layers={}):
     """"Put all the relevant grid metadata into one big dictionary."""
-    if geometry == "cartesian":
-        hcoords = horizontal_coordinates_cartesian
-    elif geometry == "curvilinear":
-        hcoords = horizontal_coordinates_curvcart
-    else:
-        hcoords = horizontal_coordinates_spherical
+    possible_hcoords = {'cartesian': horizontal_coordinates_cartesian,
+                        'llc': horizontal_coordinates_llc,
+                        'curvilinear': horizontal_coordinates_curvcart,
+                        'sphericalpolar': horizontal_coordinates_spherical}
+    hcoords = possible_hcoords[geometry]
     allvars = [hcoords, vertical_coordinates, horizontal_grid_variables,
                vertical_grid_variables, volume_grid_variables]
 
