@@ -365,6 +365,9 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         else:
             self.nz = nz
 
+        # if user passes extra_metadata, this should have priority
+        user_metadata = True if extra_metadata is not None else False
+
         # put in local variable to make it more readable
         if extra_metadata is not None and 'has_faces' in extra_metadata:
             has_faces = extra_metadata['has_faces']
@@ -400,7 +403,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
 
         # --------------- LEGACY ----------------------
         if self.llc:
-            if extra_metadata is None or 'ny_facets' not in extra_metadata:
+            #if extra_metadata is None or 'ny_facets' not in extra_metadata:
+            if not user_metadata:
                 # default to llc
                 llc = get_extra_metadata(domain='llc', nx=self.nx)
                 extra_metadata = llc
