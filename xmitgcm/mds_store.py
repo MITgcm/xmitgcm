@@ -403,9 +403,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
 
         # --------------- LEGACY ----------------------
         if self.llc:
-            #if extra_metadata is None or 'ny_facets' not in extra_metadata:
             if not user_metadata:
-                # default to llc
+                # if user didn't provide metadata, we default to llc
                 llc = get_extra_metadata(domain='llc', nx=self.nx)
                 extra_metadata = llc
         # --------------- /LEGACY ----------------------
