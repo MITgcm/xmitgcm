@@ -400,6 +400,13 @@ for n in range(1,100):
                   units="kg m-3")
    )
 for n in range(1,100):
+   trname = 'TRAC%02d' % n
+   state_variables[trname] = dict(dims=['k','j','i'],
+       attrs=dict(standard_name='%s_concentration' % trname,
+                  long_name="Concentration of %s" % trname,
+                  units="kg m-3")
+   )
+for n in range(1,100):
    travename = 'PTRtave%02d' % n
    state_variables[travename] = dict(dims=['k','j','i'],
        attrs=dict(standard_name='%s_concentration' % travename,
