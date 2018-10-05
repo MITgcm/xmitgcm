@@ -260,159 +260,159 @@ layers_grid_variables = OrderedDict(
 
 state_variables = OrderedDict(
     # default state variables
-    U = dict(dims=['k','j','i_g'], attrs=dict(
-                standard_name='sea_water_x_velocity', mate='V',
-                long_name='Zonal Component of Velocity', units='m s-1')),
-    V = dict(dims=['k','j_g','i'], attrs=dict(
-                standard_name='sea_water_y_velocity', mate='U',
-                long_name='Meridional Component of Velocity', units='m s-1')),
-    W = dict(dims=['k_l','j','i'], attrs=dict(
-                standard_name='sea_water_z_velocity',
-                long_name='Vertical Component of Velocity', units='m s-1')),
-    T = dict(dims=['k','j','i'], attrs=dict(
-                standard_name="sea_water_potential_temperature",
-                long_name='Potential Temperature', units='degree_Celcius')),
-    S = dict(dims=['k','j','i'], attrs=dict(
-                standard_name="sea_water_salinity",
-                long_name='Salinity', units='psu')),
-    PH= dict(dims=['k','j','i'], attrs=dict(
-                standard_name="sea_water_dynamic_pressue",
-                long_name='Hydrostatic Pressure Pot.(p/rho) Anomaly',
-                units='m2 s-2')),
-    PHL=dict(dims=['j','i'], attrs=dict(
-                standard_name="sea_water_dynamic_pressure_at_sea_floor",
-                long_name='Bottom Pressure Pot.(p/rho) Anomaly',
-                units='m2 s-2')),
-    Eta=dict(dims=['j','i'], attrs=dict(
-                standard_name="sea_surface_height_above_geoid",
-                long_name='Surface Height Anomaly', units='m')),
+    U=dict(dims=['k', 'j', 'i_g'], attrs=dict(
+        standard_name='sea_water_x_velocity', mate='V',
+        long_name='Zonal Component of Velocity', units='m s-1')),
+    V=dict(dims=['k', 'j_g', 'i'], attrs=dict(
+        standard_name='sea_water_y_velocity', mate='U',
+        long_name='Meridional Component of Velocity', units='m s-1')),
+    W=dict(dims=['k_l', 'j', 'i'], attrs=dict(
+        standard_name='sea_water_z_velocity',
+        long_name='Vertical Component of Velocity', units='m s-1')),
+    T=dict(dims=['k', 'j', 'i'], attrs=dict(
+        standard_name="sea_water_potential_temperature",
+        long_name='Potential Temperature', units='degree_Celcius')),
+    S=dict(dims=['k', 'j', 'i'], attrs=dict(
+        standard_name="sea_water_salinity",
+        long_name='Salinity', units='psu')),
+    PH=dict(dims=['k', 'j', 'i'], attrs=dict(
+        standard_name="sea_water_dynamic_pressue",
+        long_name='Hydrostatic Pressure Pot.(p/rho) Anomaly',
+        units='m2 s-2')),
+    PHL=dict(dims=['j', 'i'], attrs=dict(
+        standard_name="sea_water_dynamic_pressure_at_sea_floor",
+        long_name='Bottom Pressure Pot.(p/rho) Anomaly',
+        units='m2 s-2')),
+    Eta=dict(dims=['j', 'i'], attrs=dict(
+        standard_name="sea_surface_height_above_geoid",
+        long_name='Surface Height Anomaly', units='m')),
     # default tave variables
-    uVeltave = dict(dims=['k','j','i_g'], attrs=dict(
-                standard_name='sea_water_x_velocity', mate='vVeltave',
-                long_name='Zonal Component of Velocity', units='m s-1')),
-    vVeltave = dict(dims=['k','j_g','i'], attrs=dict(
-                standard_name='sea_water_y_velocity', mate='uVeltave',
-                long_name='Meridional Component of Velocity', units='m s-1')),
-    wVeltave = dict(dims=['k_l','j','i'], attrs=dict(
-                standard_name='sea_water_z_velocity',
-                long_name='Vertical Component of Velocity', units='m s-1')),
-    Ttave = dict(dims=['k','j','i'], attrs=dict(
-                standard_name="sea_water_potential_temperature",
-                long_name='Potential Temperature', units='degree_Celcius')),
-    Stave = dict(dims=['k','j','i'], attrs=dict(
-                standard_name="sea_water_salinity",
-                long_name='Salinity', units='psu')),
-    PhHytave= dict(dims=['k','j','i'], attrs=dict(
-                standard_name="sea_water_dynamic_pressue",
-                long_name='Hydrostatic Pressure Pot.(p/rho) Anomaly',
-                units='m2 s-2')),
-    PHLtave=dict(dims=['j','i'], attrs=dict(
-                standard_name="sea_water_dynamic_pressure_at_sea_floor",
-                long_name='Bottom Pressure Pot.(p/rho) Anomaly',
-                units='m2 s-2')),
-    ETAtave=dict(dims=['j','i'], attrs=dict(
-                standard_name="sea_surface_height_above_geoid",
-                long_name='Surface Height Anomaly', units='m')),
+    uVeltave=dict(dims=['k', 'j', 'i_g'], attrs=dict(
+        standard_name='sea_water_x_velocity', mate='vVeltave',
+        long_name='Zonal Component of Velocity', units='m s-1')),
+    vVeltave=dict(dims=['k', 'j_g', 'i'], attrs=dict(
+        standard_name='sea_water_y_velocity', mate='uVeltave',
+        long_name='Meridional Component of Velocity', units='m s-1')),
+    wVeltave=dict(dims=['k_l', 'j', 'i'], attrs=dict(
+        standard_name='sea_water_z_velocity',
+        long_name='Vertical Component of Velocity', units='m s-1')),
+    Ttave=dict(dims=['k', 'j', 'i'], attrs=dict(
+        standard_name="sea_water_potential_temperature",
+        long_name='Potential Temperature', units='degree_Celcius')),
+    Stave=dict(dims=['k', 'j', 'i'], attrs=dict(
+        standard_name="sea_water_salinity",
+        long_name='Salinity', units='psu')),
+    PhHytave=dict(dims=['k', 'j', 'i'], attrs=dict(
+        standard_name="sea_water_dynamic_pressue",
+        long_name='Hydrostatic Pressure Pot.(p/rho) Anomaly',
+        units='m2 s-2')),
+    PHLtave=dict(dims=['j', 'i'], attrs=dict(
+        standard_name="sea_water_dynamic_pressure_at_sea_floor",
+        long_name='Bottom Pressure Pot.(p/rho) Anomaly',
+        units='m2 s-2')),
+    ETAtave=dict(dims=['j', 'i'], attrs=dict(
+        standard_name="sea_surface_height_above_geoid",
+        long_name='Surface Height Anomaly', units='m')),
     # TODO: finish encoding this crap!
-    Convtave=dict(dims=['k_l','j','i'], attrs=dict(
-                standard_name="convective_adjustment_index",
-                long_name="Convective Adjustment Index")),
-    Eta2tave=dict(dims=['j','i'], attrs=dict(
-                standard_name="square_of_sea_surface_height_above_geoid",
-                long_name='Square of Surface Height Anomaly', units='m2')),
-    PHL2tave=dict(dims=['j','i'], attrs=dict(
-                standard_name="square_of_sea_water_dynamic_pressure_at_sea_floor",
-                long_name='Square of Bottom Pressure Pot.(p/rho) Anomaly',
-                units='m4 s-4')),
-    sFluxtave=dict(dims=['j','i'], attrs=dict(
-                standard_name="virtual_salt_flux_into_sea_water",
-                long_name='total salt flux (match salt-content variations), '
-                          '>0 increases salt', units='g m-2 s-1')),
-    Tdiftave=dict(dims=['k_l','j','i'], attrs=dict(
-                standard_name="upward_potential_temperature_flux_"
-                              "due_to_diffusion",
-                long_name="Vertical Diffusive Flux of Pot.Temperature",
-                units="K m3 s-1")),
-    tFluxtave=dict(dims=['j','i'], attrs=dict(
-                standard_name="surface_downward_heat_flux_in_sea_water",
-                long_name="Total heat flux (match heat-content variations), "
-                          ">0 increases theta", units="W m-2")),
-    TTtave = dict(dims=['k','j','i'], attrs=dict(
-                standard_name="square_of_sea_water_potential_temperature",
-                long_name='Square of Potential Temperature',
-                units='degree_Celcius')),
-    uFluxtave=dict(dims=['j','i_g'], attrs=dict(
-                standard_name="surface_downward_x_stress",
-                long_name='surface zonal momentum flux, positive -> increase u',
-                units='N m-2', mate='vFluxtave')),
-    UStave=dict(dims=['k','j','i_g'], attrs=dict(
+    Convtave=dict(dims=['k_l', 'j', 'i'], attrs=dict(
+        standard_name="convective_adjustment_index",
+        long_name="Convective Adjustment Index")),
+    Eta2tave=dict(dims=['j', 'i'], attrs=dict(
+        standard_name="square_of_sea_surface_height_above_geoid",
+        long_name='Square of Surface Height Anomaly', units='m2')),
+    PHL2tave=dict(dims=['j', 'i'], attrs=dict(
+        standard_name="square_of_sea_water_dynamic_pressure_at_sea_floor",
+        long_name='Square of Bottom Pressure Pot.(p/rho) Anomaly',
+        units='m4 s-4')),
+    sFluxtave=dict(dims=['j', 'i'], attrs=dict(
+        standard_name="virtual_salt_flux_into_sea_water",
+        long_name='total salt flux (match salt-content variations), '
+        '>0 increases salt', units='g m-2 s-1')),
+    Tdiftave=dict(dims=['k_l', 'j', 'i'], attrs=dict(
+        standard_name="upward_potential_temperature_flux_"
+        "due_to_diffusion",
+        long_name="Vertical Diffusive Flux of Pot.Temperature",
+        units="K m3 s-1")),
+    tFluxtave=dict(dims=['j', 'i'], attrs=dict(
+        standard_name="surface_downward_heat_flux_in_sea_water",
+        long_name="Total heat flux (match heat-content variations), "
+        ">0 increases theta", units="W m-2")),
+    TTtave=dict(dims=['k', 'j', 'i'], attrs=dict(
+        standard_name="square_of_sea_water_potential_temperature",
+        long_name='Square of Potential Temperature',
+        units='degree_Celcius')),
+    uFluxtave=dict(dims=['j', 'i_g'], attrs=dict(
+        standard_name="surface_downward_x_stress",
+        long_name='surface zonal momentum flux, positive -> increase u',
+        units='N m-2', mate='vFluxtave')),
+    UStave=dict(dims=['k', 'j', 'i_g'], attrs=dict(
                 standard_name="product_of_sea_water_x_velocity_and_salinity",
                 long_name="Zonal Transport of Salinity",
                 units="psu m s-1", mate='VStave')),
-    UTtave=dict(dims=['k','j','i_g'], attrs=dict(
+    UTtave=dict(dims=['k', 'j', 'i_g'], attrs=dict(
                 standard_name="product_of_sea_water_x_velocity_and_"
                               "potential_temperature",
                 long_name="Zonal Transport of Potential Temperature",
                 units="K m s-1", mate='VTtave')),
-    UUtave = dict(dims=['k','j','i_g'], attrs=dict(
-                standard_name='square_of_sea_water_x_velocity',
-                long_name='Square of Zonal Component of Velocity',
-                units='m2 s-2')),
-    UVtave=dict(dims=['k','j_g','i_g'], attrs=dict(
+    UUtave=dict(dims=['k', 'j', 'i_g'], attrs=dict(
+        standard_name='square_of_sea_water_x_velocity',
+        long_name='Square of Zonal Component of Velocity',
+        units='m2 s-2')),
+    UVtave=dict(dims=['k', 'j_g', 'i_g'], attrs=dict(
                 standard_name="product_of_sea_water_x_velocity_and_"
                               "sea_water_y_velocity",
                 long_name="Product of meridional and zonal velocity",
                 units="m2 s-2")),
-    vFluxtave=dict(dims=['j_g','i'], attrs=dict(
-                standard_name="surface_downward_y_stress",
-                long_name='surface meridional momentum flux, '
-                          'positive -> increase u',
-                units='N m-2', mate='uFluxtave')),
-    VStave=dict(dims=['k','j_g','i'], attrs=dict(
+    vFluxtave=dict(dims=['j_g', 'i'], attrs=dict(
+        standard_name="surface_downward_y_stress",
+        long_name='surface meridional momentum flux, '
+        'positive -> increase u',
+        units='N m-2', mate='uFluxtave')),
+    VStave=dict(dims=['k', 'j_g', 'i'], attrs=dict(
                 standard_name="product_of_sea_water_y_velocity_and_salinity",
                 long_name="Meridional Transport of Salinity",
                 units="psu m s-1", mate='UStave')),
-    VTtave=dict(dims=['k','j_g','i'], attrs=dict(
+    VTtave=dict(dims=['k', 'j_g', 'i'], attrs=dict(
                 standard_name="product_of_sea_water_y_velocity_and_"
                               "potential_temperature",
                 long_name="Meridional Transport of Potential Temperature",
                 units="K m s-1", mate='UTtave')),
-    VVtave = dict(dims=['k','j_g','i'], attrs=dict(
-                standard_name='square_of_sea_water_y_velocity',
-                long_name='Square of Meridional Component of Velocity',
-                units='m2 s-2')),
-    WStave=dict(dims=['k_l','j','i'], attrs=dict(
+    VVtave=dict(dims=['k', 'j_g', 'i'], attrs=dict(
+        standard_name='square_of_sea_water_y_velocity',
+        long_name='Square of Meridional Component of Velocity',
+        units='m2 s-2')),
+    WStave=dict(dims=['k_l', 'j', 'i'], attrs=dict(
                 standard_name="product_of_sea_water_z_velocity_and_salinity",
                 long_name="Vertical Transport of Salinity",
                 units="psu m s-1")),
-    WTtave=dict(dims=['k_l','j','i'], attrs=dict(
+    WTtave=dict(dims=['k_l', 'j', 'i'], attrs=dict(
                 standard_name="product_of_sea_water_z_velocity_and_"
                               "potential_temperature",
                 long_name="Vertical Transport of Potential Temperature",
                 units="K m s-1")),
 )
 
-for n in range(1,100):
-   trname = 'PTRACER%02d' % n
-   state_variables[trname] = dict(dims=['k','j','i'],
-       attrs=dict(standard_name='%s_concentration' % trname,
-                  long_name="Concentration of %s" % trname,
-                  units="kg m-3")
-   )
-for n in range(1,100):
-   trname = 'TRAC%02d' % n
-   state_variables[trname] = dict(dims=['k','j','i'],
-       attrs=dict(standard_name='%s_concentration' % trname,
-                  long_name="Concentration of %s" % trname,
-                  units="kg m-3")
-   )
-for n in range(1,100):
-   travename = 'PTRtave%02d' % n
-   state_variables[travename] = dict(dims=['k','j','i'],
-       attrs=dict(standard_name='%s_concentration' % travename,
-                  long_name="Concentration of %s" % travename,
-                  units="kg m-3")
-   )
+for n in range(1, 100):
+    trname = 'PTRACER%02d' % n
+    state_variables[trname] = dict(dims=['k', 'j', 'i'],
+                                   attrs=dict(standard_name='%s_concentration' % trname,
+                                              long_name="Concentration of %s" % trname,
+                                              units="kg m-3")
+                                   )
+for n in range(1, 100):
+    trname = 'TRAC%02d' % n
+    state_variables[trname] = dict(dims=['k', 'j', 'i'],
+                                   attrs=dict(standard_name='%s_concentration' % trname,
+                                              long_name="Concentration of %s" % trname,
+                                              units="kg m-3")
+                                   )
+for n in range(1, 100):
+    travename = 'PTRtave%02d' % n
+    state_variables[travename] = dict(dims=['k', 'j', 'i'],
+                                      attrs=dict(standard_name='%s_concentration' % travename,
+                                                 long_name="Concentration of %s" % travename,
+                                                 units="kg m-3")
+                                      )
 
 
 # these aliases are necessary to deal with the LLC output which was saved with
