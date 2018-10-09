@@ -232,7 +232,8 @@ def test_read_mds(all_mds_datadirs):
     if expected['geometry'] == 'llc':
         emeta.update({'ny': 13*270, 'nx': 270})
         with pytest.raises(AssertionError):
-            res = read_mds(basename, iternum=iternum, chunks="2D", use_dask=False,
+            res = read_mds(basename, iternum=iternum, chunks="2D", 
+                           use_dask=False,
                            use_mmap=False, extra_metadata=emeta)
 
 def test_read_mds_tokens(mds_datadirs_with_diagnostics):
