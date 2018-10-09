@@ -249,7 +249,7 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
         # check that nx * ny is consistent between extra_metadata and meta file
         # unless it's a vertical profile nx = ny = 1
         if nhpts > 1:
-            assert nhpts_ex == nhpts 
+            assert nhpts_ex == nhpts
         file_metadata.update(extra_metadata)
 
     # --------------- LEGACY --------------------------
