@@ -175,7 +175,7 @@ def test_read_mds(all_mds_datadirs):
                                     False, False, False, False,
                                     True, True, True, True, True, True]}
     else:
-        emeta = {'has_faces': False}
+        emeta = None
     res = read_mds(basename, chunks="2D", use_dask=False,
                    use_mmap=False, extra_metadata=emeta)
     assert isinstance(res, dict)
@@ -228,6 +228,12 @@ def test_read_mds(all_mds_datadirs):
     assert prefix in res
     assert isinstance(res[prefix], np.ndarray)
 
+    # check fails with bad nx, ny
+    if expected['geometry'] == 'llc':
+        emeta.update({'ny': 13*270, 'nx': 270})
+        with pytest.raises(AssertionError):
+            res = read_mds(basename, iternum=iternum, chunks="2D", use_dask=False,
+                           use_mmap=False, extra_metadata=emeta)
 
 def test_read_mds_tokens(mds_datadirs_with_diagnostics):
     from xmitgcm.utils import read_mds
