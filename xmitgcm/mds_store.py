@@ -20,7 +20,8 @@ from .variables import dimensions, \
     horizontal_coordinates_spherical, horizontal_coordinates_cartesian, \
     horizontal_coordinates_curvcart, horizontal_coordinates_llc, \
     vertical_coordinates, horizontal_grid_variables, vertical_grid_variables, \
-    volume_grid_variables, state_variables, aliases, package_state_variables
+    volume_grid_variables, state_variables, aliases, package_state_variables, \
+    extra_grid_variables
 # would it be better to import mitgcm_variables and then automate the search
 # for variable dictionaries
 
@@ -494,6 +495,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         # build lookup tables for variable metadata
         self._all_grid_variables = _get_all_grid_variables(self.geometry,
                                                            self.layers)
+        self._extra_grid_variables = _get_extra_grid_variables(self.geometry,
+                                                           self.layers)
         self._all_data_variables = _get_all_data_variables(self.data_dir,
                                                            self.layers)
 
@@ -504,6 +507,9 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         prefixes = []
         if read_grid:
             prefixes = prefixes + list(self._all_grid_variables.keys())
+            prefixes = (prefixes + 
+                    _get_extra_grid_prefixes(data_dir, 
+                                                 file_prefixes))
 
         # add data files
         prefixes = (prefixes +
@@ -570,6 +576,10 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             if 'filename' in self._all_grid_variables[prefix]:
                 fname_base = self._all_grid_variables[prefix]['filename']
             ddir = self.grid_dir
+        elif prefix in self._extra_grid_variables:
+            iternum = None 
+            # expect extra grid variables in output data dir
+            ddir = self.data_dir
         else:
             assert iternum is not None
             ddir = self.data_dir
@@ -605,9 +615,13 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             if fname_base != prefix:
                 vname = prefix
             try:
-                metadata = (self._all_grid_variables[vname]
-                            if vname in self._all_grid_variables
-                            else self._all_data_variables[vname])
+                if vname in self._all_grid_variables:
+                    metadata = self._all_grid_variables[vname]
+                elif vname in self._extra_grid_variables:
+                    metadata = self._extra_grid_variables[vname]
+                else:
+                    metadata = self._all_data_variables[vname]
+
             except KeyError:
                 if self._ignore_unknown_vars:
                     # we didn't find any metadata, so we just skip this var
@@ -740,6 +754,18 @@ def _get_all_grid_variables(geometry, layers={}):
     metadata = _concat_dicts(allvars)
     return metadata
 
+def _get_extra_grid_variables(geometry, layers={}):
+    """"Make a dictionary out of extra grid and mask variables."""
+    allvars = [extra_grid_variables]
+
+    # tortured logic to add layers grid variables
+    layersvars = [_make_layers_variables(layer_name)
+                  for layer_name in layers]
+    allvars += layersvars
+
+    metadata = _concat_dicts(allvars)
+    return metadata
+
 
 def _make_layers_variables(layer_name):
     """Translate metadata template to actual variable metadata."""
@@ -837,6 +863,23 @@ def _is_pickup_prefix(prefix):
         if prefix[:6] == 'pickup':
             return True
     return False
+
+def _get_extra_grid_prefixes(data_dir, file_prefixes=None):
+    """Scan a directory and return all file prefixes for extra grid files."""
+    prefixes = set()
+
+    all_datafiles = glob(os.path.join(data_dir, '*.data'))
+    for f in all_datafiles:
+        prefix = os.path.split(f[:-5])[-1]
+        # Only consider what we find that matches extra_grid_vars
+        if prefix in extra_grid_variables:
+            if file_prefixes is None or prefix in file_prefixes:
+                prefixes.add(prefix)
+
+    # order the list according to placement in extra_grid_variables
+    olist = list(extra_grid_variables.keys())
+
+    return sorted( list(prefixes), key=olist.index )
 
 def _get_all_matching_prefixes(data_dir, iternum, file_prefixes=None,
                                ignore_pickup=True):
