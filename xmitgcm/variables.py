@@ -577,6 +577,64 @@ package_state_variables = {
         units='kg m-2 s-1'))
 }
 
+extra_grid_variables = OrderedDict(
+    # Printed from write_grid when debugLevel>=debugLevC 
+    rLowC = dict(dims=['j','i'], attrs=dict(
+        standard_name="depth_r0_to_bottom",
+        long_name='Depth fixed r0 to bottom at tracer location',
+        units='m')),
+    rLowW = dict(dims=['j','i_g'], attrs=dict(
+        standard_name="depth_r0_to_bottom_at_u_location",
+        long_name='Depth from fixed r0 to bottom at u location',
+        units='m')),
+    rLowS = dict(dims=['j_g','i'], attrs=dict(
+        standard_name="depth_r0_to_bottom_at_v_location",
+        long_name='Depth fixed r0 to bottom at v location',
+        units='m')),
+    rSurfC = dict(dims=['j','i'], attrs=dict(
+        standard_name="depth_r0_to_ref_surface",
+        long_name='Depth fixed r0 to reference surface level at tracer location',
+        units='m')),
+    rSurfW = dict(dims=['j','i_g'], attrs=dict(
+        standard_name="depth_r0_to_ref_surface_at_u_location",
+        long_name='Depth fixed r0 to reference surface level at u location',
+        units='m')),
+    rSurfS = dict(dims=['j_g','i'], attrs=dict(
+        standard_name="depth_r0_to_ref_surface_at_v_location",
+        long_name='Depth fixed r0 to reference surface level at v location',
+        units='m')),
+    # Printed from write_grid when useOBCS==T 
+    maskInC = dict(dims=['j','i'], attrs=dict(
+        standard_name="interior_2d_mask",
+        long_name='OBCS 2D interior mask at tracer location, zero beyond OB',
+        units='')),
+    maskInW = dict(dims=['j','i_g'], attrs=dict(
+        standard_name="interior_2d_mask_at_u_location",
+        long_name='OBCS 2D interior mask at u location, zero on & beyond OB',
+        units='')),
+    maskInS = dict(dims=['j_g','i'], attrs=dict(
+        standard_name="interior_2d_mask_at_v_location",
+        long_name='OBCS 2D interior mask at v location, zero on & beyond OB',
+        units='')),
+    ## Printed from write_grid when sigma coordinates are used
+    #aHybSigmF = dict(dims=['j','i'], attrs=dict(
+    #    standard_name="",
+    #    long_name='',
+    #    units='')),
+    # Printed from pkg/ctrl/ctrl_init_wet when useCTRL=T
+    maskCtrlC = dict(dims=['k','j','i'], attrs=dict(
+        standard_name="ctrl_vector_3d_mask",
+        long_name='CTRL 3D mask where ctrl vector is active at tracer location',
+        units='')),
+    maskCtrlW = dict(dims=['k','j','i_g'], attrs=dict(
+        standard_name="ctrl_vector_3d_mask_at_u_location",
+        long_name='CTRL 3D mask where ctrl vector is active at u location',
+        units='')),
+    maskCtrlS = dict(dims=['k','j_g','i'], attrs=dict(
+        standard_name="ctrl_vector_3d_mask_at_v_location",
+        long_name='CTRL 3D mask where ctrl vector is active at v location',
+        units=''))
+)
 
 # Nptracers=99
 # _ptracers = { 'PTRACER%02d' % n :
