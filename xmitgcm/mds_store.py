@@ -508,8 +508,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         if read_grid:
             prefixes = prefixes + list(self._all_grid_variables.keys())
             prefixes = (prefixes + 
-                    _get_extra_grid_prefixes(data_dir, 
-                                                 file_prefixes))
+                    _get_extra_grid_prefixes(data_dir))
 
         # add data files
         prefixes = (prefixes +
@@ -864,7 +863,7 @@ def _is_pickup_prefix(prefix):
             return True
     return False
 
-def _get_extra_grid_prefixes(data_dir, file_prefixes=None):
+def _get_extra_grid_prefixes(data_dir):
     """Scan a directory and return all file prefixes for extra grid files."""
     prefixes = set()
 
@@ -873,8 +872,7 @@ def _get_extra_grid_prefixes(data_dir, file_prefixes=None):
         prefix = os.path.split(f[:-5])[-1]
         # Only consider what we find that matches extra_grid_vars
         if prefix in extra_grid_variables:
-            if file_prefixes is None or prefix in file_prefixes:
-                prefixes.add(prefix)
+            prefixes.add(prefix)
 
     # order the list according to placement in extra_grid_variables
     olist = list(extra_grid_variables.keys())
