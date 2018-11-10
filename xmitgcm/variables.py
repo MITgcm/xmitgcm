@@ -616,11 +616,6 @@ extra_grid_variables = OrderedDict(
         standard_name="interior_2d_mask_at_v_location",
         long_name='OBCS 2D interior mask at v location, zero on & beyond OB',
         units='')),
-    ## Printed from write_grid when sigma coordinates are used
-    #aHybSigmF = dict(dims=['j','i'], attrs=dict(
-    #    standard_name="",
-    #    long_name='',
-    #    units='')),
     # Printed from pkg/ctrl/ctrl_init_wet when useCTRL=T
     maskCtrlC = dict(dims=['k','j','i'], attrs=dict(
         standard_name="ctrl_vector_3d_mask",
@@ -634,6 +629,10 @@ extra_grid_variables = OrderedDict(
         standard_name="ctrl_vector_3d_mask_at_v_location",
         long_name='CTRL 3D mask where ctrl vector is active at v location',
         units=''))
+    # Printed from write_grid when sigma coordinates are used
+    #AHybSigmF, BHybSigF, ...
+        # Unclear where on the grid these variables exist,
+        # skipping for now ...
 )
 
 # Nptracers=99
