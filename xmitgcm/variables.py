@@ -593,7 +593,8 @@ extra_grid_variables = OrderedDict(
         units='m')),
     rSurfC = dict(dims=['j','i'], attrs=dict(
         standard_name="depth_r0_to_ref_surface",
-        long_name='Depth fixed r0 to reference surface level at tracer location',
+        long_name='Depth fixed r0 to reference surface level at '
+                  'tracer location',
         units='m')),
     rSurfW = dict(dims=['j','i_g'], attrs=dict(
         standard_name="depth_r0_to_ref_surface_at_u_location",
@@ -619,7 +620,8 @@ extra_grid_variables = OrderedDict(
     # Printed from pkg/ctrl/ctrl_init_wet when useCTRL=T
     maskCtrlC = dict(dims=['k','j','i'], attrs=dict(
         standard_name="ctrl_vector_3d_mask",
-        long_name='CTRL 3D mask where ctrl vector is active at tracer location',
+        long_name='CTRL 3D mask where ctrl vector is active at '
+                  'tracer location',
         units='')),
     maskCtrlW = dict(dims=['k','j','i_g'], attrs=dict(
         standard_name="ctrl_vector_3d_mask_at_u_location",
