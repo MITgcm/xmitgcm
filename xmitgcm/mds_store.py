@@ -496,7 +496,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         self._all_grid_variables = _get_all_grid_variables(self.geometry,
                                                            self.layers)
         self._extra_grid_variables = _get_extra_grid_variables(self.geometry,
-                                                           self.layers)
+                                                               self.layers)
         self._all_data_variables = _get_all_data_variables(self.data_dir,
                                                            self.layers)
 
@@ -507,8 +507,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         prefixes = []
         if read_grid:
             prefixes = prefixes + list(self._all_grid_variables.keys())
-            prefixes = (prefixes + 
-                    _get_extra_grid_prefixes(data_dir))
+            prefixes = (prefixes +
+                        _get_extra_grid_prefixes(data_dir))
 
         # add data files
         prefixes = (prefixes +
@@ -576,7 +576,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 fname_base = self._all_grid_variables[prefix]['filename']
             ddir = self.grid_dir
         elif prefix in self._extra_grid_variables:
-            iternum = None 
+            iternum = None
             # expect extra grid variables in output data dir
             ddir = self.data_dir
         else:
@@ -753,6 +753,7 @@ def _get_all_grid_variables(geometry, layers={}):
     metadata = _concat_dicts(allvars)
     return metadata
 
+
 def _get_extra_grid_variables(geometry, layers={}):
     """"Make a dictionary out of extra grid and mask variables."""
     allvars = [extra_grid_variables]
@@ -858,10 +859,11 @@ def _get_all_iternums(data_dir, file_prefixes=None,
 
 
 def _is_pickup_prefix(prefix):
-    if len(prefix)>=6:
+    if len(prefix) >= 6:
         if prefix[:6] == 'pickup':
             return True
     return False
+
 
 def _get_extra_grid_prefixes(data_dir):
     """Scan a directory and return all file prefixes for extra grid files."""
@@ -877,7 +879,8 @@ def _get_extra_grid_prefixes(data_dir):
     # order the list according to placement in extra_grid_variables
     olist = list(extra_grid_variables.keys())
 
-    return sorted( list(prefixes), key=olist.index )
+    return sorted(list(prefixes), key=olist.index)
+
 
 def _get_all_matching_prefixes(data_dir, iternum, file_prefixes=None,
                                ignore_pickup=True):
