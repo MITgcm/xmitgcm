@@ -896,7 +896,8 @@ def _read_xyz_chunk(variable, file_metadata, rec=0, use_mmap=False):
 
     if file_metadata['has_faces'] and ((file_metadata['nx'] > 1) or
                                        (file_metadata['ny'] > 1)):
-        raise ValueError("_read_xyz_chunk cannot be called with llc or cs type grid")
+        raise ValueError(
+            "_read_xyz_chunk cannot be called with llc or cs type grid")
 
     # size of the data element
     nbytes = file_metadata['dtype'].itemsize
