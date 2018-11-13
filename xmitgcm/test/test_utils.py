@@ -359,7 +359,8 @@ def test_read_xyz_chunk(all_mds_datadirs, memmap):
             data = _read_xyz_chunk('T', file_metadata, use_mmap=memmap)
     elif file_metadata['geometry'] in ['cs']:
         file_metadata.update({'nx': file_metadata['shape'][3],
-                              'ny': file_metadata['shape'][1],
+                              'ny': file_metadata['shape'][1] * \
+                                    file_metadata['shape'][2],
                               'nface': file_metadata['shape'][2],
                               'nz': file_metadata['shape'][0],
                               'has_faces': True})
@@ -571,7 +572,8 @@ def test_read_3D_chunks(all_mds_datadirs, memmap, usedask):
                                                  True]})
     elif file_metadata['geometry'] in ['cs']:
         file_metadata.update({'nx': file_metadata['shape'][3],
-                              'ny': file_metadata['shape'][1],
+                              'ny': file_metadata['shape'][1] * \
+                                    file_metadata['shape'][2],
                               'nface': file_metadata['shape'][2],
                               'nz': file_metadata['shape'][0],
                               'nt': 1,
@@ -652,6 +654,24 @@ def test_read_all_variables(all_mds_datadirs, memmap, usedask):
                                                  False, False, False, True,
                                                  True, True, True, True,
                                                  True]})
+    elif file_metadata['geometry'] in ['cs']:
+        nx = file_metadata['shape'][3]
+        file_metadata.update({'nx': file_metadata['shape'][3],
+                              'ny': file_metadata['shape'][1] * \
+                                    file_metadata['shape'][2],
+                              'nface': file_metadata['shape'][2],
+                              'nz': file_metadata['shape'][0],
+                              'nt': 1,
+                              'dims_vars': [('nz', 'nface', 'ny', 'nx')],
+                              'has_faces': True,
+                              'ny_facets': [nx, nx, nx, nx, nx, nx],
+                              'face_facets':
+                              [0, 1, 2, 3, 4, 5],
+                              'facet_orders': ['F', 'F', 'F', 'F', 'F', 'F'],
+                              'face_offsets':
+                              [0, 0, 0, 0, 0, 0],
+                              'transpose_face': [False, False, False, False,
+                                                 False, False]})
     else:
         file_metadata.update({'nx': file_metadata['shape'][2],
                               'ny': file_metadata['shape'][1],
@@ -684,9 +704,14 @@ def test_read_all_variables(all_mds_datadirs, memmap, usedask):
                 assert isinstance(dataset[0], np.ndarray)
 
     # test 2D chunks
-    dataset = read_all_variables(file_metadata['vars'], file_metadata,
-                                 use_mmap=memmap, use_dask=usedask,
-                                 chunking_method="2D")
+    if file_metadata['geometry'] not in ['cs']:
+        dataset = read_all_variables(file_metadata['vars'], file_metadata,
+                                     use_mmap=memmap, use_dask=usedask,
+                                     chunking_method="2D")
+    else:
+        dataset = read_all_variables(file_metadata['vars'], file_metadata,
+                                     use_mmap=memmap, use_dask=usedask,
+                                     chunking_method="CS")
 
     assert isinstance(dataset, list)
     assert len(dataset) == len(file_metadata['vars'])
