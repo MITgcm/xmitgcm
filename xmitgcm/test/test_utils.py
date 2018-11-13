@@ -1,4 +1,6 @@
 from xmitgcm.test.test_xmitgcm_common import *
+import pytest
+import os
 
 _xc_meta_content = """ simulation = { 'global_oce_latlon' };
  nDims = [   2 ];
@@ -175,7 +177,7 @@ def test_read_mds(all_mds_datadirs):
                                     False, False, False, False,
                                     True, True, True, True, True, True]}
     else:
-        emeta = {'has_faces': False}
+        emeta = None
     res = read_mds(basename, chunking_method="2D", use_dask=False,
                    use_mmap=False, extra_metadata=emeta)
     assert isinstance(res, dict)
@@ -232,7 +234,8 @@ def test_read_mds(all_mds_datadirs):
     if expected['geometry'] == 'llc':
         emeta.update({'ny': 13*270, 'nx': 270})
         with pytest.raises(AssertionError):
-            res = read_mds(basename, iternum=iternum, chunks="2D",
+            res = read_mds(basename, iternum=iternum,
+                           chunking_method="2D",
                            use_dask=False,
                            use_mmap=False, extra_metadata=emeta)
 
