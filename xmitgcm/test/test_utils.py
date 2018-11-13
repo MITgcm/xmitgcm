@@ -357,6 +357,15 @@ def test_read_xyz_chunk(all_mds_datadirs, memmap):
         # function not designed for llc grids, except 1d variables
         with pytest.raises(ValueError):
             data = _read_xyz_chunk('T', file_metadata, use_mmap=memmap)
+    elif file_metadata['geometry'] in ['cs']:
+        file_metadata.update({'nx': file_metadata['shape'][3],
+                              'ny': file_metadata['shape'][1],
+                              'nface': file_metadata['shape'][2],
+                              'nz': file_metadata['shape'][0],
+                              'has_faces': True})
+        # function not designed for llc grids, except 1d variables
+        with pytest.raises(ValueError):
+            data = _read_xyz_chunk('T', file_metadata, use_mmap=memmap)
     else:
         file_metadata.update({'nx': file_metadata['shape'][2],
                               'ny': file_metadata['shape'][1],
@@ -560,6 +569,14 @@ def test_read_3D_chunks(all_mds_datadirs, memmap, usedask):
                                                  False, False, False, True,
                                                  True, True, True, True,
                                                  True]})
+    elif file_metadata['geometry'] in ['cs']:
+        file_metadata.update({'nx': file_metadata['shape'][3],
+                              'ny': file_metadata['shape'][1],
+                              'nface': file_metadata['shape'][2],
+                              'nz': file_metadata['shape'][0],
+                              'nt': 1,
+                              'dims_vars': [('nz', 'nface', 'ny', 'nx')],
+                              'has_faces': True})
     else:
         file_metadata.update({'nx': file_metadata['shape'][2],
                               'ny': file_metadata['shape'][1],
@@ -568,7 +585,7 @@ def test_read_3D_chunks(all_mds_datadirs, memmap, usedask):
                               'dims_vars': [('nz', 'ny', 'nx')],
                               'has_faces': False})
 
-    if file_metadata['geometry'] in ['llc']:
+    if file_metadata['geometry'] in ['llc', 'cs']:
         with pytest.raises(ValueError):
             data = read_3D_chunks('T', file_metadata, use_mmap=memmap,
                                   use_dask=usedask)
@@ -644,7 +661,7 @@ def test_read_all_variables(all_mds_datadirs, memmap, usedask):
                               'has_faces': False})
 
     # test 3D chunks, fails on llc but not others
-    if file_metadata['geometry'] in ['llc']:
+    if file_metadata['geometry'] in ['llc', 'cs']:
         with pytest.raises(ValueError):
             dataset = read_all_variables(file_metadata['vars'], file_metadata,
                                          use_mmap=memmap, use_dask=usedask,
