@@ -142,13 +142,13 @@ def test_open_dataset_no_meta(all_mds_datadirs):
     ny, nx = shape[-2:]
     shape_2d = shape[1:]
     dims_2d = ('j', 'i')
-    if expected['geometry']=='llc':
+    if expected['geometry'] == 'llc':
         dims_2d = ('face',) + dims_2d
         ny = nx*shape[-3]
-    elif expected['geometry']=='cs':
+    elif expected['geometry'] == 'cs':
         dims_2d = ('j', 'face', 'i')
 
-    dims_3d = dims_2d if nz==1 else ('k',) + dims_2d
+    dims_3d = dims_2d if nz == 1 else ('k',) + dims_2d
     dims_2d = ('time',) + dims_2d
     dims_3d = ('time',) + dims_3d
 

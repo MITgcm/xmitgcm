@@ -359,8 +359,8 @@ def test_read_xyz_chunk(all_mds_datadirs, memmap):
             data = _read_xyz_chunk('T', file_metadata, use_mmap=memmap)
     elif file_metadata['geometry'] in ['cs']:
         file_metadata.update({'nx': file_metadata['shape'][3],
-                              'ny': file_metadata['shape'][1] * \
-                                    file_metadata['shape'][2],
+                              'ny': file_metadata['shape'][1] *
+                              file_metadata['shape'][2],
                               'nface': file_metadata['shape'][2],
                               'nz': file_metadata['shape'][0],
                               'has_faces': True})
@@ -572,8 +572,8 @@ def test_read_3D_chunks(all_mds_datadirs, memmap, usedask):
                                                  True]})
     elif file_metadata['geometry'] in ['cs']:
         file_metadata.update({'nx': file_metadata['shape'][3],
-                              'ny': file_metadata['shape'][1] * \
-                                    file_metadata['shape'][2],
+                              'ny': file_metadata['shape'][1] *
+                              file_metadata['shape'][2],
                               'nface': file_metadata['shape'][2],
                               'nz': file_metadata['shape'][0],
                               'nt': 1,
@@ -657,8 +657,8 @@ def test_read_all_variables(all_mds_datadirs, memmap, usedask):
     elif file_metadata['geometry'] in ['cs']:
         nx = file_metadata['shape'][3]
         file_metadata.update({'nx': file_metadata['shape'][3],
-                              'ny': file_metadata['shape'][1] * \
-                                    file_metadata['shape'][2],
+                              'ny': file_metadata['shape'][1] *
+                              file_metadata['shape'][2],
                               'nface': file_metadata['shape'][2],
                               'nz': file_metadata['shape'][0],
                               'nt': 1,

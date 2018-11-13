@@ -139,7 +139,8 @@ def open_mdsdataset(data_dir, grid_dir=None,
         if read_grid == False:
             swap_dims = False
         else:
-            swap_dims = False if geometry in ('llc', 'cs', 'curvilinear') else True
+            swap_dims = False if geometry in (
+                'llc', 'cs', 'curvilinear') else True
 
     # some checks for argument consistency
     if swap_dims and not read_grid:
@@ -331,7 +332,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         """
 
         self.geometry = geometry.lower()
-        allowed_geometries = ['cartesian', 'sphericalpolar', 'llc', 'cs', 'curvilinear']
+        allowed_geometries = ['cartesian',
+                              'sphericalpolar', 'llc', 'cs', 'curvilinear']
         if self.geometry not in allowed_geometries:
             raise ValueError('Unexpected value for parameter `geometry`. '
                              'It must be one of the following: %s' %
@@ -400,7 +402,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         else:
             # have to peek at the grid file metadata
             self.nface, self.ny, self.nx = (
-                _guess_model_horiz_dims(self.grid_dir, self.llc)) # needs fix
+                _guess_model_horiz_dims(self.grid_dir, self.llc))  # needs fix
 
         # --------------- LEGACY ----------------------
         if self.llc:
