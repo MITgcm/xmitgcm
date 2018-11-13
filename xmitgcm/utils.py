@@ -725,8 +725,12 @@ def read_CS_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
         data = dsa.from_array(data_raw, chunks=chunks)
 
     else:
+        nfaces=len(file_metadata['ny_facets'])
+        nyface=int(file_metadata['ny'] / nfaces)
+        assert nyface * nfaces == file_metadata['ny']
+
         shape = (file_metadata['nt'], file_metadata['nz'],
-                 file_metadata['ny'], 6, file_metadata['nx'])
+                 nyface , nfaces, file_metadata['nx'])
 
         data_raw = read_raw_data(file_metadata['filename'],
                                  file_metadata['dtype'],
@@ -734,7 +738,7 @@ def read_CS_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
                                  offset=0, order='C', partial_read=False)
         # data_raw = np.reshape(data_raw, shape)  # memmap -> ndarray
         chunks = (file_metadata['nt'], 1,
-                  file_metadata['ny'], 1, file_metadata['nx'])
+                  nyface, 1, file_metadata['nx'])
         data = dsa.from_array(data_raw, chunks=chunks)
 
     if not use_dask:

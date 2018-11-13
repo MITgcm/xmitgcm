@@ -110,7 +110,20 @@ _experiments = {
                           'expected_time': [
                               (0, np.datetime64('2013-11-12T12:00:00.000000000')),
                               (1, np.datetime64('2013-11-12T12:02:00.000000000'))],
-                          'prefixes': ['THETA']}
+                          'prefixes': ['THETA']},
+
+    'global_oce_cs32': {'geometry': 'cs',
+                         'shape': (15, 32, 6, 32), 'test_iternum': 72020,
+                         'dtype': np.dtype('f4'),
+                         'expected_values': {'XC': ((2, 3, 5), -29.9892)},
+                         'diagnostics': ('oceDiag', ['DRHODR',
+                                                     'RHOAnoma',
+                                                     'CONVADJ',
+                                                     'GM_Kwx',
+                                                     'GM_Kwy',
+                                                     'GM_Kwz',
+                                                     'GM_PsiX',
+                                                     'GM_PsiY'])}
 }
 
 
