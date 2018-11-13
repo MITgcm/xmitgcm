@@ -119,11 +119,11 @@ _experiments = {
                         'diagnostics': ('oceDiag', ['DRHODR',
                                                     'RHOAnoma',
                                                     'CONVADJ',
-                                                     'GM_Kwx',
-                                                     'GM_Kwy',
-                                                     'GM_Kwz',
-                                                     'GM_PsiX',
-                                                     'GM_PsiY'])}
+                                                    'GM_Kwx',
+                                                    'GM_Kwy',
+                                                    'GM_Kwz',
+                                                    'GM_PsiX',
+                                                    'GM_PsiY'])}
 }
 
 
