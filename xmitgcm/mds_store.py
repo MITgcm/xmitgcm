@@ -19,6 +19,7 @@ import sys
 from .variables import dimensions, \
     horizontal_coordinates_spherical, horizontal_coordinates_cartesian, \
     horizontal_coordinates_curvcart, horizontal_coordinates_llc, \
+    horizontal_coordinates_cs, \
     vertical_coordinates, horizontal_grid_variables, vertical_grid_variables, \
     volume_grid_variables, state_variables, aliases, package_state_variables
 # would it be better to import mitgcm_variables and then automate the search
@@ -71,7 +72,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
         e.g. "1990-1-1 0:0:0" (See CF conventions [1]_)
     calendar : string, optional
         A calendar allowed by CF conventions [1]_
-    geometry : {'sphericalpolar', 'cartesian', 'llc', 'curvilinear'}
+    geometry : {'sphericalpolar', 'cartesian', 'llc', 'curvilinear', 'cs'}
         MITgcm grid geometry specifier
     grid_vars_to_coords : boolean, optional
         Whether to promote grid variables to coordinate status
@@ -138,7 +139,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
         if read_grid == False:
             swap_dims = False
         else:
-            swap_dims = False if geometry in ('llc', 'curvilinear') else True
+            swap_dims = False if geometry in ('llc', 'cs', 'curvilinear') else True
 
     # some checks for argument consistency
     if swap_dims and not read_grid:
@@ -279,7 +280,7 @@ def _swap_dimensions(ds, geometry, drop_old=True):
     # this fixes problems
     ds = ds.reset_coords()
 
-    if geometry.lower() in ('llc', 'curvilinear'):
+    if geometry.lower() in ('llc', 'cs', 'curvilinear'):
         raise ValueError("Can't swap dimensions if `geometry` is `llc`")
 
     # first squeeze all the coordinates
@@ -330,7 +331,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         """
 
         self.geometry = geometry.lower()
-        allowed_geometries = ['cartesian', 'sphericalpolar', 'llc', 'curvilinear']
+        allowed_geometries = ['cartesian', 'sphericalpolar', 'llc', 'cs', 'curvilinear']
         if self.geometry not in allowed_geometries:
             raise ValueError('Unexpected value for parameter `geometry`. '
                              'It must be one of the following: %s' %
@@ -399,7 +400,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         else:
             # have to peek at the grid file metadata
             self.nface, self.ny, self.nx = (
-                _guess_model_horiz_dims(self.grid_dir, self.llc))
+                _guess_model_horiz_dims(self.grid_dir, self.llc)) # needs fix
 
         # --------------- LEGACY ----------------------
         if self.llc:
@@ -726,6 +727,7 @@ def _get_all_grid_variables(geometry, layers={}):
     """"Put all the relevant grid metadata into one big dictionary."""
     possible_hcoords = {'cartesian': horizontal_coordinates_cartesian,
                         'llc': horizontal_coordinates_llc,
+                        'cs': horizontal_coordinates_cs,
                         'curvilinear': horizontal_coordinates_curvcart,
                         'sphericalpolar': horizontal_coordinates_spherical}
     hcoords = possible_hcoords[geometry]

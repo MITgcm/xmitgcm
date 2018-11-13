@@ -145,6 +145,9 @@ def test_open_dataset_no_meta(all_mds_datadirs):
     if expected['geometry']=='llc':
         dims_2d = ('face',) + dims_2d
         ny = nx*shape[-3]
+    elif expected['geometry']=='cs':
+        dims_2d = ('j', 'face', 'i')
+
     dims_3d = dims_2d if nz==1 else ('k',) + dims_2d
     dims_2d = ('time',) + dims_2d
     dims_3d = ('time',) + dims_3d
@@ -206,7 +209,7 @@ def test_swap_dims(all_mds_datadirs):
     # make sure we never swap if not reading grid
     assert 'i' in xmitgcm.open_mdsdataset(dirname,
         iters=None, read_grid=False, geometry=expected['geometry'])
-    if expected['geometry'] in ('llc', 'curvilinear'):
+    if expected['geometry'] in ('llc', 'cs', 'curvilinear'):
         # make sure swapping is not the default
         ds = xmitgcm.open_mdsdataset(dirname, **kwargs)
         assert 'i' in ds
