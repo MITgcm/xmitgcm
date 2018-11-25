@@ -733,7 +733,7 @@ def _get_all_grid_variables(geometry, grid_dir, layers={}):
                         'sphericalpolar': horizontal_coordinates_spherical}
     hcoords = possible_hcoords[geometry]
 
-    # look for extra variables, if they exist in grid_dir 
+    # look for extra variables, if they exist in grid_dir
     extravars = _get_extra_grid_variables(grid_dir)
 
     allvars = [hcoords, vertical_coordinates, horizontal_grid_variables,
