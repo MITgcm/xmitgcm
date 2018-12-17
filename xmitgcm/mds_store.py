@@ -20,7 +20,8 @@ from .variables import dimensions, \
     horizontal_coordinates_spherical, horizontal_coordinates_cartesian, \
     horizontal_coordinates_curvcart, horizontal_coordinates_llc, \
     vertical_coordinates, horizontal_grid_variables, vertical_grid_variables, \
-    volume_grid_variables, state_variables, aliases, package_state_variables
+    volume_grid_variables, state_variables, aliases, package_state_variables, \
+    extra_grid_variables
 # would it be better to import mitgcm_variables and then automate the search
 # for variable dictionaries
 
@@ -493,6 +494,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
 
         # build lookup tables for variable metadata
         self._all_grid_variables = _get_all_grid_variables(self.geometry,
+                                                           self.grid_dir,
                                                            self.layers)
         self._all_data_variables = _get_all_data_variables(self.data_dir,
                                                            self.layers)
@@ -608,6 +610,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 metadata = (self._all_grid_variables[vname]
                             if vname in self._all_grid_variables
                             else self._all_data_variables[vname])
+
             except KeyError:
                 if self._ignore_unknown_vars:
                     # we didn't find any metadata, so we just skip this var
@@ -722,15 +725,19 @@ def _guess_layers(data_dir):
     return all_layers
 
 
-def _get_all_grid_variables(geometry, layers={}):
+def _get_all_grid_variables(geometry, grid_dir, layers={}):
     """"Put all the relevant grid metadata into one big dictionary."""
     possible_hcoords = {'cartesian': horizontal_coordinates_cartesian,
                         'llc': horizontal_coordinates_llc,
                         'curvilinear': horizontal_coordinates_curvcart,
                         'sphericalpolar': horizontal_coordinates_spherical}
     hcoords = possible_hcoords[geometry]
+
+    # look for extra variables, if they exist in grid_dir
+    extravars = _get_extra_grid_variables(grid_dir)
+
     allvars = [hcoords, vertical_coordinates, horizontal_grid_variables,
-               vertical_grid_variables, volume_grid_variables]
+               vertical_grid_variables, volume_grid_variables, extravars]
 
     # tortured logic to add layers grid variables
     layersvars = [_make_layers_variables(layer_name)
@@ -739,6 +746,21 @@ def _get_all_grid_variables(geometry, layers={}):
 
     metadata = _concat_dicts(allvars)
     return metadata
+
+
+def _get_extra_grid_variables(grid_dir):
+    """Scan a directory and return all file prefixes for extra grid files.
+       Then return the variable information for each of these"""
+    extra_grid = {}
+
+    all_datafiles = glob(os.path.join(grid_dir, '*.data'))
+    for f in all_datafiles:
+        prefix = os.path.split(f[:-5])[-1]
+        # Only consider what we find that matches extra_grid_vars
+        if prefix in extra_grid_variables:
+            extra_grid[prefix] = extra_grid_variables[prefix]
+
+    return extra_grid
 
 
 def _make_layers_variables(layer_name):
@@ -833,10 +855,11 @@ def _get_all_iternums(data_dir, file_prefixes=None,
 
 
 def _is_pickup_prefix(prefix):
-    if len(prefix)>=6:
+    if len(prefix) >= 6:
         if prefix[:6] == 'pickup':
             return True
     return False
+
 
 def _get_all_matching_prefixes(data_dir, iternum, file_prefixes=None,
                                ignore_pickup=True):
