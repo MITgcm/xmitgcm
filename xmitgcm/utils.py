@@ -426,11 +426,12 @@ def parse_available_diagnostics(fname, layers={}):
                             suffix = 'interface'
                         else:
                             suffix = None
-                            warnings.warn("Could not match rlev = %g to a layers"
-                                          "coordiante" % rlev)
-                        # dimname = ('layer_' + layer_name + '_' + suffix if suffix
-                        dimname = (('l' + layer_name[0] + '_' + suffix[0]) if suffix
-                                   else '_UNKNOWN_')
+                            warnings.warn("Could not match rlev = %g to a "
+                                          "layers coordiante" % rlev)
+                        # dimname = ('layer_' + layer_name + '_' +
+                        #            suffix if suffix
+                        dimname = (('l' + layer_name[0] + '_' +
+                                   suffix[0]) if suffix else '_UNKNOWN_')
                         zcoord = [dimname]
                     else:
                         zcoord = ['_UNKNOWN_']
