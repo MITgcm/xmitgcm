@@ -265,7 +265,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
 def _set_coords(ds):
     """Turn all variables without `time` dimensions into coordinates."""
     coords = set()
-    for vname in ds:
+    for vname in ds.variables:
         if ('time' not in ds[vname].dims) or (ds[vname].dims == ('time',)):
             coords.add(vname)
     return ds.set_coords(list(coords))
