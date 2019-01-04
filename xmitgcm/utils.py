@@ -1125,3 +1125,62 @@ def get_extra_metadata(domain='llc', nx=90):
         extra_metadata = cs
 
     return extra_metadata
+
+def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc', 
+                        precision='double', endian='>', 
+                        extra_metadata=None):
+    """ Read grid variables from input files """
+
+    file_metadata = {}
+    # grid variables are stored in this order
+    file_metadata['fldList'] = ['XC','YC','DXF','DYF','RAC',\
+                                'XG','YG','DXV','DYU','RAZ',\
+                                'DXC','DYC','RAW','RAS','DXG','DYG']
+
+    file_metadata['vars'] = file_metadata['fldList'] 
+    dims_vars_list = []
+    for var in file_metadata['fldList']:
+        dims_vars_list.append(('ny','nx'))
+    file_metadata['dims_vars'] = dims_vars_list
+
+
+    # no vertical levels or time records
+    file_metadata['nz'] = 1
+    file_metadata['nt'] = 1
+
+    if nx is not None:
+        file_metadata['nx'] = nx
+    if ny is not None:
+        file_metadata['ny'] = ny
+    if extra_metadata is not None:
+        file_metadata.update(extra_metadata)
+
+    # numeric representation
+    file_metadata['endian'] = endian
+    if precision == 'double':
+        file_metadata['dtype'] = np.dtype('d')
+    elif precision == 'single':
+        file_metadata['dtype'] = np.dtype('f')
+
+    if geometry == 'llc':
+        nfacets=5
+        for kfacet in np.arange(nfacets):
+            # we need to adapt the metadata to the grid file
+            grid_metadata = file_metadata.copy()
+
+            grid_metadata['filename'] = gridfile.replace('<NFACET>', 
+                                                         str(kfacet+1).zfill(3))
+            if file_metadata['facet_orders'][kfacet] == 'F':
+                nxgrid = file_metadata['nx'] + 1
+                nygrid = file_metadata['ny_facets'][kfacet] + 1
+            elif file_metadata['facet_orders'][kfacet] == 'C':
+                nxgrid = file_metadata['ny_facets'][kfacet] + 1
+                nygrid = file_metadata['nx'] + 1
+
+            print(kfacet, nxgrid, nygrid)
+            grid_metadata.update({'nx': nxgrid, 'ny': nygrid,
+                                  'has_faces': False})
+
+            varsgrid = read_all_variables(grid_metadata['vars'], grid_metadata)
+
+    return None
