@@ -12,6 +12,7 @@ from functools import reduce
 from dask import delayed
 import dask.array as dsa
 from dask.base import tokenize
+import xarray as xr
 
 def parse_meta_file(fname):
     """Get the metadata as a dict out of the MITgcm mds .meta file.
@@ -1143,7 +1144,6 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
         dims_vars_list.append(('ny','nx'))
     file_metadata['dims_vars'] = dims_vars_list
 
-
     # no vertical levels or time records
     file_metadata['nz'] = 1
     file_metadata['nt'] = 1
@@ -1164,23 +1164,79 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
 
     if geometry == 'llc':
         nfacets=5
+        try:
+            nfaces=len(file_metadata['face_facets'])
+        except:
+            raise ValueError('metadata must contain face_facets')
+        shape = (1, 1, nfaces, file_metadata['nx'], file_metadata['nx'])
+    if geometry == 'cs':
+        # TO DO
+        pass
+
+    # create placeholders for data
+    gridfields= {}
+    for field in file_metadata['fldList']:
+        gridfields.update({field: np.zeros(shape)})
+
+    if geometry == 'llc':
         for kfacet in np.arange(nfacets):
             # we need to adapt the metadata to the grid file
             grid_metadata = file_metadata.copy()
 
             grid_metadata['filename'] = gridfile.replace('<NFACET>', 
                                                          str(kfacet+1).zfill(3))
-            if file_metadata['facet_orders'][kfacet] == 'F':
+            if file_metadata['facet_orders'][kfacet] == 'C':
                 nxgrid = file_metadata['nx'] + 1
                 nygrid = file_metadata['ny_facets'][kfacet] + 1
-            elif file_metadata['facet_orders'][kfacet] == 'C':
+            elif file_metadata['facet_orders'][kfacet] == 'F':
                 nxgrid = file_metadata['ny_facets'][kfacet] + 1
                 nygrid = file_metadata['nx'] + 1
 
-            print(kfacet, nxgrid, nygrid)
             grid_metadata.update({'nx': nxgrid, 'ny': nygrid,
                                   'has_faces': False})
 
-            varsgrid = read_all_variables(grid_metadata['vars'], grid_metadata)
+            raw = read_all_variables(grid_metadata['vars'], grid_metadata)
+            
+            rawfields = {}
+            for kfield in np.arange(len(file_metadata['fldList'])):
 
-    return None
+                rawfields.update({file_metadata['fldList'][kfield]: raw[kfield]})
+
+            for field in file_metadata['fldList']:
+                # symetrize
+                tmp = rawfields[field][:,:,:-1,:-1].squeeze()
+                # transpose
+                if grid_metadata['facet_orders'][kfacet] == 'F':
+                    tmp = tmp.transpose()
+
+                # identify faces that need to be filled
+                for face in np.arange(nfaces):
+                    if grid_metadata['face_facets'][face] == kfacet:
+                        offset = file_metadata['face_offsets'][face]
+                        nx = file_metadata['nx']
+                        gridfields[field][0,0,face,:,:] = tmp[offset*nx:(offset+1)*nx,:]
+
+    elif geometry == 'cs':
+        # TO DO
+        pass
+
+    # create the dataset
+    grid = xr.Dataset({'XC':  (['time','z','face','j','i'],     gridfields['XC']),
+                       'YC':  (['time','z','face','j','i'],     gridfields['YC']),
+                       'DXF': (['time','z','face','j','i'],     gridfields['DXF']),   
+                       'DYF': (['time','z','face','j','i'],     gridfields['DYF']), 
+                       'RAC': (['time','z','face','j','i'],     gridfields['RAC']),
+                       'XG':  (['time','z','face','j_g','i_g'], gridfields['XG']),
+                       'YG':  (['time','z','face','j_g','i_g'], gridfields['YG']),
+                       'DXV': (['time','z','face','j','i'],     gridfields['DXV']), 
+                       'DYU': (['time','z','face','j','i'],     gridfields['DYU']),
+                       'RAZ': (['time','z','face','j_g','i_g'], gridfields['RAZ']),
+                       'DXC': (['time','z','face','j','i_g'],   gridfields['DXC']),
+                       'DYC': (['time','z','face','j_g','i'],   gridfields['DYC']),
+                       'RAW': (['time','z','face','j','i_g'],   gridfields['RAW']),
+                       'RAS': (['time','z','face','j_g','i'],   gridfields['RAS']),
+                       'DXG': (['time','z','face','j_g','i'],   gridfields['DXG']),
+                       'DYG': (['time','z','face','j','i_g'],   gridfields['DYG'])
+                      })
+
+    return grid
