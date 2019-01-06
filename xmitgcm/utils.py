@@ -1130,10 +1130,10 @@ def get_extra_metadata(domain='llc', nx=90):
 
 def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                         precision='double', endian='>', extra_metadata=None):
-    """ Read grid variables from grid input files, this is especially useful for
-        llc and cube sphere configurations used with land tiles elimination.
-        Reading the input grid files (e.g. tile00[1-5].mitgrid) allows to fill 
-        in the blanks of eliminated land tiles.
+    """ Read grid variables from grid input files, this is especially useful
+        for llc and cube sphere configurations used with land tiles
+        elimination. Reading the input grid files (e.g. tile00[1-5].mitgrid)
+        allows to fill in the blanks of eliminated land tiles.
 
     PARAMETERS:
     -----------
@@ -1208,8 +1208,9 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
             # we need to adapt the metadata to the grid file
             grid_metadata = file_metadata.copy()
 
-            grid_metadata['filename'] = gridfile.replace('<NFACET>',
-                                                         str(kfacet+1).zfill(3))
+            fname = gridfile.replace('<NFACET>', str(kfacet+1).zfill(3))
+            grid_metadata['filename'] = fname
+
             if file_metadata['facet_orders'][kfacet] == 'C':
                 nxgrid = file_metadata['nx'] + 1
                 nygrid = file_metadata['ny_facets'][kfacet] + 1
