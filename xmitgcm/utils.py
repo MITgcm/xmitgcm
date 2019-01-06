@@ -1127,7 +1127,8 @@ def get_extra_metadata(domain='llc', nx=90):
 
     return extra_metadata
 
-def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc', 
+
+def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                         precision='double', endian='>', extra_metadata=None):
     """ Read grid variables from grid input files, this is especially useful for
         llc and cube sphere configurations used with land tiles elimination.
@@ -1158,14 +1159,14 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
 
     file_metadata = {}
     # grid variables are stored in this order
-    file_metadata['fldList'] = ['XC','YC','DXF','DYF','RAC',\
-                                'XG','YG','DXV','DYU','RAZ',\
-                                'DXC','DYC','RAW','RAS','DXG','DYG']
+    file_metadata['fldList'] = ['XC', 'YC', 'DXF', 'DYF', 'RAC',
+                                'XG', 'YG', 'DXV', 'DYU', 'RAZ',
+                                'DXC', 'DYC', 'RAW', 'RAS', 'DXG', 'DYG']
 
-    file_metadata['vars'] = file_metadata['fldList'] 
+    file_metadata['vars'] = file_metadata['fldList']
     dims_vars_list = []
     for var in file_metadata['fldList']:
-        dims_vars_list.append(('ny','nx'))
+        dims_vars_list.append(('ny', 'nx'))
     file_metadata['dims_vars'] = dims_vars_list
 
     # no vertical levels or time records
@@ -1187,9 +1188,9 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
         file_metadata['dtype'] = np.dtype('f')
 
     if geometry == 'llc':
-        nfacets=5
+        nfacets = 5
         try:
-            nfaces=len(file_metadata['face_facets'])
+            nfaces = len(file_metadata['face_facets'])
         except:
             raise ValueError('metadata must contain face_facets')
         shape = (1, 1, nfaces, file_metadata['nx'], file_metadata['nx'])
@@ -1199,7 +1200,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
         pass
 
     # create placeholders for data
-    gridfields= {}
+    gridfields = {}
     for field in file_metadata['fldList']:
         gridfields.update({field: np.zeros(shape_out)})
 
@@ -1208,7 +1209,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
             # we need to adapt the metadata to the grid file
             grid_metadata = file_metadata.copy()
 
-            grid_metadata['filename'] = gridfile.replace('<NFACET>', 
+            grid_metadata['filename'] = gridfile.replace('<NFACET>',
                                                          str(kfacet+1).zfill(3))
             if file_metadata['facet_orders'][kfacet] == 'C':
                 nxgrid = file_metadata['nx'] + 1
@@ -1221,15 +1222,16 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                                   'has_faces': False})
 
             raw = read_all_variables(grid_metadata['vars'], grid_metadata)
-            
+
             rawfields = {}
             for kfield in np.arange(len(file_metadata['fldList'])):
 
-                rawfields.update({file_metadata['fldList'][kfield]: raw[kfield]})
+                rawfields.update(
+                    {file_metadata['fldList'][kfield]: raw[kfield]})
 
             for field in file_metadata['fldList']:
                 # symetrize
-                tmp = rawfields[field][:,:,:-1,:-1].squeeze()
+                tmp = rawfields[field][:, :, :-1, :-1].squeeze()
                 # transpose
                 if grid_metadata['facet_orders'][kfacet] == 'F':
                     tmp = tmp.transpose()
@@ -1243,34 +1245,34 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                         # pad data, if needed
                         tmp = _pad_array(tmp, file_metadata, face=face)
                         # extract the data
-                        dataface = tmp[offset*nx:(offset+1)*nx,:]
+                        dataface = tmp[offset*nx:(offset+1)*nx, :]
                         # transpose, if needed
                         if file_metadata['transpose_face'][face]:
                             dataface = dataface.transpose()
                         # assign values
-                        gridfields[field][face,:,:] = dataface
+                        gridfields[field][face, :, :] = dataface
 
     elif geometry == 'cs':
         # TO DO
         pass
 
     # create the dataset
-    grid = xr.Dataset({'XC':  (['face','j','i'],     gridfields['XC']),
-                       'YC':  (['face','j','i'],     gridfields['YC']),
-                       'DXF': (['face','j','i'],     gridfields['DXF']),   
-                       'DYF': (['face','j','i'],     gridfields['DYF']), 
-                       'RAC': (['face','j','i'],     gridfields['RAC']),
-                       'XG':  (['face','j_g','i_g'], gridfields['XG']),
-                       'YG':  (['face','j_g','i_g'], gridfields['YG']),
-                       'DXV': (['face','j','i'],     gridfields['DXV']), 
-                       'DYU': (['face','j','i'],     gridfields['DYU']),
-                       'RAZ': (['face','j_g','i_g'], gridfields['RAZ']),
-                       'DXC': (['face','j','i_g'],   gridfields['DXC']),
-                       'DYC': (['face','j_g','i'],   gridfields['DYC']),
-                       'RAW': (['face','j','i_g'],   gridfields['RAW']),
-                       'RAS': (['face','j_g','i'],   gridfields['RAS']),
-                       'DXG': (['face','j_g','i'],   gridfields['DXG']),
-                       'DYG': (['face','j','i_g'],   gridfields['DYG'])
-                      })
+    grid = xr.Dataset({'XC':  (['face', 'j', 'i'],     gridfields['XC']),
+                       'YC':  (['face', 'j', 'i'],     gridfields['YC']),
+                       'DXF': (['face', 'j', 'i'],     gridfields['DXF']),
+                       'DYF': (['face', 'j', 'i'],     gridfields['DYF']),
+                       'RAC': (['face', 'j', 'i'],     gridfields['RAC']),
+                       'XG':  (['face', 'j_g', 'i_g'], gridfields['XG']),
+                       'YG':  (['face', 'j_g', 'i_g'], gridfields['YG']),
+                       'DXV': (['face', 'j', 'i'],     gridfields['DXV']),
+                       'DYU': (['face', 'j', 'i'],     gridfields['DYU']),
+                       'RAZ': (['face', 'j_g', 'i_g'], gridfields['RAZ']),
+                       'DXC': (['face', 'j', 'i_g'],   gridfields['DXC']),
+                       'DYC': (['face', 'j_g', 'i'],   gridfields['DYC']),
+                       'RAW': (['face', 'j', 'i_g'],   gridfields['RAW']),
+                       'RAS': (['face', 'j_g', 'i'],   gridfields['RAS']),
+                       'DXG': (['face', 'j_g', 'i'],   gridfields['DXG']),
+                       'DYG': (['face', 'j', 'i_g'],   gridfields['DYG'])
+                       })
 
     return grid
