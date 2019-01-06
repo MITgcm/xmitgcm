@@ -1169,6 +1169,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
         except:
             raise ValueError('metadata must contain face_facets')
         shape = (1, 1, nfaces, file_metadata['nx'], file_metadata['nx'])
+        shape_out = (nfaces, file_metadata['nx'], file_metadata['nx'])
     if geometry == 'cs':
         # TO DO
         pass
@@ -1176,7 +1177,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
     # create placeholders for data
     gridfields= {}
     for field in file_metadata['fldList']:
-        gridfields.update({field: np.zeros(shape)})
+        gridfields.update({field: np.zeros(shape_out)})
 
     if geometry == 'llc':
         for kfacet in np.arange(nfacets):
@@ -1214,29 +1215,32 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                     if grid_metadata['face_facets'][face] == kfacet:
                         offset = file_metadata['face_offsets'][face]
                         nx = file_metadata['nx']
-                        gridfields[field][0,0,face,:,:] = tmp[offset*nx:(offset+1)*nx,:]
+                        dataface = tmp[offset*nx:(offset+1)*nx,:]
+                        if file_metadata['transpose_face'][face]:
+                            dataface = dataface.transpose()
+                        gridfields[field][face,:,:] = dataface
 
     elif geometry == 'cs':
         # TO DO
         pass
 
     # create the dataset
-    grid = xr.Dataset({'XC':  (['time','z','face','j','i'],     gridfields['XC']),
-                       'YC':  (['time','z','face','j','i'],     gridfields['YC']),
-                       'DXF': (['time','z','face','j','i'],     gridfields['DXF']),   
-                       'DYF': (['time','z','face','j','i'],     gridfields['DYF']), 
-                       'RAC': (['time','z','face','j','i'],     gridfields['RAC']),
-                       'XG':  (['time','z','face','j_g','i_g'], gridfields['XG']),
-                       'YG':  (['time','z','face','j_g','i_g'], gridfields['YG']),
-                       'DXV': (['time','z','face','j','i'],     gridfields['DXV']), 
-                       'DYU': (['time','z','face','j','i'],     gridfields['DYU']),
-                       'RAZ': (['time','z','face','j_g','i_g'], gridfields['RAZ']),
-                       'DXC': (['time','z','face','j','i_g'],   gridfields['DXC']),
-                       'DYC': (['time','z','face','j_g','i'],   gridfields['DYC']),
-                       'RAW': (['time','z','face','j','i_g'],   gridfields['RAW']),
-                       'RAS': (['time','z','face','j_g','i'],   gridfields['RAS']),
-                       'DXG': (['time','z','face','j_g','i'],   gridfields['DXG']),
-                       'DYG': (['time','z','face','j','i_g'],   gridfields['DYG'])
+    grid = xr.Dataset({'XC':  (['face','j','i'],     gridfields['XC']),
+                       'YC':  (['face','j','i'],     gridfields['YC']),
+                       'DXF': (['face','j','i'],     gridfields['DXF']),   
+                       'DYF': (['face','j','i'],     gridfields['DYF']), 
+                       'RAC': (['face','j','i'],     gridfields['RAC']),
+                       'XG':  (['face','j_g','i_g'], gridfields['XG']),
+                       'YG':  (['face','j_g','i_g'], gridfields['YG']),
+                       'DXV': (['face','j','i'],     gridfields['DXV']), 
+                       'DYU': (['face','j','i'],     gridfields['DYU']),
+                       'RAZ': (['face','j_g','i_g'], gridfields['RAZ']),
+                       'DXC': (['face','j','i_g'],   gridfields['DXC']),
+                       'DYC': (['face','j_g','i'],   gridfields['DYC']),
+                       'RAW': (['face','j','i_g'],   gridfields['RAW']),
+                       'RAS': (['face','j_g','i'],   gridfields['RAS']),
+                       'DXG': (['face','j_g','i'],   gridfields['DXG']),
+                       'DYG': (['face','j','i_g'],   gridfields['DYG'])
                       })
 
     return grid
