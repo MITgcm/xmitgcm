@@ -1132,8 +1132,8 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                         precision='double', endian='>', extra_metadata=None):
     """ Read grid variables from grid input files, this is especially useful for
         llc and cube sphere configurations used with land tiles elimination.
-        Reading the input grid files (e.g. tile00[1-5].mitgrid) allows to fill in
-        the blanks of eliminated land tiles.
+        Reading the input grid files (e.g. tile00[1-5].mitgrid) allows to fill 
+        in the blanks of eliminated land tiles.
 
     PARAMETERS:
     -----------
@@ -1193,8 +1193,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
             nfaces = len(file_metadata['face_facets'])
         except:
             raise ValueError('metadata must contain face_facets')
-        shape = (1, 1, nfaces, file_metadata['nx'], file_metadata['nx'])
-        shape_out = (nfaces, file_metadata['nx'], file_metadata['nx'])
+        shape = (nfaces, file_metadata['nx'], file_metadata['nx'])
     if geometry == 'cs':
         # TO DO
         pass
@@ -1202,7 +1201,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
     # create placeholders for data
     gridfields = {}
     for field in file_metadata['fldList']:
-        gridfields.update({field: np.zeros(shape_out)})
+        gridfields.update({field: np.zeros(shape)})
 
     if geometry == 'llc':
         for kfacet in np.arange(nfacets):
