@@ -1128,9 +1128,33 @@ def get_extra_metadata(domain='llc', nx=90):
     return extra_metadata
 
 def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc', 
-                        precision='double', endian='>', 
-                        extra_metadata=None):
-    """ Read grid variables from input files """
+                        precision='double', endian='>', extra_metadata=None):
+    """ Read grid variables from grid input files, this is especially useful for
+        llc and cube sphere configurations used with land tiles elimination.
+        Reading the input grid files (e.g. tile00[1-5].mitgrid) allows to fill in
+        the blanks of eliminated land tiles.
+
+    PARAMETERS:
+    -----------
+    gridfile: str
+        gridfile must contain <NFACET> as wildcard (e.g. tile<NFACET>.mitgrid)
+    nx:     int
+        size of the face in the x direction
+    ny:     int
+        size of the face in the y direction
+    geometry: str
+        domain geometry can be llc, cs or carthesian not supported yet
+    precision: string
+        numeric precision (single/double) of input data
+    endian: string
+        endianness of input data
+    extra_metadata: dict
+        dictionary of extra metadata, needed for llc configurations
+
+    RETURNS:
+    --------
+    xarray.Dataset of grid variables
+    """
 
     file_metadata = {}
     # grid variables are stored in this order
@@ -1210,14 +1234,20 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                 if grid_metadata['facet_orders'][kfacet] == 'F':
                     tmp = tmp.transpose()
 
-                # identify faces that need to be filled
                 for face in np.arange(nfaces):
+                    # identify faces that need to be filled
                     if grid_metadata['face_facets'][face] == kfacet:
+                        # get offset of face from facet
                         offset = file_metadata['face_offsets'][face]
                         nx = file_metadata['nx']
+                        # pad data, if needed
+                        tmp = _pad_array(tmp, file_metadata, face=face)
+                        # extract the data
                         dataface = tmp[offset*nx:(offset+1)*nx,:]
+                        # transpose, if needed
                         if file_metadata['transpose_face'][face]:
                             dataface = dataface.transpose()
+                        # assign values
                         gridfields[field][face,:,:] = dataface
 
     elif geometry == 'cs':
