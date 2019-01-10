@@ -33,6 +33,7 @@ def hide_file(origdir, *basenames):
         for oldpath, newpath in zip(oldpaths, newpaths):
             newpath.rename(oldpath)
 
+dlroot='https://ndownloader.figshare.com/files/'
 
 # parameterized fixture are complicated
 # http://docs.pytest.org/en/latest/fixture.html#fixture-parametrize
@@ -40,7 +41,7 @@ def hide_file(origdir, *basenames):
 # dictionary of archived experiments and some expected properties
 _experiments = {
     'global_oce_latlon': {'geometry': 'sphericalpolar',
-                          'dlink': 'https://ndownloader.figshare.com/files/14066630',
+                          'dlink': dlroot + '14066630',
                           'shape': (15, 40, 90), 'test_iternum': 39600,
                           'expected_values': {'XC': ((0, 0), 2)},
                           'dtype': np.dtype('f4'),
@@ -52,14 +53,14 @@ _experiments = {
                                            'DFyE_TH', 'DFrI_TH',
                                            'UTHMASS', 'VTHMASS', 'WTHMASS'])},
     'barotropic_gyre': {'geometry': 'cartesian',
-                        'dlink': 'https://ndownloader.figshare.com/files/14066618',
+                        'dlink': dlroot + '14066618',
                         'shape': (1, 60, 60), 'test_iternum': 10,
                         'dtype': np.dtype('f4'),
                         'expected_values': {'XC': ((0, 0), 10000.0)},
                         'all_iters': [0, 10],
                         'prefixes': ['T', 'S', 'Eta', 'U', 'V', 'W']},
     'internal_wave': {'geometry': 'sphericalpolar',
-                      'dlink': 'https://ndownloader.figshare.com/files/14066642',
+                      'dlink': dlroot + '14066642',
                       'shape': (20, 1, 30), 'test_iternum': 100,
                       'dtype': np.dtype('f8'),
                       'expected_values': {'XC': ((0, 0), 109.01639344262296)},
@@ -74,7 +75,7 @@ _experiments = {
                       # 'diagnostics': ('diagout1', ['UVEL', 'VVEL']),
                       'prefixes': ['T', 'S', 'Eta', 'U', 'V', 'W']},
     'global_oce_llc90': {'geometry': 'llc',
-                         'dlink': 'https://ndownloader.figshare.com/files/14066567',
+                         'dlink': dlroot + '14066567',
                          'ref_date': "1948-01-01 12:00:00",
                          'delta_t': 3600,
                          'expected_time': [
@@ -109,7 +110,7 @@ _experiments = {
                                                            'SIuice',
                                                            'SIvice'])},
     'curvilinear_leman': {'geometry': 'curvilinear',
-                          'dlink': 'https://ndownloader.figshare.com/files/14066621',
+                          'dlink': dlroot + '14066621',
                           'delta_t': 20,
                           'ref_date': "2013-11-12 12:00",
                           'shape': (35, 64, 340),
