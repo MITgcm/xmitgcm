@@ -33,7 +33,8 @@ def hide_file(origdir, *basenames):
         for oldpath, newpath in zip(oldpaths, newpaths):
             newpath.rename(oldpath)
 
-dlroot='https://ndownloader.figshare.com/files/'
+
+dlroot = 'https://ndownloader.figshare.com/files/'
 
 # parameterized fixture are complicated
 # http://docs.pytest.org/en/latest/fixture.html#fixture-parametrize
