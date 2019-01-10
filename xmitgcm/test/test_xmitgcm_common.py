@@ -138,6 +138,7 @@ def setup_mds_dir(tmpdir_factory, request):
 
     return untar(data_dir, expt_name, target_dir), expected_results
 
+
 def download_archive(url, filename):
     """ download file from url into datafile
 
