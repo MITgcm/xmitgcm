@@ -1280,13 +1280,13 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                            },
                           coords={'i': (['i'], np.arange(file_metadata['nx'])),
                                   'j': (['j'], np.arange(file_metadata['nx'])),
-                                  'i_g': (['i_g'], 
+                                  'i_g': (['i_g'],
                                           np.arange(file_metadata['nx'])),
-                                  'j_g': (['j_g'], 
+                                  'j_g': (['j_g'],
                                           np.arange(file_metadata['nx'])),
                                   'face': (['face'], np.arange(nfaces))
-                                 }
-                        )
+                                  }
+                          )
     else:
         grid = xr.Dataset({'XC':  (['j', 'i'],     gridfields['XC']),
                            'YC':  (['j', 'i'],     gridfields['YC']),
@@ -1307,11 +1307,11 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                            },
                           coords={'i': (['i'], np.arange(file_metadata['nx'])),
                                   'j': (['j'], np.arange(file_metadata['ny'])),
-                                  'i_g': (['i_g'], 
+                                  'i_g': (['i_g'],
                                           np.arange(file_metadata['nx'])),
-                                  'j_g': (['j_g'], 
+                                  'j_g': (['j_g'],
                                           np.arange(file_metadata['ny']))
-                                 }
-                        )
-    
+                                  }
+                          )
+
     return grid
