@@ -6,7 +6,11 @@ import dask
 from contextlib import contextmanager
 import py
 import tempfile
-import urllib.request as req
+try:
+    import urllib.request as req
+except ImportError:
+    # urllib in python2 has different structure
+    import urllib as req
 
 
 @contextmanager
