@@ -144,7 +144,8 @@ def setup_mds_dir(tmpdir_factory, request):
         # default to HOME/.xmitgcm-test-data/
         data_dir = os.environ["HOME"] + '/.xmitgcm-test-data'
     # create the directory if it doesn't exixt
-    os.makedirs(data_dir, exist_ok=True)
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
 
     datafile = os.path.join(data_dir, expt_name + '.tar.gz')
     # download if does not exist locally
