@@ -51,6 +51,17 @@ and install it::
 Users are encouraged to `fork <https://help.github.com/articles/fork-a-repo/>`_
 xmitgcm and submit issues_ _ and `pull requests`_.
 
+Running the test suite
+^^^^^^^^^^^^^^^^^^^^^^
+
+To run the unit tests in installation from github, run inside xmitgcm directory::
+
+    py.test -v xmitgcm
+
+The test data is stored on figshare_ and will be downloaded locally. You can choose
+the target directory by setting up the XMITGCM_TESTDATA environment variable in the
+shell, otherwise it will install in $HOME/.xmitgcm-test-data
+
 .. _dask: http://dask.pydata.org
 .. _xarray: http://xarray.pydata.org
 .. _Comodo: http://pycomodo.forge.imag.fr/norm.html
@@ -61,3 +72,4 @@ xmitgcm and submit issues_ _ and `pull requests`_.
 .. _Anaconda: https://www.continuum.io/downloads
 .. _`CF conventions`: http://cfconventions.org/Data/cf-conventions/cf-conventions-1.7/build/ch04s04.html
 .. _gcmfaces: http://mitgcm.org/viewvc/*checkout*/MITgcm/MITgcm_contrib/gael/matlab_class/gcmfaces.pdf
+.. _figshare: https://figshare.com/account/home#/collections/4362224
