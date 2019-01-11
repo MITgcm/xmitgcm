@@ -844,13 +844,14 @@ def test_get_extra_metadata(domain, nx):
     with pytest.raises(ValueError):
         em = get_extra_metadata(domain='notinlist', nx=nx)
 
+
 def test_get_grid_from_input(all_grid_datadirs):
     from xmitgcm.utils import get_grid_from_input, get_extra_metadata
     dirname, expected = all_grid_datadirs
     md = get_extra_metadata(domain=expected['domain'], nx=expected['nx'])
-    ds = get_grid_from_input(dirname + '/' + expected['gridfile'], 
+    ds = get_grid_from_input(dirname + '/' + expected['gridfile'],
                              geometry=expected['geometry'],
-                             precision='double', endian='>', 
+                             precision='double', endian='>',
                              use_dask=False,
                              extra_metadata=md)
     assert type(ds) == xarray.Dataset

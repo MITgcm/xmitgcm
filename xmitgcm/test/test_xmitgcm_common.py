@@ -135,17 +135,17 @@ _experiments = {
 
 
 _grids = {
-    'grid_llc90': {'geometry': 'llc', 'domain': 'llc', 
-                   'gridfile': 'tile<NFACET>.mitgrid', 
+    'grid_llc90': {'geometry': 'llc', 'domain': 'llc',
+                   'gridfile': 'tile<NFACET>.mitgrid',
                    'nx': 90, 'shape': (13, 90, 90)},
 
-    'grid_aste270': {'geometry': 'llc', 'domain': 'aste', 
-                     'gridfile': 'tile<NFACET>.mitgrid', 
-                     'nx': 270, 'shape': (6, 270, 270)}#,
+    'grid_aste270': {'geometry': 'llc', 'domain': 'aste',
+                     'gridfile': 'tile<NFACET>.mitgrid',
+                     'nx': 270, 'shape': (6, 270, 270)}  # ,
 
-#    'grid_cs32': {'geometry': 'cs', 'domain': 'cs', 
-#                  'gridfile': 'grid_cs32.face<NFACET>.bin', 
-#                  'nx': 32, 'shape': (6, 32, 32)}
+    #    'grid_cs32': {'geometry': 'cs', 'domain': 'cs',
+    #                  'gridfile': 'grid_cs32.face<NFACET>.bin',
+    #                  'nx': 32, 'shape': (6, 32, 32)}
 }
 
 
