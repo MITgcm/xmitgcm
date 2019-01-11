@@ -1,4 +1,5 @@
 from xmitgcm.test.test_xmitgcm_common import *
+import xarray
 
 _xc_meta_content = """ simulation = { 'global_oce_latlon' };
  nDims = [   2 ];
