@@ -137,7 +137,6 @@ def setup_mds_dir(tmpdir_factory, request):
     expt_name = request.param
     expected_results = _experiments[expt_name]
     target_dir = str(tmpdir_factory.mktemp('mdsdata'))
-    #data_dir = os.path.dirname(request.module.__file__)
     try:
         # user-defined directory for test datasets
         data_dir = os.environ["XMITGCM_TESTDATA"]
