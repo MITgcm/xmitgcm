@@ -409,7 +409,7 @@ def parse_available_diagnostics(fname, layers={}):
                     zcoord = []
                 elif rlev == 'R':
                     zcoord = [rcoords[rpoint]]
-                elif rlev == 'L': # pragma : no cover
+                elif rlev == 'L':  # pragma : no cover
                     # max(Nr, Nrphys) according to doc...
                     # this seems to be only used in atmos
                     # with different levels for dynamics and physics
