@@ -1,12 +1,4 @@
 from xmitgcm.test.test_xmitgcm_common import *
-del pytest
-del os
-del np
-del dask
-import pytest
-import os
-import numpy as np
-import dask
 import xarray
 
 _xc_meta_content = """ simulation = { 'global_oce_latlon' };
