@@ -846,17 +846,31 @@ def test_get_extra_metadata(domain, nx):
         em = get_extra_metadata(domain='notinlist', nx=nx)
 
 
-def test_get_grid_from_input(all_grid_datadirs):
+@pytest.mark.parametrize("usedask", [True, False])
+def test_get_grid_from_input(all_grid_datadirs, usedask):
     from xmitgcm.utils import get_grid_from_input, get_extra_metadata
     dirname, expected = all_grid_datadirs
     md = get_extra_metadata(domain=expected['domain'], nx=expected['nx'])
     ds = get_grid_from_input(dirname + '/' + expected['gridfile'],
                              geometry=expected['geometry'],
                              precision='double', endian='>',
-                             use_dask=False,
+                             use_dask=usedask,
                              extra_metadata=md)
+    # test types
     assert type(ds) == xarray.Dataset
-    assert ds['XC'].values.shape == expected['shape']
+    assert type(ds['XC']) == xarray.core.dataarray.DataArray
+
+    if usedask:
+        ds.load()
+
+    # check all variables are in
+    expected_variables = ['XC', 'YC', 'DXF', 'DYF', 'RAC',
+                          'XG', 'YG', 'DXV', 'DYU', 'RAZ',
+                          'DXC', 'DYC', 'RAW', 'RAS', 'DXG', 'DYG']
+
+    for var in expected_variables:
+        assert type(ds[var]) == xarray.core.dataarray.DataArray
+        assert ds[var].values.shape == expected['shape']
 
     # passing llc without metadata should fail
     if expected['geometry'] == 'llc':

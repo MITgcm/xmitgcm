@@ -1197,17 +1197,18 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
             nfaces = len(file_metadata['face_facets'])
         except:
             raise ValueError('metadata must contain face_facets')
-        shape = (nfaces, file_metadata['nx'], file_metadata['nx'])
+        shape = (1, file_metadata['nx'], file_metadata['nx'])
+        chunks = (1, file_metadata['nx'], file_metadata['nx'])
     if geometry == 'cs':  # pragma: no cover
         raise NotImplementedError("'cs' geometry is not supported yet")
 
     # create placeholders for data
     gridfields = {}
     for field in file_metadata['fldList']:
-        gridfields.update({field: np.zeros(shape)})
+        gridfields.update({field: None})
 
     if geometry == 'llc':
-        for kfacet in np.arange(nfacets):
+        for kfacet in range(nfacets):
             # we need to adapt the metadata to the grid file
             grid_metadata = file_metadata.copy()
 
@@ -1246,7 +1247,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                         # get offset of face from facet
                         offset = file_metadata['face_offsets'][face]
                         nx = file_metadata['nx']
-                        # pad data, if needed
+                        # pad data, if needed (would trigger eager data eval)
                         tmp = _pad_array(tmp, file_metadata, face=face)
                         # extract the data
                         dataface = tmp[offset*nx:(offset+1)*nx, :]
@@ -1254,7 +1255,11 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                         if file_metadata['transpose_face'][face]:
                             dataface = dataface.transpose()
                         # assign values
-                        gridfields[field][face, :, :] = dataface
+                        dataface = dsa.stack([dataface],axis=0)
+                        if face == 0:
+                            gridfields[field] = dataface
+                        else:
+                            gridfields[field] = dsa.concatenate([gridfields[field], dataface], axis=0)
 
     elif geometry == 'cs':  # pragma: no cover
         raise NotImplementedError("'cs' geometry is not supported yet")
