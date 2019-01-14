@@ -12,7 +12,6 @@ try:
 except ImportError:
     # urllib in python2 has different structure
     import urllib as req
-import xarray
 
 
 @contextmanager
