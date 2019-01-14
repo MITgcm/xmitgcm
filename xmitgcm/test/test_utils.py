@@ -850,10 +850,10 @@ def test_parse_diagnostics(all_mds_datadirs, layers_mds_datadirs):
 
     expected_diags = {
         'LaUH1RHO': {'dims': ['_UNKNOWN_', 'j', 'i_g'],
-                 'attrs': {'units': 'm.m/s',
-                           'long_name': 'Layer Integrated  zonal Transport (UH, m^2/s)',
-                           'standard_name': 'LaUH1RHO',
-                           'mate': 'LaVH1RHO'}},
+                     'attrs': {'units': 'm.m/s',
+                               'long_name': 'Layer Integrated  zonal Transport (UH, m^2/s)',
+                               'standard_name': 'LaUH1RHO',
+                               'mate': 'LaVH1RHO'}},
     }
 
     for key, val in expected_diags.items():
