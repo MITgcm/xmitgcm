@@ -1176,10 +1176,11 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
     file_metadata['nz'] = 1
     file_metadata['nt'] = 1
 
-    if nx is not None:
-        file_metadata['nx'] = nx
-    if ny is not None:
-        file_metadata['ny'] = ny
+# for curvilinear non-facet grids (TO DO)
+#    if nx is not None:
+#        file_metadata['nx'] = nx
+#    if ny is not None:
+#        file_metadata['ny'] = ny
     if extra_metadata is not None:
         file_metadata.update(extra_metadata)
 
@@ -1187,7 +1188,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
     file_metadata['endian'] = endian
     if precision == 'double':
         file_metadata['dtype'] = np.dtype('d')
-    elif precision == 'single':
+    elif precision == 'single':  # pragma: no cover
         file_metadata['dtype'] = np.dtype('f')
 
     if geometry == 'llc':
@@ -1197,7 +1198,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
         except:
             raise ValueError('metadata must contain face_facets')
         shape = (nfaces, file_metadata['nx'], file_metadata['nx'])
-    if geometry == 'cs':
+    if geometry == 'cs':  # pragma: no cover
         raise NotImplementedError("'cs' geometry is not supported yet")
 
     # create placeholders for data
@@ -1255,7 +1256,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                         # assign values
                         gridfields[field][face, :, :] = dataface
 
-    elif geometry == 'cs':
+    elif geometry == 'cs': # pragma: no cover
         raise NotImplementedError("'cs' geometry is not supported yet")
         pass
 
@@ -1287,7 +1288,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                                   'face': (['face'], np.arange(nfaces))
                                   }
                           )
-    else:
+    else:  # pragma: no cover
         grid = xr.Dataset({'XC':  (['j', 'i'],     gridfields['XC']),
                            'YC':  (['j', 'i'],     gridfields['YC']),
                            'DXF': (['j', 'i'],     gridfields['DXF']),

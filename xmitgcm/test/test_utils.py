@@ -857,3 +857,14 @@ def test_get_grid_from_input(all_grid_datadirs):
                              extra_metadata=md)
     assert type(ds) == xarray.Dataset
     assert ds['XC'].values.shape == expected['shape']
+
+    # passing llc without metadata should fail
+    if expected['geometry'] == 'llc':
+        with pytest.raises(ValueError):
+            ds = get_grid_from_input(dirname + '/' + expected['gridfile'],
+                                     geometry=expected['geometry'],
+                                     precision='double', endian='>',
+                                     use_dask=False,
+                                     extra_metadata=None)
+    
+    
