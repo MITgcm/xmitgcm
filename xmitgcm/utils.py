@@ -1255,11 +1255,12 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                         if file_metadata['transpose_face'][face]:
                             dataface = dataface.transpose()
                         # assign values
-                        dataface = dsa.stack([dataface],axis=0)
+                        dataface = dsa.stack([dataface], axis=0)
                         if face == 0:
                             gridfields[field] = dataface
                         else:
-                            gridfields[field] = dsa.concatenate([gridfields[field], dataface], axis=0)
+                            gridfields[field] = dsa.concatenate(
+                                [gridfields[field], dataface], axis=0)
 
     elif geometry == 'cs':  # pragma: no cover
         raise NotImplementedError("'cs' geometry is not supported yet")
