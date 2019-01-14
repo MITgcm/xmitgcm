@@ -136,14 +136,20 @@ _experiments = {
 
 _grids = {
     'grid_llc90': {'geometry': 'llc', 'domain': 'llc',
+                   'dlink': dlroot + '14072594',
+                   'md5': 'f66c3195a62790d539debe6ca8f3a851',
                    'gridfile': 'tile<NFACET>.mitgrid',
                    'nx': 90, 'shape': (13, 90, 90)},
 
     'grid_aste270': {'geometry': 'llc', 'domain': 'aste',
+                     'dlink': dlroot + '14072591',
+                     'md5': '92b28c65e0dfb54b253bfcd0a249359b',
                      'gridfile': 'tile<NFACET>.mitgrid',
                      'nx': 270, 'shape': (6, 270, 270)}  # ,
 
     #    'grid_cs32': {'geometry': 'cs', 'domain': 'cs',
+    #                  'dlink': dlroot + '14072597',
+    #                  'md5': '848cd5b6daab5b069e96a0cff67d4b57',
     #                  'gridfile': 'grid_cs32.face<NFACET>.bin',
     #                  'nx': 32, 'shape': (6, 32, 32)}
 }
