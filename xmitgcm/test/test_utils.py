@@ -819,7 +819,7 @@ def test_pad_array(tmpdir, memmap, dtype):
     assert data_padded[1, 1] == 4
 
 
-def test_parse_diagnostics(all_mds_datadirs):
+def test_parse_diagnostics(all_mds_datadirs, layers_mds_datadirs):
     """Make sure we can parse the available_diagnostics.log file."""
     from xmitgcm.utils import parse_available_diagnostics
     dirname, expected = all_mds_datadirs
@@ -838,6 +838,22 @@ def test_parse_diagnostics(all_mds_datadirs):
                             'long_name': 'total heat flux (match heat-content '
                             'variations), >0 increases theta',
                             'standard_name': 'TFLUX'}}
+    }
+
+    for key, val in expected_diags.items():
+        assert ad[key] == val
+
+    # test layers
+    dirname, expected = layers_mds_datadirs
+    diagnostics_fname = os.path.join(dirname, 'available_diagnostics.log')
+    ad = parse_available_diagnostics(diagnostics_fname)
+
+    expected_diags = {
+        'LaUH1RHO': {'dims': ['_UNKNOWN_', 'j', 'i_g'],
+                 'attrs': {'units': 'm.m/s',
+                           'long_name': 'Layer Integrated  zonal Transport (UH, m^2/s)',
+                           'standard_name': 'LaUH1RHO',
+                           'mate': 'LaVH1RHO'}},
     }
 
     for key, val in expected_diags.items():
