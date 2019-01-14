@@ -1197,8 +1197,6 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
             nfaces = len(file_metadata['face_facets'])
         except:
             raise ValueError('metadata must contain face_facets')
-        shape = (1, file_metadata['nx'], file_metadata['nx'])
-        chunks = (1, file_metadata['nx'], file_metadata['nx'])
     if geometry == 'cs':  # pragma: no cover
         raise NotImplementedError("'cs' geometry is not supported yet")
 
