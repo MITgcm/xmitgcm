@@ -866,5 +866,3 @@ def test_get_grid_from_input(all_grid_datadirs):
                                      precision='double', endian='>',
                                      use_dask=False,
                                      extra_metadata=None)
-    
-    

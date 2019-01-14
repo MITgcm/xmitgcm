@@ -1256,7 +1256,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                         # assign values
                         gridfields[field][face, :, :] = dataface
 
-    elif geometry == 'cs': # pragma: no cover
+    elif geometry == 'cs':  # pragma: no cover
         raise NotImplementedError("'cs' geometry is not supported yet")
         pass
 
