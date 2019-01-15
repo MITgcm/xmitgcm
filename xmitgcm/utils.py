@@ -13,6 +13,7 @@ from dask import delayed
 import dask.array as dsa
 from dask.base import tokenize
 import xarray as xr
+import sys
 
 def parse_meta_file(fname):
     """Get the metadata as a dict out of the MITgcm mds .meta file.
@@ -1332,3 +1333,62 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                           )
 
     return grid
+
+
+def write_to_binary(da, fileout, precision='single', extra_metadata=None):
+    ''' write variable from dataset ds to fileout with precision '''
+
+    metadata = {}
+    if extra_metadata is not None:
+        metadata.update(extra_metadata)
+
+    if not 'has_faces' in metadata:
+        # this is the simple case
+        flatdata = ds[variable].values.flatten()
+    else:
+        flatdata=np.array([])
+        # put a serie of control tests
+        facets_to_process=list(set(metadata['face_facets']))
+        for kfacet in facets_to_process:
+            print('facet #', kfacet)
+            datafacet=np.array([])
+            for kface in da['face'].values:
+                print('face #', kface)
+                if metadata['face_facets'][kface] == kfacet:
+                    dataface = da.sel(face=kface).values
+                    if metadata['transpose_face'][kface]:
+                        dataface = dataface.transpose()
+                    order=metadata['facet_orders'][kfacet]
+                    print('order = ', order)
+                    dataface = dataface.flatten(order=order)
+                    print(len(dataface))
+                    print(270*270)
+                    datafacet = np.concatenate([datafacet, dataface])
+            if ('pad_before_y' in metadata):
+                pad = metadata['pad_before_y'][kfacet] * metadata['nx']
+                if pad != 0:
+                    datafacet = datafacet[pad:]
+            if ('pad_after_y' in metadata):
+                pad = metadata['pad_after_y'][kfacet] * metadata['nx']
+                if pad != 0:
+                    datafacet = datafacet[:-pad]
+            flatdata = np.concatenate([flatdata, datafacet])
+            print(len(flatdata))
+            print(270*1350)
+
+    # once all the data is into one flat vector we can write to disk
+    # write data to binary files
+    fid   = open(fileout, "wb")
+    if precision == 'single':
+        if sys.byteorder == 'little':
+            tmp = flatdata.astype(np.dtype('f')).byteswap(True).tobytes()
+        else:
+            tmp = flatdata.astype(np.dtype('f')).tobytes()
+        fid.write(tmp)
+    elif precision == 'double':
+        if sys.byteorder == 'little':
+            tmp = flatdata.astype(np.dtype('d')).byteswap(True).tobytes()
+        else:
+            tmp = flatdata.astype(np.dtype('d')).tobytes()
+    fid.close()
+    return None
