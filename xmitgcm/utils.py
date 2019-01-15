@@ -1335,48 +1335,64 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
     return grid
 
 
-def write_to_binary(da, fileout, precision='single', extra_metadata=None):
-    ''' write variable from dataset ds to fileout with precision '''
+#def write_to_binary(da, fileout, precision='single', extra_metadata=None):
+#    ''' write variable from dataset ds to fileout with precision '''
 
-    metadata = {}
-    if extra_metadata is not None:
-        metadata.update(extra_metadata)
+#def rebuild_llc_facets(da, extra_metadata):
+#    
+#    nfacets = len(extra_metadata['facet_orders'])
+#    facets = {}
+#    for kfacet in range(nfacets):
+#        facets.update({'facet' + str(kfacet): np.zeros
+#
+#    return facets
+#
+#def reshape_llc_faces_to_compact(da, extra_metadata):
+#
+#    flatdata=np.array([])
+#    # put a serie of control tests
+#    facets_to_process=list(set(metadata['face_facets']))
+#    for kfacet in facets_to_process:
+#        print('facet #', kfacet)
+#        datafacet=np.array([])
+#        for kface in da['face'].values:
+#            print('face #', kface)
+#            if metadata['face_facets'][kface] == kfacet:
+#                dataface = da.sel(face=kface).values
+#                if metadata['transpose_face'][kface]:
+#                    dataface = dataface.transpose()
+#                order=metadata['facet_orders'][kfacet]
+#                print('order = ', order)
+#                dataface = dataface.flatten(order=order)
+#                print(len(dataface))
+#                print(270*270)
+#                datafacet = np.concatenate([datafacet, dataface])
+#        if ('pad_before_y' in metadata):
+#            pad = metadata['pad_before_y'][kfacet] * metadata['nx']
+#            if pad != 0:
+#                datafacet = datafacet[pad:]
+#        if ('pad_after_y' in metadata):
+#            pad = metadata['pad_after_y'][kfacet] * metadata['nx']
+#            if pad != 0:
+#                datafacet = datafacet[:-pad]
+#        flatdata = np.concatenate([flatdata, datafacet])
+#        print(len(flatdata))
+#        print(270*1350)
+#
+def write_to_binary(flatdata, fileout, precision='single'):
+    """ write data in binary file
 
-    if not 'has_faces' in metadata:
-        # this is the simple case
-        flatdata = ds[variable].values.flatten()
-    else:
-        flatdata=np.array([])
-        # put a serie of control tests
-        facets_to_process=list(set(metadata['face_facets']))
-        for kfacet in facets_to_process:
-            print('facet #', kfacet)
-            datafacet=np.array([])
-            for kface in da['face'].values:
-                print('face #', kface)
-                if metadata['face_facets'][kface] == kfacet:
-                    dataface = da.sel(face=kface).values
-                    if metadata['transpose_face'][kface]:
-                        dataface = dataface.transpose()
-                    order=metadata['facet_orders'][kfacet]
-                    print('order = ', order)
-                    dataface = dataface.flatten(order=order)
-                    print(len(dataface))
-                    print(270*270)
-                    datafacet = np.concatenate([datafacet, dataface])
-            if ('pad_before_y' in metadata):
-                pad = metadata['pad_before_y'][kfacet] * metadata['nx']
-                if pad != 0:
-                    datafacet = datafacet[pad:]
-            if ('pad_after_y' in metadata):
-                pad = metadata['pad_after_y'][kfacet] * metadata['nx']
-                if pad != 0:
-                    datafacet = datafacet[:-pad]
-            flatdata = np.concatenate([flatdata, datafacet])
-            print(len(flatdata))
-            print(270*1350)
+    PARAMETERS:
 
-    # once all the data is into one flat vector we can write to disk
+    flatdata: numpy.array
+        vector of data to write
+    fileout: str
+        output file name
+    precision: str
+        single/double precision
+
+
+    """
     # write data to binary files
     fid   = open(fileout, "wb")
     if precision == 'single':
