@@ -1335,50 +1335,109 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
     return grid
 
 
-#def write_to_binary(da, fileout, precision='single', extra_metadata=None):
-#    ''' write variable from dataset ds to fileout with precision '''
+def find_concat_dim_facet(da, facet, extra_metadata):
+    """ find along which dimension to concatenate facet """
+    order = extra_metadata['facet_orders'][facet]
+    if order == 'C':
+        possible_concat_dims = ['j', 'j_g']
+    elif order == 'F':
+        possible_concat_dims = ['i', 'i_g']
 
-#def rebuild_llc_facets(da, extra_metadata):
-#    
-#    nfacets = len(extra_metadata['facet_orders'])
-#    facets = {}
-#    for kfacet in range(nfacets):
-#        facets.update({'facet' + str(kfacet): np.zeros
-#
-#    return facets
-#
-#def reshape_llc_faces_to_compact(da, extra_metadata):
-#
-#    flatdata=np.array([])
-#    # put a serie of control tests
-#    facets_to_process=list(set(metadata['face_facets']))
-#    for kfacet in facets_to_process:
-#        print('facet #', kfacet)
-#        datafacet=np.array([])
-#        for kface in da['face'].values:
-#            print('face #', kface)
-#            if metadata['face_facets'][kface] == kfacet:
-#                dataface = da.sel(face=kface).values
-#                if metadata['transpose_face'][kface]:
-#                    dataface = dataface.transpose()
-#                order=metadata['facet_orders'][kfacet]
-#                print('order = ', order)
-#                dataface = dataface.flatten(order=order)
-#                print(len(dataface))
-#                print(270*270)
-#                datafacet = np.concatenate([datafacet, dataface])
-#        if ('pad_before_y' in metadata):
-#            pad = metadata['pad_before_y'][kfacet] * metadata['nx']
-#            if pad != 0:
-#                datafacet = datafacet[pad:]
-#        if ('pad_after_y' in metadata):
-#            pad = metadata['pad_after_y'][kfacet] * metadata['nx']
-#            if pad != 0:
-#                datafacet = datafacet[:-pad]
-#        flatdata = np.concatenate([flatdata, datafacet])
-#        print(len(flatdata))
-#        print(270*1350)
-#
+    concat_dim = find_concat_dim(da, possible_concat_dims)
+
+    # we also need to other horizontal dimension for vector indexing
+    all_dims = list(da.dims)
+    # discard face
+    all_dims.remove('face')
+    # remove the concat_dim to find horizontal non_concat dimension
+    all_dims.remove(concat_dim)
+    non_concat_dim = all_dims[0]
+    return concat_dim, non_concat_dim
+    
+
+def find_concat_dim(da, possible_concat_dims):
+    """ look for available dimensions in dataaray and pick the one
+    for a list of candidates """
+    out=None
+    for d in possible_concat_dims:
+        if d in da.dims:
+            out=d
+    return out
+        
+
+def rebuild_llc_facets(da, extra_metadata):
+    
+    nfacets = len(extra_metadata['facet_orders'])
+    nfaces = len(extra_metadata['face_facets'])
+    facets = {}
+
+    # rebuild the facets (with padding if present)
+    for kfacet in range(nfacets):
+        facets.update({'facet' + str(kfacet): None})
+
+        concat_dim, non_concat_dim = find_concat_dim_facet(da, kfacet, extra_metadata)
+
+        for kface in range(nfaces):
+            # concatenate faces back into facets
+            if extra_metadata['face_facets'][kface] == kfacet:
+                if extra_metadata['face_offsets'][kface] == 0:
+                    # first face of facet
+                    tmp = da.sel(face=kface)
+                else:
+                    # any other face needs to be concatenated
+                    newface = da.sel(face=kface)
+                    tmp = xr.concat([facets['facet' + str(kfacet)], 
+                                     newface], dim=concat_dim)
+
+                facets['facet' + str(kfacet)] = tmp
+
+    # if present, remove padding from facets
+    for kfacet in range(nfacets):
+
+        concat_dim, non_concat_dim = find_concat_dim_facet(da, kfacet, extra_metadata)
+
+        # remove pad before
+        if 'pad_before_y' in extra_metadata:
+            pad = extra_metadata['pad_before_y'][kfacet]
+            # padded array
+            padded = facets['facet' + str(kfacet)]
+
+            if pad != 0:
+                # we need to relabel the grid cells
+                ng = len(padded[concat_dim].values)
+                padded[concat_dim] = np.arange(ng)
+                # select index from non-padded array
+                index_cat = xr.DataArray(np.arange(pad,ng), dims=[concat_dim])
+                index_noncat = xr.DataArray(np.arange(extra_metadata['nx']), dims=[non_concat_dim])
+                unpadded_bef = padded[index_cat, index_noncat]
+            else:
+                unpadded_bef = padded
+
+            facets['facet' + str(kfacet)] = unpadded_bef
+
+        # remove pad after
+        if 'pad_after_y' in extra_metadata:
+            pad = extra_metadata['pad_after_y'][kfacet]
+            # padded array
+            padded = facets['facet' + str(kfacet)]
+
+            if pad != 0:
+                # we need to relabel the grid cells
+                ng = len(padded[concat_dim].values)
+                padded[concat_dim] = np.arange(ng)
+                # select index from non-padded array
+                last=ng-pad
+                index_cat = xr.DataArray(np.arange(0,last), dims=[concat_dim])
+                index_noncat = xr.DataArray(np.arange(extra_metadata['nx']), dims=[non_concat_dim])
+                unpadded_aft = padded[index_noncat, index_cat]
+            else:
+                unpadded_aft = padded
+
+            facets['facet' + str(kfacet)] = unpadded_aft
+
+    return facets
+
+
 def write_to_binary(flatdata, fileout, precision='single'):
     """ write data in binary file
 
