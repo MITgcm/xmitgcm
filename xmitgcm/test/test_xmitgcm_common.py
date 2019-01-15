@@ -128,14 +128,36 @@ _experiments = {
                           'expected_time': [
                               (0, np.datetime64('2013-11-12T12:00:00.000000000')),
                               (1, np.datetime64('2013-11-12T12:02:00.000000000'))],
-                          'prefixes': ['THETA']}
+                          'prefixes': ['THETA']},
+
 }
 
 
-def setup_mds_dir(tmpdir_factory, request):
+_grids = {
+    'grid_llc90': {'geometry': 'llc', 'domain': 'llc',
+                   'dlink': dlroot + '14072594',
+                   'md5': 'f66c3195a62790d539debe6ca8f3a851',
+                   'gridfile': 'tile<NFACET>.mitgrid',
+                   'nx': 90, 'shape': (13, 90, 90)},
+
+    'grid_aste270': {'geometry': 'llc', 'domain': 'aste',
+                     'dlink': dlroot + '14072591',
+                     'md5': '92b28c65e0dfb54b253bfcd0a249359b',
+                     'gridfile': 'tile<NFACET>.mitgrid',
+                     'nx': 270, 'shape': (6, 270, 270)}  # ,
+
+    #    'grid_cs32': {'geometry': 'cs', 'domain': 'cs',
+    #                  'dlink': dlroot + '14072597',
+    #                  'md5': '848cd5b6daab5b069e96a0cff67d4b57',
+    #                  'gridfile': 'grid_cs32.face<NFACET>.bin',
+    #                  'nx': 32, 'shape': (6, 32, 32)}
+}
+
+
+def setup_mds_dir(tmpdir_factory, request, db):
     """Helper function for setting up test cases."""
     expt_name = request.param
-    expected_results = _experiments[expt_name]
+    expected_results = db[expt_name]
     target_dir = str(tmpdir_factory.mktemp('mdsdata'))
     try:
         # user-defined directory for test datasets
@@ -207,30 +229,35 @@ def file_md5_checksum(fname):
 # http://stackoverflow.com/questions/29627341/pytest-where-to-store-expected-data
 @pytest.fixture(scope='module', params=_experiments.keys())
 def all_mds_datadirs(tmpdir_factory, request):
-    return setup_mds_dir(tmpdir_factory, request)
+    return setup_mds_dir(tmpdir_factory, request, _experiments)
 
 
 @pytest.fixture(scope='module', params=['barotropic_gyre', 'internal_wave'])
 def multidim_mds_datadirs(tmpdir_factory, request):
-    return setup_mds_dir(tmpdir_factory, request)
+    return setup_mds_dir(tmpdir_factory, request, _experiments)
 
 
 @pytest.fixture(scope='module', params=['global_oce_latlon',
                                         'global_oce_llc90'])
 def mds_datadirs_with_diagnostics(tmpdir_factory, request):
-    return setup_mds_dir(tmpdir_factory, request)
+    return setup_mds_dir(tmpdir_factory, request, _experiments)
 
 
 @pytest.fixture(scope='module', params=['internal_wave', 'global_oce_llc90'])
 def mds_datadirs_with_refdate(tmpdir_factory, request):
-    return setup_mds_dir(tmpdir_factory, request)
+    return setup_mds_dir(tmpdir_factory, request, _experiments)
 
 
 @pytest.fixture(scope='module', params=['global_oce_latlon'])
 def layers_mds_datadirs(tmpdir_factory, request):
-    return setup_mds_dir(tmpdir_factory, request)
+    return setup_mds_dir(tmpdir_factory, request, _experiments)
 
 
 @pytest.fixture(scope='module', params=['global_oce_llc90'])
 def llc_mds_datadirs(tmpdir_factory, request):
-    return setup_mds_dir(tmpdir_factory, request)
+    return setup_mds_dir(tmpdir_factory, request, _experiments)
+
+
+@pytest.fixture(scope='module', params=_grids.keys())
+def all_grid_datadirs(tmpdir_factory, request):
+    return setup_mds_dir(tmpdir_factory, request, _grids)
