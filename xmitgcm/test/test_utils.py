@@ -1,4 +1,5 @@
 from xmitgcm.test.test_xmitgcm_common import *
+import xarray
 
 _xc_meta_content = """ simulation = { 'global_oce_latlon' };
  nDims = [   2 ];
@@ -843,3 +844,39 @@ def test_get_extra_metadata(domain, nx):
 
     with pytest.raises(ValueError):
         em = get_extra_metadata(domain='notinlist', nx=nx)
+
+
+@pytest.mark.parametrize("usedask", [True, False])
+def test_get_grid_from_input(all_grid_datadirs, usedask):
+    from xmitgcm.utils import get_grid_from_input, get_extra_metadata
+    dirname, expected = all_grid_datadirs
+    md = get_extra_metadata(domain=expected['domain'], nx=expected['nx'])
+    ds = get_grid_from_input(dirname + '/' + expected['gridfile'],
+                             geometry=expected['geometry'],
+                             precision='double', endian='>',
+                             use_dask=usedask,
+                             extra_metadata=md)
+    # test types
+    assert type(ds) == xarray.Dataset
+    assert type(ds['XC']) == xarray.core.dataarray.DataArray
+
+    if usedask:
+        ds.load()
+
+    # check all variables are in
+    expected_variables = ['XC', 'YC', 'DXF', 'DYF', 'RAC',
+                          'XG', 'YG', 'DXV', 'DYU', 'RAZ',
+                          'DXC', 'DYC', 'RAW', 'RAS', 'DXG', 'DYG']
+
+    for var in expected_variables:
+        assert type(ds[var]) == xarray.core.dataarray.DataArray
+        assert ds[var].values.shape == expected['shape']
+
+    # passing llc without metadata should fail
+    if expected['geometry'] == 'llc':
+        with pytest.raises(ValueError):
+            ds = get_grid_from_input(dirname + '/' + expected['gridfile'],
+                                     geometry=expected['geometry'],
+                                     precision='double', endian='>',
+                                     use_dask=False,
+                                     extra_metadata=None)

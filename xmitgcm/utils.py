@@ -12,6 +12,7 @@ from functools import reduce
 from dask import delayed
 import dask.array as dsa
 from dask.base import tokenize
+import xarray as xr
 
 def parse_meta_file(fname):
     """Get the metadata as a dict out of the MITgcm mds .meta file.
@@ -1125,3 +1126,197 @@ def get_extra_metadata(domain='llc', nx=90):
         extra_metadata = cs
 
     return extra_metadata
+
+
+def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
+                        precision='double', endian='>', use_dask=False,
+                        extra_metadata=None):
+    """ Read grid variables from grid input files, this is especially useful
+        for llc and cube sphere configurations used with land tiles
+        elimination. Reading the input grid files (e.g. tile00[1-5].mitgrid)
+        allows to fill in the blanks of eliminated land tiles.
+
+    PARAMETERS:
+    -----------
+    gridfile: str
+        gridfile must contain <NFACET> as wildcard (e.g. tile<NFACET>.mitgrid)
+    nx:     int
+        size of the face in the x direction
+    ny:     int
+        size of the face in the y direction
+    geometry: str
+        domain geometry can be llc, cs or carthesian not supported yet
+    precision: string
+        numeric precision (single/double) of input data
+    endian: string
+        endianness of input data
+    use_dask: bool
+        use dask or not
+    extra_metadata: dict
+        dictionary of extra metadata, needed for llc configurations
+
+    RETURNS:
+    --------
+    xarray.Dataset of grid variables
+    """
+
+    file_metadata = {}
+    # grid variables are stored in this order
+    file_metadata['fldList'] = ['XC', 'YC', 'DXF', 'DYF', 'RAC',
+                                'XG', 'YG', 'DXV', 'DYU', 'RAZ',
+                                'DXC', 'DYC', 'RAW', 'RAS', 'DXG', 'DYG']
+
+    file_metadata['vars'] = file_metadata['fldList']
+    dims_vars_list = []
+    for var in file_metadata['fldList']:
+        dims_vars_list.append(('ny', 'nx'))
+    file_metadata['dims_vars'] = dims_vars_list
+
+    # no vertical levels or time records
+    file_metadata['nz'] = 1
+    file_metadata['nt'] = 1
+
+# for curvilinear non-facet grids (TO DO)
+#    if nx is not None:
+#        file_metadata['nx'] = nx
+#    if ny is not None:
+#        file_metadata['ny'] = ny
+    if extra_metadata is not None:
+        file_metadata.update(extra_metadata)
+
+    # numeric representation
+    file_metadata['endian'] = endian
+    if precision == 'double':
+        file_metadata['dtype'] = np.dtype('d')
+    elif precision == 'single':  # pragma: no cover
+        file_metadata['dtype'] = np.dtype('f')
+
+    if geometry == 'llc':
+        nfacets = 5
+        try:
+            nfaces = len(file_metadata['face_facets'])
+        except:
+            raise ValueError('metadata must contain face_facets')
+    if geometry == 'cs':  # pragma: no cover
+        raise NotImplementedError("'cs' geometry is not supported yet")
+
+    # create placeholders for data
+    gridfields = {}
+    for field in file_metadata['fldList']:
+        gridfields.update({field: None})
+
+    if geometry == 'llc':
+        for kfacet in range(nfacets):
+            # we need to adapt the metadata to the grid file
+            grid_metadata = file_metadata.copy()
+
+            fname = gridfile.replace('<NFACET>', str(kfacet+1).zfill(3))
+            grid_metadata['filename'] = fname
+
+            if file_metadata['facet_orders'][kfacet] == 'C':
+                nxgrid = file_metadata['nx'] + 1
+                nygrid = file_metadata['ny_facets'][kfacet] + 1
+            elif file_metadata['facet_orders'][kfacet] == 'F':
+                nxgrid = file_metadata['ny_facets'][kfacet] + 1
+                nygrid = file_metadata['nx'] + 1
+
+            grid_metadata.update({'nx': nxgrid, 'ny': nygrid,
+                                  'has_faces': False})
+
+            raw = read_all_variables(grid_metadata['vars'], grid_metadata,
+                                     use_dask=use_dask)
+
+            rawfields = {}
+            for kfield in np.arange(len(file_metadata['fldList'])):
+
+                rawfields.update(
+                    {file_metadata['fldList'][kfield]: raw[kfield]})
+
+            for field in file_metadata['fldList']:
+                # symetrize
+                tmp = rawfields[field][:, :, :-1, :-1].squeeze()
+                # transpose
+                if grid_metadata['facet_orders'][kfacet] == 'F':
+                    tmp = tmp.transpose()
+
+                for face in np.arange(nfaces):
+                    # identify faces that need to be filled
+                    if grid_metadata['face_facets'][face] == kfacet:
+                        # get offset of face from facet
+                        offset = file_metadata['face_offsets'][face]
+                        nx = file_metadata['nx']
+                        # pad data, if needed (would trigger eager data eval)
+                        tmp = _pad_array(tmp, file_metadata, face=face)
+                        # extract the data
+                        dataface = tmp[offset*nx:(offset+1)*nx, :]
+                        # transpose, if needed
+                        if file_metadata['transpose_face'][face]:
+                            dataface = dataface.transpose()
+                        # assign values
+                        dataface = dsa.stack([dataface], axis=0)
+                        if face == 0:
+                            gridfields[field] = dataface
+                        else:
+                            gridfields[field] = dsa.concatenate(
+                                [gridfields[field], dataface], axis=0)
+
+    elif geometry == 'cs':  # pragma: no cover
+        raise NotImplementedError("'cs' geometry is not supported yet")
+        pass
+
+    # create the dataset
+    if geometry in ['llc', 'cs']:
+        grid = xr.Dataset({'XC':  (['face', 'j', 'i'],     gridfields['XC']),
+                           'YC':  (['face', 'j', 'i'],     gridfields['YC']),
+                           'DXF': (['face', 'j', 'i'],     gridfields['DXF']),
+                           'DYF': (['face', 'j', 'i'],     gridfields['DYF']),
+                           'RAC': (['face', 'j', 'i'],     gridfields['RAC']),
+                           'XG':  (['face', 'j_g', 'i_g'], gridfields['XG']),
+                           'YG':  (['face', 'j_g', 'i_g'], gridfields['YG']),
+                           'DXV': (['face', 'j', 'i'],     gridfields['DXV']),
+                           'DYU': (['face', 'j', 'i'],     gridfields['DYU']),
+                           'RAZ': (['face', 'j_g', 'i_g'], gridfields['RAZ']),
+                           'DXC': (['face', 'j', 'i_g'],   gridfields['DXC']),
+                           'DYC': (['face', 'j_g', 'i'],   gridfields['DYC']),
+                           'RAW': (['face', 'j', 'i_g'],   gridfields['RAW']),
+                           'RAS': (['face', 'j_g', 'i'],   gridfields['RAS']),
+                           'DXG': (['face', 'j_g', 'i'],   gridfields['DXG']),
+                           'DYG': (['face', 'j', 'i_g'],   gridfields['DYG'])
+                           },
+                          coords={'i': (['i'], np.arange(file_metadata['nx'])),
+                                  'j': (['j'], np.arange(file_metadata['nx'])),
+                                  'i_g': (['i_g'],
+                                          np.arange(file_metadata['nx'])),
+                                  'j_g': (['j_g'],
+                                          np.arange(file_metadata['nx'])),
+                                  'face': (['face'], np.arange(nfaces))
+                                  }
+                          )
+    else:  # pragma: no cover
+        grid = xr.Dataset({'XC':  (['j', 'i'],     gridfields['XC']),
+                           'YC':  (['j', 'i'],     gridfields['YC']),
+                           'DXF': (['j', 'i'],     gridfields['DXF']),
+                           'DYF': (['j', 'i'],     gridfields['DYF']),
+                           'RAC': (['j', 'i'],     gridfields['RAC']),
+                           'XG':  (['j_g', 'i_g'], gridfields['XG']),
+                           'YG':  (['j_g', 'i_g'], gridfields['YG']),
+                           'DXV': (['j', 'i'],     gridfields['DXV']),
+                           'DYU': (['j', 'i'],     gridfields['DYU']),
+                           'RAZ': (['j_g', 'i_g'], gridfields['RAZ']),
+                           'DXC': (['j', 'i_g'],   gridfields['DXC']),
+                           'DYC': (['j_g', 'i'],   gridfields['DYC']),
+                           'RAW': (['j', 'i_g'],   gridfields['RAW']),
+                           'RAS': (['j_g', 'i'],   gridfields['RAS']),
+                           'DXG': (['j_g', 'i'],   gridfields['DXG']),
+                           'DYG': (['j', 'i_g'],   gridfields['DYG'])
+                           },
+                          coords={'i': (['i'], np.arange(file_metadata['nx'])),
+                                  'j': (['j'], np.arange(file_metadata['ny'])),
+                                  'i_g': (['i_g'],
+                                          np.arange(file_metadata['nx'])),
+                                  'j_g': (['j_g'],
+                                          np.arange(file_metadata['ny']))
+                                  }
+                          )
+
+    return grid
