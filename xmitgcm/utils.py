@@ -1335,6 +1335,8 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
     return grid
 
 
+########## WRITING BINARIES #############################
+
 def find_concat_dim_facet(da, facet, extra_metadata):
     """ find along which dimension to concatenate facet """
     order = extra_metadata['facet_orders'][facet]
@@ -1437,6 +1439,7 @@ def rebuild_llc_facets(da, extra_metadata):
 
     return facets
 
+def llc_facets_to_compact(facets, extra_metadata):
 
 def write_to_binary(flatdata, fileout, precision='single'):
     """ write data in binary file
