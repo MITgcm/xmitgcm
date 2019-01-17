@@ -848,7 +848,8 @@ def test_get_extra_metadata(domain, nx):
 
 @pytest.mark.parametrize("usedask", [True, False])
 def test_get_grid_from_input(all_grid_datadirs, usedask):
-    from xmitgcm.utils import get_grid_from_input, get_extra_metadata, read_raw_data
+    from xmitgcm.utils import get_grid_from_input, get_extra_metadata
+    from xmitgcm.utils import read_raw_data
     dirname, expected = all_grid_datadirs
     md = get_extra_metadata(domain=expected['domain'], nx=expected['nx'])
     ds = get_grid_from_input(dirname + '/' + expected['gridfile'],
