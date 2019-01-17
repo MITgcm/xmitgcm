@@ -1338,7 +1338,26 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
 ########## WRITING BINARIES #############################
 
 def find_concat_dim_facet(da, facet, extra_metadata):
-    """ find along which dimension to concatenate facet """
+    """ In llc grids, find along which horizontal dimension to concatenate
+    facet between i, i_g and j, j_g. If the order of the facet is F, concat 
+    along i or i_g. If order is C, concat along j or j_g. Also return
+    horizontal dim not to concatenate
+
+    PARAMETERS:
+
+    da: xarray.DataArray
+        xmitgcm llc data array
+    facet: int
+        facet number
+    extra_metadata: dict
+        dict of extra_metadata from get_extra_metadata
+
+    RETURN:
+
+    str, str
+
+
+    """
     order = extra_metadata['facet_orders'][facet]
     if order == 'C':
         possible_concat_dims = ['j', 'j_g']
@@ -1359,7 +1378,20 @@ def find_concat_dim_facet(da, facet, extra_metadata):
 
 def find_concat_dim(da, possible_concat_dims):
     """ look for available dimensions in dataaray and pick the one
-    for a list of candidates """
+    from a list of candidates 
+
+    PARAMETERS:
+
+    da: xarray.DataArray
+        xmitgcm llc data array
+
+    possible_concat_dims: list
+        list of potential dims
+
+    RETURN:
+
+    str
+    """
     out=None
     for d in possible_concat_dims:
         if d in da.dims:
@@ -1368,6 +1400,21 @@ def find_concat_dim(da, possible_concat_dims):
         
 
 def rebuild_llc_facets(da, extra_metadata):
+    """ For LLC grids, rebuilds facets from a xmitgcm dataarray and
+    store into a dictionary
+
+    PARAMETERS:
+
+    da: xarray.DataArray
+        xmitgcm llc data array
+    extra_metadata: dict
+        dict of extra_metadata from get_extra_metadata
+
+    RETURN:
+
+    dict
+
+    """
     
     nfacets = len(extra_metadata['facet_orders'])
     nfaces = len(extra_metadata['face_facets'])
@@ -1411,7 +1458,10 @@ def rebuild_llc_facets(da, extra_metadata):
                 # select index from non-padded array
                 index_cat = xr.DataArray(np.arange(pad,ng), dims=[concat_dim])
                 index_noncat = xr.DataArray(np.arange(extra_metadata['nx']), dims=[non_concat_dim])
-                unpadded_bef = padded[index_cat, index_noncat]
+                if extra_metadata['facet_orders'][kfacet] == 'C':
+                    unpadded_bef = padded[index_cat, index_noncat]
+                elif extra_metadata['facet_orders'][kfacet] == 'F':
+                    unpadded_bef = padded[index_noncat, index_cat]
             else:
                 unpadded_bef = padded
 
@@ -1431,7 +1481,10 @@ def rebuild_llc_facets(da, extra_metadata):
                 last=ng-pad
                 index_cat = xr.DataArray(np.arange(0,last), dims=[concat_dim])
                 index_noncat = xr.DataArray(np.arange(extra_metadata['nx']), dims=[non_concat_dim])
-                unpadded_aft = padded[index_noncat, index_cat]
+                if extra_metadata['facet_orders'][kfacet] == 'C':
+                    unpadded_aft = padded[index_cat, index_noncat]
+                elif extra_metadata['facet_orders'][kfacet] == 'F':
+                    unpadded_aft = padded[index_noncat, index_cat]
             else:
                 unpadded_aft = padded
 
@@ -1439,7 +1492,60 @@ def rebuild_llc_facets(da, extra_metadata):
 
     return facets
 
-#def llc_facets_to_compact(facets, extra_metadata):
+def llc_facets_3d_spatial_to_compact(facets, dimname, extra_metadata):
+    """ Write in compact form a list of 3d facets
+
+    PARAMETERS:
+
+    facets: dict
+        dict of xarray.dataarrays for the facets
+    extra_metadata: dict
+        extra_metadata from get_extra_metadata
+
+    RETURN:
+
+    numpy.array
+    """
+
+    nz = len(facets['facet0'][dimname])
+    nfacets=len(facets)
+    flatdata = np.array([])
+
+    for kz in range(nz):
+        #rebuild the dict
+        tmpdict = {}
+        for kfacet in range(nfacets):
+            tmpdict['facet' + str(kfacet)] = facets['facet' + str(kfacet)].isel(k=kz)
+        # concatenate all 2d arrays
+        compact2d = llc_facets_2d_to_compact(tmpdict, extra_metadata)
+        flatdata = np.concatenate([flatdata, compact2d])
+
+    return flatdata
+
+
+def llc_facets_2d_to_compact(facets, extra_metadata):
+    """ Write in compact form a list of 2d facets
+
+    PARAMETERS:
+
+    facets: dict
+        dict of xarray.dataarrays for the facets
+    extra_metadata: dict
+        extra_metadata from get_extra_metadata
+
+    RETURN:
+
+    numpy.array
+    """
+
+    flatdata= np.array([])
+    # loop over facets
+    for kfacet in range(len(facets)):
+        if facets['facet' + str(kfacet)] is not None:
+            tmp = np.reshape(facets['facet' + str(kfacet)].values,(-1) )
+            flatdata = np.concatenate([flatdata, tmp])
+
+    return flatdata
 
 def write_to_binary(flatdata, fileout, precision='single'):
     """ write data in binary file
