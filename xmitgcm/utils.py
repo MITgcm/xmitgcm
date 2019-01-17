@@ -1235,9 +1235,6 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
             for field in file_metadata['fldList']:
                 # symetrize
                 tmp = rawfields[field][:, :, :-1, :-1].squeeze()
-                # debug
-                if field == 'YC' and kfacet != 1:
-                    print('min lat in facet', kfacet, tmp.min())
                 # transpose
                 if grid_metadata['facet_orders'][kfacet] == 'F':
                     tmp = tmp.transpose()
