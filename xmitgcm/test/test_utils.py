@@ -848,7 +848,7 @@ def test_get_extra_metadata(domain, nx):
 
 @pytest.mark.parametrize("usedask", [True, False])
 def test_get_grid_from_input(all_grid_datadirs, usedask):
-    from xmitgcm.utils import get_grid_from_input, get_extra_metadata
+    from xmitgcm.utils import get_grid_from_input, get_extra_metadata, read_raw_data
     dirname, expected = all_grid_datadirs
     md = get_extra_metadata(domain=expected['domain'], nx=expected['nx'])
     ds = get_grid_from_input(dirname + '/' + expected['gridfile'],
@@ -871,6 +871,71 @@ def test_get_grid_from_input(all_grid_datadirs, usedask):
     for var in expected_variables:
         assert type(ds[var]) == xarray.core.dataarray.DataArray
         assert ds[var].values.shape == expected['shape']
+
+    # check we don't leave points behind
+    if expected['geometry'] == 'llc':
+        nx = expected['nx'] + 1
+        nvars=len(expected_variables)
+        sizeofd=8
+
+        grid=expected['gridfile']
+        grid1 = dirname + '/' + grid.replace('<NFACET>','001')
+        grid2 = dirname + '/' + grid.replace('<NFACET>','002')
+        grid3 = dirname + '/' + grid.replace('<NFACET>','003')
+        grid4 = dirname + '/' + grid.replace('<NFACET>','004')
+        grid5 = dirname + '/' + grid.replace('<NFACET>','005')
+
+        size1 = os.path.getsize(grid1)
+        size2 = os.path.getsize(grid2)
+        size3 = os.path.getsize(grid3)
+        size4 = os.path.getsize(grid4)
+        size5 = os.path.getsize(grid5)
+
+        ny1 = int(size1 / sizeofd / nvars / nx)
+        ny2 = int(size2 / sizeofd / nvars / nx)
+        ny3 = int(size3 / sizeofd / nvars / nx)
+        ny4 = int(size4 / sizeofd / nvars / nx)
+        ny5 = int(size5 / sizeofd / nvars / nx)
+
+        xc1 = read_raw_data(grid1, dtype=np.dtype('>d'), shape=(ny1, nx),
+                            partial_read=True)
+        xc2 = read_raw_data(grid2, dtype=np.dtype('>d'), shape=(ny2, nx),
+                            partial_read=True)
+        xc3 = read_raw_data(grid3, dtype=np.dtype('>d'), shape=(ny3, nx),
+                            partial_read=True)
+        xc4 = read_raw_data(grid4, dtype=np.dtype('>d'), shape=(ny4, nx),
+                            order='F', partial_read=True)
+        xc5 = read_raw_data(grid5, dtype=np.dtype('>d'), shape=(ny5, nx),
+                            order='F', partial_read=True)
+
+        yc1 = read_raw_data(grid1, dtype=np.dtype('>d'), shape=(ny1, nx),
+                            partial_read=True, offset=nx*ny1*sizeofd)
+        yc2 = read_raw_data(grid2, dtype=np.dtype('>d'), shape=(ny2 ,nx),
+                            partial_read=True, offset=nx*ny2*sizeofd)
+        yc3 = read_raw_data(grid3, dtype=np.dtype('>d'), shape=(ny3, nx),
+                            partial_read=True, offset=nx*ny3*sizeofd)
+        yc4 = read_raw_data(grid4, dtype=np.dtype('>d'), shape=(ny4, nx),
+                            order='F', partial_read=True, 
+                            offset=nx*ny4*sizeofd)
+        yc5 = read_raw_data(grid5, dtype=np.dtype('>d'), shape=(ny5, nx),
+                            order='F', partial_read=True, 
+                            offset=nx*ny5*sizeofd)
+
+        xc = np.concatenate([xc1[:-1,:-1].flatten(), xc2[:-1,:-1].flatten(), 
+                             xc3[:-1,:-1].flatten(), xc4[:-1,:-1].flatten(),
+                             xc5[:-1,:-1].flatten()])
+
+        yc = np.concatenate([yc1[:-1,:-1].flatten(), yc2[:-1,:-1].flatten(), 
+                             yc3[:-1,:-1].flatten(), yc4[:-1,:-1].flatten(),
+                             yc5[:-1,:-1].flatten()])
+
+        xc_from_ds = ds['XC'].values.flatten()
+        yc_from_ds = ds['YC'].values.flatten()
+
+        assert xc.min() == xc_from_ds.min()
+        assert xc.max() == xc_from_ds.max()
+        assert yc.min() == yc_from_ds.min()
+        assert yc.max() == yc_from_ds.max()
 
     # passing llc without metadata should fail
     if expected['geometry'] == 'llc':
