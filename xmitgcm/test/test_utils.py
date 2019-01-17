@@ -984,31 +984,32 @@ def test_write_to_binary(precision):
     write_to_binary(data, 'tmp.bin', precision=precision)
     # read
     if precision == 'single':
-        tmp = np.fromfile('tmp.bin','>f')
+        tmp = np.fromfile('tmp.bin', '>f')
     elif precision == 'double':
-        tmp = np.fromfile('tmp.bin','>d')
+        tmp = np.fromfile('tmp.bin', '>d')
     # check
     assert len(data) == len(tmp)
     assert data[0] == tmp[0]
     assert data[1] == tmp[1]
     os.remove('tmp.bin')
-    
-@pytest.mark.parametrize("possible_concat_dims",[['i', 'i_g'], ['j', 'j_g']])
+
+
+@pytest.mark.parametrize("possible_concat_dims", [['i', 'i_g'], ['j', 'j_g']])
 def test_find_concat_dim(possible_concat_dims):
     from xmitgcm.utils import find_concat_dim
 
     # this array contains a concat dim
-    a = xarray.DataArray(np.empty((2,3,4)), dims=['k', 'j', 'i'])
+    a = xarray.DataArray(np.empty((2, 3, 4)), dims=['k', 'j', 'i'])
     out = find_concat_dim(a, possible_concat_dims)
     assert out in possible_concat_dims
 
-    b = xarray.DataArray(np.empty((2,3,4)), dims=['k', 'g', 'b'])
+    b = xarray.DataArray(np.empty((2, 3, 4)), dims=['k', 'g', 'b'])
     out = find_concat_dim(b, possible_concat_dims)
     assert out == None
 
 
-@pytest.mark.parametrize("domain",['aste', 'llc'])
-@pytest.mark.parametrize("nx",[90, 270])
+@pytest.mark.parametrize("domain", ['aste', 'llc'])
+@pytest.mark.parametrize("nx", [90, 270])
 def test_find_concat_dim_facet(domain, nx):
     from xmitgcm.utils import find_concat_dim_facet, get_extra_metadata
     md = get_extra_metadata(domain=domain, nx=nx)
@@ -1028,8 +1029,8 @@ def test_find_concat_dim_facet(domain, nx):
             assert non_concat_dim == 'j'
 
 
-@pytest.mark.parametrize("domain",['aste', 'llc'])
-@pytest.mark.parametrize("nx",[90, 270])
+@pytest.mark.parametrize("domain", ['aste', 'llc'])
+@pytest.mark.parametrize("nx", [90, 270])
 def test_rebuild_llc_facets(domain, nx):
     from xmitgcm.utils import rebuild_llc_facets, get_extra_metadata
 
@@ -1047,7 +1048,7 @@ def test_rebuild_llc_facets(domain, nx):
             expected_shape = (md['ny_facets'][facet], nx,)
         elif md['facet_orders'][facet] == 'F':
             expected_shape = (nx, md['ny_facets'][facet], )
-        if domain == 'aste' and facet == 1: # this facet is empty
+        if domain == 'aste' and facet == 1:  # this facet is empty
             pass
         else:
             assert facets['facet' + str(facet)].shape == expected_shape

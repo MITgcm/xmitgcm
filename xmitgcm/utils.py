@@ -1374,7 +1374,7 @@ def find_concat_dim_facet(da, facet, extra_metadata):
     all_dims.remove(concat_dim)
     non_concat_dim = all_dims[0]
     return concat_dim, non_concat_dim
-    
+
 
 def find_concat_dim(da, possible_concat_dims):
     """ look for available dimensions in dataaray and pick the one
@@ -1392,12 +1392,12 @@ def find_concat_dim(da, possible_concat_dims):
 
     str
     """
-    out=None
+    out = None
     for d in possible_concat_dims:
         if d in da.dims:
-            out=d
+            out = d
     return out
-        
+
 
 def rebuild_llc_facets(da, extra_metadata):
     """ For LLC grids, rebuilds facets from a xmitgcm dataarray and
@@ -1415,7 +1415,7 @@ def rebuild_llc_facets(da, extra_metadata):
     dict
 
     """
-    
+
     nfacets = len(extra_metadata['facet_orders'])
     nfaces = len(extra_metadata['face_facets'])
     facets = {}
@@ -1424,7 +1424,8 @@ def rebuild_llc_facets(da, extra_metadata):
     for kfacet in range(nfacets):
         facets.update({'facet' + str(kfacet): None})
 
-        concat_dim, non_concat_dim = find_concat_dim_facet(da, kfacet, extra_metadata)
+        concat_dim, non_concat_dim = find_concat_dim_facet(
+            da, kfacet, extra_metadata)
 
         for kface in range(nfaces):
             # concatenate faces back into facets
@@ -1435,7 +1436,7 @@ def rebuild_llc_facets(da, extra_metadata):
                 else:
                     # any other face needs to be concatenated
                     newface = da.sel(face=kface)
-                    tmp = xr.concat([facets['facet' + str(kfacet)], 
+                    tmp = xr.concat([facets['facet' + str(kfacet)],
                                      newface], dim=concat_dim)
 
                 facets['facet' + str(kfacet)] = tmp
@@ -1443,7 +1444,8 @@ def rebuild_llc_facets(da, extra_metadata):
     # if present, remove padding from facets
     for kfacet in range(nfacets):
 
-        concat_dim, non_concat_dim = find_concat_dim_facet(da, kfacet, extra_metadata)
+        concat_dim, non_concat_dim = find_concat_dim_facet(
+            da, kfacet, extra_metadata)
 
         # remove pad before
         if 'pad_before_y' in extra_metadata:
@@ -1456,8 +1458,9 @@ def rebuild_llc_facets(da, extra_metadata):
                 ng = len(padded[concat_dim].values)
                 padded[concat_dim] = np.arange(ng)
                 # select index from non-padded array
-                index_cat = xr.DataArray(np.arange(pad,ng), dims=[concat_dim])
-                index_noncat = xr.DataArray(np.arange(extra_metadata['nx']), dims=[non_concat_dim])
+                index_cat = xr.DataArray(np.arange(pad, ng), dims=[concat_dim])
+                index_noncat = xr.DataArray(
+                    np.arange(extra_metadata['nx']), dims=[non_concat_dim])
                 if extra_metadata['facet_orders'][kfacet] == 'C':
                     unpadded_bef = padded[index_cat, index_noncat]
                 elif extra_metadata['facet_orders'][kfacet] == 'F':
@@ -1478,9 +1481,10 @@ def rebuild_llc_facets(da, extra_metadata):
                 ng = len(padded[concat_dim].values)
                 padded[concat_dim] = np.arange(ng)
                 # select index from non-padded array
-                last=ng-pad
-                index_cat = xr.DataArray(np.arange(0,last), dims=[concat_dim])
-                index_noncat = xr.DataArray(np.arange(extra_metadata['nx']), dims=[non_concat_dim])
+                last = ng-pad
+                index_cat = xr.DataArray(np.arange(0, last), dims=[concat_dim])
+                index_noncat = xr.DataArray(
+                    np.arange(extra_metadata['nx']), dims=[non_concat_dim])
                 if extra_metadata['facet_orders'][kfacet] == 'C':
                     unpadded_aft = padded[index_cat, index_noncat]
                 elif extra_metadata['facet_orders'][kfacet] == 'F':
@@ -1491,6 +1495,7 @@ def rebuild_llc_facets(da, extra_metadata):
             facets['facet' + str(kfacet)] = unpadded_aft
 
     return facets
+
 
 def llc_facets_3d_spatial_to_compact(facets, dimname, extra_metadata):
     """ Write in compact form a list of 3d facets
@@ -1508,14 +1513,15 @@ def llc_facets_3d_spatial_to_compact(facets, dimname, extra_metadata):
     """
 
     nz = len(facets['facet0'][dimname])
-    nfacets=len(facets)
+    nfacets = len(facets)
     flatdata = np.array([])
 
     for kz in range(nz):
-        #rebuild the dict
+        # rebuild the dict
         tmpdict = {}
         for kfacet in range(nfacets):
-            tmpdict['facet' + str(kfacet)] = facets['facet' + str(kfacet)].isel(k=kz)
+            tmpdict['facet' + str(kfacet)] = facets['facet' +
+                                                    str(kfacet)].isel(k=kz)
         # concatenate all 2d arrays
         compact2d = llc_facets_2d_to_compact(tmpdict, extra_metadata)
         flatdata = np.concatenate([flatdata, compact2d])
@@ -1538,14 +1544,15 @@ def llc_facets_2d_to_compact(facets, extra_metadata):
     numpy.array
     """
 
-    flatdata= np.array([])
+    flatdata = np.array([])
     # loop over facets
     for kfacet in range(len(facets)):
         if facets['facet' + str(kfacet)] is not None:
-            tmp = np.reshape(facets['facet' + str(kfacet)].values,(-1) )
+            tmp = np.reshape(facets['facet' + str(kfacet)].values, (-1))
             flatdata = np.concatenate([flatdata, tmp])
 
     return flatdata
+
 
 def write_to_binary(flatdata, fileout, precision='single'):
     """ write data in binary file
@@ -1562,7 +1569,7 @@ def write_to_binary(flatdata, fileout, precision='single'):
 
     """
     # write data to binary files
-    fid   = open(fileout, "wb")
+    fid = open(fileout, "wb")
     if precision == 'single':
         if sys.byteorder == 'little':
             tmp = flatdata.astype(np.dtype('f')).byteswap(True).tobytes()
