@@ -1439,7 +1439,7 @@ def rebuild_llc_facets(da, extra_metadata):
 
     return facets
 
-def llc_facets_to_compact(facets, extra_metadata):
+#def llc_facets_to_compact(facets, extra_metadata):
 
 def write_to_binary(flatdata, fileout, precision='single'):
     """ write data in binary file
@@ -1462,11 +1462,11 @@ def write_to_binary(flatdata, fileout, precision='single'):
             tmp = flatdata.astype(np.dtype('f')).byteswap(True).tobytes()
         else:
             tmp = flatdata.astype(np.dtype('f')).tobytes()
-        fid.write(tmp)
     elif precision == 'double':
         if sys.byteorder == 'little':
             tmp = flatdata.astype(np.dtype('d')).byteswap(True).tobytes()
         else:
             tmp = flatdata.astype(np.dtype('d')).tobytes()
+    fid.write(tmp)
     fid.close()
     return None
