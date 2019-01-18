@@ -1108,7 +1108,7 @@ def test_llc_facets_3d_spatial_to_compact(llc_mds_datadirs):
     facets = rebuild_llc_facets(ds['T'], md)
     flatdata = llc_facets_3d_spatial_to_compact(facets, 'k', md)
     # compare with raw data
-    raw = read_raw_data(dirname + '/T.' + \
+    raw = read_raw_data(dirname + '/T.' +
                         str(expected['test_iternum']).zfill(10) + '.data',
                         np.dtype('>f'), (nz, nfaces, ny, nx))
     flatraw = raw.flatten()
@@ -1120,8 +1120,8 @@ def test_llc_facets_3d_spatial_to_compact(llc_mds_datadirs):
     # write new file
     write_to_binary(flatdata, 'tmp.bin', precision='single')
     md5new = file_md5_checksum('tmp.bin')
-    md5old = file_md5_checksum(dirname + '/T.' + \
-                               str(expected['test_iternum']).zfill(10) + \
+    md5old = file_md5_checksum(dirname + '/T.' +
+                               str(expected['test_iternum']).zfill(10) +
                                '.data')
     assert md5new == md5old
     os.remove('tmp.bin')
