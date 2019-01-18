@@ -1339,7 +1339,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
 
 def find_concat_dim_facet(da, facet, extra_metadata):
     """ In llc grids, find along which horizontal dimension to concatenate
-    facet between i, i_g and j, j_g. If the order of the facet is F, concat 
+    facet between i, i_g and j, j_g. If the order of the facet is F, concat
     along i or i_g. If order is C, concat along j or j_g. Also return
     horizontal dim not to concatenate
 
@@ -1378,7 +1378,7 @@ def find_concat_dim_facet(da, facet, extra_metadata):
 
 def find_concat_dim(da, possible_concat_dims):
     """ look for available dimensions in dataaray and pick the one
-    from a list of candidates 
+    from a list of candidates
 
     PARAMETERS:
 
@@ -1463,7 +1463,8 @@ def rebuild_llc_facets(da, extra_metadata):
                     np.arange(extra_metadata['nx']), dims=[non_concat_dim])
                 if extra_metadata['facet_orders'][kfacet] == 'C':
                     unpadded_bef = padded[index_cat, index_noncat]
-                elif extra_metadata['facet_orders'][kfacet] == 'F':
+                # this is unlikely to happen in a llc config
+                elif extra_metadata['facet_orders'][kfacet] == 'F':  # pragma: no cover
                     unpadded_bef = padded[index_noncat, index_cat]
             else:
                 unpadded_bef = padded
@@ -1485,7 +1486,8 @@ def rebuild_llc_facets(da, extra_metadata):
                 index_cat = xr.DataArray(np.arange(0, last), dims=[concat_dim])
                 index_noncat = xr.DataArray(
                     np.arange(extra_metadata['nx']), dims=[non_concat_dim])
-                if extra_metadata['facet_orders'][kfacet] == 'C':
+                # this is unlikely to happen in a llc config
+                if extra_metadata['facet_orders'][kfacet] == 'C':  # pragma: no cover
                     unpadded_aft = padded[index_cat, index_noncat]
                 elif extra_metadata['facet_orders'][kfacet] == 'F':
                     unpadded_aft = padded[index_noncat, index_cat]
