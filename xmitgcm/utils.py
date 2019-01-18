@@ -1575,12 +1575,14 @@ def write_to_binary(flatdata, fileout, precision='single'):
     if precision == 'single':
         if sys.byteorder == 'little':
             tmp = flatdata.astype(np.dtype('f')).byteswap(True).tobytes()
-        else:
+        # big endian systems are not common place
+        else:  # pragma: no cover
             tmp = flatdata.astype(np.dtype('f')).tobytes()
     elif precision == 'double':
         if sys.byteorder == 'little':
             tmp = flatdata.astype(np.dtype('d')).byteswap(True).tobytes()
-        else:
+        # big endian systems are not common place
+        else:  # pragma: no cover
             tmp = flatdata.astype(np.dtype('d')).tobytes()
     fid.write(tmp)
     fid.close()
