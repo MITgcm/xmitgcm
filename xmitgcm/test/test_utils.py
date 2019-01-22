@@ -4,6 +4,7 @@ import numpy as np
 import xarray
 import dask
 from xmitgcm.test.test_xmitgcm_common import hide_file
+from xmitgcm.test.test_xmitgcm_common import file_md5_checksum
 from xmitgcm.test.test_xmitgcm_common import all_mds_datadirs
 from xmitgcm.test.test_xmitgcm_common import mds_datadirs_with_diagnostics
 from xmitgcm.test.test_xmitgcm_common import llc_mds_datadirs
