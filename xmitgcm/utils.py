@@ -425,7 +425,7 @@ def parse_available_diagnostics(fname, layers={}):
                             suffix = 'center'
                         elif levs == (n_layers-2):
                             suffix = 'interface'
-                        else:
+                        else:  # pragma: no cover
                             suffix = None
                             warnings.warn("Could not match rlev = %g to a "
                                           "layers coordiante" % rlev)
@@ -436,7 +436,7 @@ def parse_available_diagnostics(fname, layers={}):
                         zcoord = [dimname]
                     else:
                         zcoord = ['_UNKNOWN_']
-                else:
+                else:  # pragma: no cover
                     warnings.warn("Not sure what to do with rlev = " + rlev)
                     warnings.warn("corresponding diag_id  = " + str(diag_id))
                     zcoord = ['_UNKNOWN_']
