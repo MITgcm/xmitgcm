@@ -7,6 +7,7 @@ from xmitgcm.test.test_xmitgcm_common import hide_file
 from xmitgcm.test.test_xmitgcm_common import all_mds_datadirs
 from xmitgcm.test.test_xmitgcm_common import mds_datadirs_with_diagnostics
 from xmitgcm.test.test_xmitgcm_common import llc_mds_datadirs
+from xmitgcm.test.test_xmitgcm_common import layers_mds_datadirs
 from xmitgcm.test.test_xmitgcm_common import all_grid_datadirs
 from xmitgcm.test.test_xmitgcm_common import _experiments
 
@@ -851,8 +852,7 @@ def test_parse_diagnostics(all_mds_datadirs, layers_mds_datadirs):
     expected_diags = {
         'LaUH1RHO': {'dims': ['_UNKNOWN_', 'j', 'i_g'],
                      'attrs': {'units': 'm.m/s',
-                               'long_name': 'Layer Integrated  zonal \
-                               Transport (UH, m^2/s)',
+                               'long_name': 'Layer Integrated  zonal Transport (UH, m^2/s)',
                                'standard_name': 'LaUH1RHO',
                                'mate': 'LaVH1RHO'}},
     }
