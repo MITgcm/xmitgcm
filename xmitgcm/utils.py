@@ -409,25 +409,36 @@ def parse_available_diagnostics(fname, layers={}):
                     zcoord = []
                 elif rlev == 'R':
                     zcoord = [rcoords[rpoint]]
-                elif rlev == 'X' and layers:
-                    layer_name = key.ljust(8)[-4:].strip()
-                    n_layers = layers[layer_name]
-                    if levs == n_layers:
-                        suffix = 'bounds'
-                    elif levs == (n_layers-1):
-                        suffix = 'center'
-                    elif levs == (n_layers-2):
-                        suffix = 'interface'
+                elif rlev == 'L':  # pragma : no cover
+                    # max(Nr, Nrphys) according to doc...
+                    # this seems to be only used in atmos
+                    # with different levels for dynamics and physics
+                    # setting to Nr meanwhile
+                    zcoord = [rcoords[rpoint]]
+                elif rlev == 'X':
+                    if layers:
+                        layer_name = key.ljust(8)[-4:].strip()
+                        n_layers = layers[layer_name]
+                        if levs == n_layers:
+                            suffix = 'bounds'
+                        elif levs == (n_layers-1):
+                            suffix = 'center'
+                        elif levs == (n_layers-2):
+                            suffix = 'interface'
+                        else:  # pragma: no cover
+                            suffix = None
+                            warnings.warn("Could not match rlev = %g to a "
+                                          "layers coordiante" % rlev)
+                        # dimname = ('layer_' + layer_name + '_' +
+                        #            suffix if suffix
+                        dimname = (('l' + layer_name[0] + '_' +
+                                    suffix[0]) if suffix else '_UNKNOWN_')
+                        zcoord = [dimname]
                     else:
-                        suffix = None
-                        warnings.warn("Could not match rlev = %g to a layers"
-                                      "coordiante" % rlev)
-                    # dimname = ('layer_' + layer_name + '_' + suffix if suffix
-                    dimname = (('l' + layer_name[0] + '_' + suffix[0]) if suffix
-                               else '_UNKNOWN_')
-                    zcoord = [dimname]
-                else:
+                        zcoord = ['_UNKNOWN_']
+                else:  # pragma: no cover
                     warnings.warn("Not sure what to do with rlev = " + rlev)
+                    warnings.warn("corresponding diag_id  = " + str(diag_id))
                     zcoord = ['_UNKNOWN_']
                 coords = zcoord + xycoords
                 all_diags[key] = dict(dims=coords,

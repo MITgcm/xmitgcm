@@ -334,31 +334,6 @@ def test_date_parsing(mds_datadirs_with_refdate):
     assert 'calendar' not in ds.time.attrs
 
 
-def test_parse_diagnostics(all_mds_datadirs):
-    """Make sure we can parse the available_diagnostics.log file."""
-    from xmitgcm.utils import parse_available_diagnostics
-    dirname, expected = all_mds_datadirs
-    diagnostics_fname = os.path.join(dirname, 'available_diagnostics.log')
-    ad = parse_available_diagnostics(diagnostics_fname)
-
-    # a somewhat random sampling of diagnostics
-    expected_diags = {
-        'UVEL': {'dims': ['k', 'j', 'i_g'],
-                 'attrs': {'units': 'm/s',
-                           'long_name': 'Zonal Component of Velocity (m/s)',
-                           'standard_name': 'UVEL',
-                           'mate': 'VVEL'}},
-        'TFLUX': {'dims': ['j', 'i'],
-                  'attrs': {'units': 'W/m^2',
-                            'long_name': 'total heat flux (match heat-content '
-                            'variations), >0 increases theta',
-                            'standard_name': 'TFLUX'}}
-     }
-
-    for key, val in expected_diags.items():
-        assert ad[key] == val
-
-
 def test_diagnostics(mds_datadirs_with_diagnostics):
     """Try reading dataset with diagnostics output."""
     dirname, expected = mds_datadirs_with_diagnostics
