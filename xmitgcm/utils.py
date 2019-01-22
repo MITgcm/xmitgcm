@@ -1246,9 +1246,10 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                         offset = file_metadata['face_offsets'][face]
                         nx = file_metadata['nx']
                         # pad data, if needed (would trigger eager data eval)
-                        tmp = _pad_array(tmp, file_metadata, face=face)
+                        # needs a new array not to pad multiple times
+                        padded = _pad_array(tmp, file_metadata, face=face)
                         # extract the data
-                        dataface = tmp[offset*nx:(offset+1)*nx, :]
+                        dataface = padded[offset*nx:(offset+1)*nx, :]
                         # transpose, if needed
                         if file_metadata['transpose_face'][face]:
                             dataface = dataface.transpose()
