@@ -1458,14 +1458,7 @@ def rebuild_llc_facets(da, extra_metadata):
                 ng = len(padded[concat_dim].values)
                 padded[concat_dim] = np.arange(ng)
                 # select index from non-padded array
-                index_cat = xr.DataArray(np.arange(pad, ng), dims=[concat_dim])
-                index_noncat = xr.DataArray(
-                    np.arange(extra_metadata['nx']), dims=[non_concat_dim])
-                if extra_metadata['facet_orders'][kfacet] == 'C':
-                    unpadded_bef = padded[index_cat, index_noncat]
-                # this is unlikely to happen in a llc config
-                elif extra_metadata['facet_orders'][kfacet] == 'F':  # pragma: no cover
-                    unpadded_bef = padded[index_noncat, index_cat]
+                unpadded_bef = padded.isel({concat_dim: range(pad, ng)})
             else:
                 unpadded_bef = padded
 
@@ -1483,14 +1476,7 @@ def rebuild_llc_facets(da, extra_metadata):
                 padded[concat_dim] = np.arange(ng)
                 # select index from non-padded array
                 last = ng-pad
-                index_cat = xr.DataArray(np.arange(0, last), dims=[concat_dim])
-                index_noncat = xr.DataArray(
-                    np.arange(extra_metadata['nx']), dims=[non_concat_dim])
-                # this is unlikely to happen in a llc config
-                if extra_metadata['facet_orders'][kfacet] == 'C':  # pragma: no cover
-                    unpadded_aft = padded[index_cat, index_noncat]
-                elif extra_metadata['facet_orders'][kfacet] == 'F':
-                    unpadded_aft = padded[index_noncat, index_cat]
+                unpadded_aft = padded.isel({concat_dim: range(last)})
             else:
                 unpadded_aft = padded
 
@@ -1522,8 +1508,11 @@ def llc_facets_3d_spatial_to_compact(facets, dimname, extra_metadata):
         # rebuild the dict
         tmpdict = {}
         for kfacet in range(nfacets):
-            tmpdict['facet' + str(kfacet)] = facets['facet' +
-                                                    str(kfacet)].isel(k=kz)
+            this_facet = facets['facet' + str(kfacet)]
+            if this_facet is not None:
+                tmpdict['facet' + str(kfacet)] = this_facet.isel(k=kz)
+            else:
+                tmpdict['facet' + str(kfacet)] = None
         # concatenate all 2d arrays
         compact2d = llc_facets_2d_to_compact(tmpdict, extra_metadata)
         flatdata = np.concatenate([flatdata, compact2d])
