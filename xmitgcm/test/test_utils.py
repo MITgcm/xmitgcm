@@ -881,7 +881,7 @@ def test_get_grid_from_input(all_grid_datadirs, usedask):
     md = get_extra_metadata(domain=expected['domain'], nx=expected['nx'])
     ds = get_grid_from_input(dirname + '/' + expected['gridfile'],
                              geometry=expected['geometry'],
-                             precision='double', endian='>',
+                             dtype=np.dtype('d'), endian='>',
                              use_dask=usedask,
                              extra_metadata=md)
     # test types
@@ -970,23 +970,23 @@ def test_get_grid_from_input(all_grid_datadirs, usedask):
         with pytest.raises(ValueError):
             ds = get_grid_from_input(dirname + '/' + expected['gridfile'],
                                      geometry=expected['geometry'],
-                                     precision='double', endian='>',
+                                     dtype=np.dtype('d'), endian='>',
                                      use_dask=False,
                                      extra_metadata=None)
 
 
-@pytest.mark.parametrize("precision", ['single', 'double'])
-def test_write_to_binary(precision):
+@pytest.mark.parametrize("dtype", [np.dtype('d'), np.dtype('f')])
+def test_write_to_binary(dtype):
     from xmitgcm.utils import write_to_binary
     import sys
 
     data = np.arange(2)
     # write
-    write_to_binary(data, 'tmp.bin', precision=precision)
+    write_to_binary(data, 'tmp.bin', dtype=dtype)
     # read
-    if precision == 'single':
+    if dtype == np.dtype('f'):
         tmp = np.fromfile('tmp.bin', '>f')
-    elif precision == 'double':
+    elif dtype == np.dtype('d'):
         tmp = np.fromfile('tmp.bin', '>d')
     # check
     assert len(data) == len(tmp)

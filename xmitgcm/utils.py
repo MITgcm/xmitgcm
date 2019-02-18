@@ -1141,7 +1141,7 @@ def get_extra_metadata(domain='llc', nx=90):
 
 
 def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
-                        precision='double', endian='>', use_dask=False,
+                        dtype=np.dtype('d'), endian='>', use_dask=False,
                         extra_metadata=None):
     """ Read grid variables from grid input files, this is especially useful
         for llc and cube sphere configurations used with land tiles
@@ -1158,7 +1158,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
         size of the face in the y direction
     geometry: str
         domain geometry can be llc, cs or carthesian not supported yet
-    precision: string
+    dtype: np.dtype
         numeric precision (single/double) of input data
     endian: string
         endianness of input data
@@ -1198,10 +1198,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
 
     # numeric representation
     file_metadata['endian'] = endian
-    if precision == 'double':
-        file_metadata['dtype'] = np.dtype('d')
-    elif precision == 'single':  # pragma: no cover
-        file_metadata['dtype'] = np.dtype('f')
+    file_metadata['dtype'] = dtype
 
     if geometry == 'llc':
         nfacets = 5
@@ -1545,7 +1542,7 @@ def llc_facets_2d_to_compact(facets, extra_metadata):
     return flatdata
 
 
-def write_to_binary(flatdata, fileout, precision='single'):
+def write_to_binary(flatdata, fileout, dtype=np.dtype('f')):
     """ write data in binary file
 
     PARAMETERS:
@@ -1554,25 +1551,16 @@ def write_to_binary(flatdata, fileout, precision='single'):
         vector of data to write
     fileout: str
         output file name
-    precision: str
+    dtype: np.dtype
         single/double precision
 
 
     """
     # write data to binary files
     fid = open(fileout, "wb")
-    if precision == 'single':
-        if sys.byteorder == 'little':
-            tmp = flatdata.astype(np.dtype('f')).byteswap(True).tobytes()
-        # big endian systems are not common place
-        else:  # pragma: no cover
-            tmp = flatdata.astype(np.dtype('f')).tobytes()
-    elif precision == 'double':
-        if sys.byteorder == 'little':
-            tmp = flatdata.astype(np.dtype('d')).byteswap(True).tobytes()
-        # big endian systems are not common place
-        else:  # pragma: no cover
-            tmp = flatdata.astype(np.dtype('d')).tobytes()
-    fid.write(tmp)
+    tmp = flatdata.astype(dtype)
+    if sys.byteorder == 'little':
+        tmp = tmp.byteswap(True)
+    fid.write(tmp.tobytes())
     fid.close()
     return None
