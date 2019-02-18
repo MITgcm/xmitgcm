@@ -1482,13 +1482,15 @@ def rebuild_llc_facets(da, extra_metadata):
     return facets
 
 
-def llc_facets_3d_spatial_to_compact(facets, dimname, extra_metadata):
+def llc_facets_3d_to_compact(facets, dimname, extra_metadata):
     """ Write in compact form a list of 3d facets
 
     PARAMETERS:
 
     facets: dict
         dict of xarray.dataarrays for the facets
+    dimname:
+        name of the extra dimension (not j, i)
     extra_metadata: dict
         extra_metadata from get_extra_metadata
 
@@ -1497,17 +1499,17 @@ def llc_facets_3d_spatial_to_compact(facets, dimname, extra_metadata):
     numpy.array
     """
 
-    nz = len(facets['facet0'][dimname])
+    nk = len(facets['facet0'][dimname])
     nfacets = len(facets)
     flatdata = np.array([])
 
-    for kz in range(nz):
+    for kk in range(nk):
         # rebuild the dict
         tmpdict = {}
         for kfacet in range(nfacets):
             this_facet = facets['facet' + str(kfacet)]
             if this_facet is not None:
-                tmpdict['facet' + str(kfacet)] = this_facet.isel(k=kz)
+                tmpdict['facet' + str(kfacet)] = this_facet.isel({dimname: kk})
             else:
                 tmpdict['facet' + str(kfacet)] = None
         # concatenate all 2d arrays
