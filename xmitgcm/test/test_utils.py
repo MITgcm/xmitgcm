@@ -1082,7 +1082,7 @@ def test_llc_facets_2d_to_compact(llc_mds_datadirs):
     assert flatdata.max() == flatraw.max()
 
     # write new file
-    write_to_binary(flatdata, 'tmp.bin', precision='single')
+    write_to_binary(flatdata, 'tmp.bin', dtype=np.dtype('f'))
     md5new = file_md5_checksum('tmp.bin')
     md5old = file_md5_checksum(dirname + '/XC.data')
     assert md5new == md5old
@@ -1119,7 +1119,7 @@ def test_llc_facets_3d_spatial_to_compact(llc_mds_datadirs):
     assert flatdata.max() == flatraw.max()
 
     # write new file
-    write_to_binary(flatdata, 'tmp.bin', precision='single')
+    write_to_binary(flatdata, 'tmp.bin', dtype=np.dtype('f'))
     md5new = file_md5_checksum('tmp.bin')
     md5old = file_md5_checksum(dirname + '/T.' +
                                str(expected['test_iternum']).zfill(10) +
