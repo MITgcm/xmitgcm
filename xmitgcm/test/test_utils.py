@@ -4,6 +4,7 @@ import numpy as np
 import xarray
 import dask
 from xmitgcm.test.test_xmitgcm_common import hide_file
+from xmitgcm.test.test_xmitgcm_common import file_md5_checksum
 from xmitgcm.test.test_xmitgcm_common import all_mds_datadirs
 from xmitgcm.test.test_xmitgcm_common import mds_datadirs_with_diagnostics
 from xmitgcm.test.test_xmitgcm_common import llc_mds_datadirs
@@ -880,7 +881,7 @@ def test_get_grid_from_input(all_grid_datadirs, usedask):
     md = get_extra_metadata(domain=expected['domain'], nx=expected['nx'])
     ds = get_grid_from_input(dirname + '/' + expected['gridfile'],
                              geometry=expected['geometry'],
-                             precision='double', endian='>',
+                             dtype=np.dtype('d'), endian='>',
                              use_dask=usedask,
                              extra_metadata=md)
     # test types
@@ -969,6 +970,159 @@ def test_get_grid_from_input(all_grid_datadirs, usedask):
         with pytest.raises(ValueError):
             ds = get_grid_from_input(dirname + '/' + expected['gridfile'],
                                      geometry=expected['geometry'],
-                                     precision='double', endian='>',
+                                     dtype=np.dtype('d'), endian='>',
                                      use_dask=False,
                                      extra_metadata=None)
+
+
+@pytest.mark.parametrize("dtype", [np.dtype('d'), np.dtype('f')])
+def test_write_to_binary(dtype):
+    from xmitgcm.utils import write_to_binary
+    import sys
+
+    data = np.arange(2)
+    # write
+    write_to_binary(data, 'tmp.bin', dtype=dtype)
+    # read
+    if dtype == np.dtype('f'):
+        tmp = np.fromfile('tmp.bin', '>f')
+    elif dtype == np.dtype('d'):
+        tmp = np.fromfile('tmp.bin', '>d')
+    # check
+    assert len(data) == len(tmp)
+    assert data[0] == tmp[0]
+    assert data[1] == tmp[1]
+    os.remove('tmp.bin')
+
+
+@pytest.mark.parametrize("possible_concat_dims", [['i', 'i_g'], ['j', 'j_g']])
+def test_find_concat_dim(possible_concat_dims):
+    from xmitgcm.utils import find_concat_dim
+
+    # this array contains a concat dim
+    a = xarray.DataArray(np.empty((2, 3, 4)), dims=['k', 'j', 'i'])
+    out = find_concat_dim(a, possible_concat_dims)
+    assert out in possible_concat_dims
+
+    b = xarray.DataArray(np.empty((2, 3, 4)), dims=['k', 'g', 'b'])
+    out = find_concat_dim(b, possible_concat_dims)
+    assert out is None
+
+
+@pytest.mark.parametrize("domain", ['aste', 'llc'])
+@pytest.mark.parametrize("nx", [90, 270])
+def test_find_concat_dim_facet(domain, nx):
+    from xmitgcm.utils import find_concat_dim_facet, get_extra_metadata
+    md = get_extra_metadata(domain=domain, nx=nx)
+    nfacets = len(md['ny_facets'])
+
+    for facet in range(5):
+        da = xarray.DataArray(np.empty((nfacets, md['ny_facets'][facet], nx)),
+                              dims=['face', 'j', 'i'])
+        concat_dim, non_concat_dim = find_concat_dim_facet(da, facet, md)
+
+        print(concat_dim, non_concat_dim)
+        if md['facet_orders'][facet] == 'C':
+            assert concat_dim == 'j'
+            assert non_concat_dim == 'i'
+        elif md['facet_orders'][facet] == 'F':
+            assert concat_dim == 'i'
+            assert non_concat_dim == 'j'
+
+
+@pytest.mark.parametrize("domain", ['aste', 'llc'])
+@pytest.mark.parametrize("nx", [90, 270])
+def test_rebuild_llc_facets(domain, nx):
+    from xmitgcm.utils import rebuild_llc_facets, get_extra_metadata
+
+    md = get_extra_metadata(domain=domain, nx=nx)
+    nfaces = len(md['transpose_face'])
+
+    da = xarray.DataArray(np.empty((nfaces, nx, nx)),
+                          dims=['face', 'j', 'i'])
+
+    facets = rebuild_llc_facets(da, md)
+
+    for facet in range(5):
+        # test we get the original size
+        if md['facet_orders'][facet] == 'C':
+            expected_shape = (md['ny_facets'][facet], nx,)
+        elif md['facet_orders'][facet] == 'F':
+            expected_shape = (nx, md['ny_facets'][facet], )
+        if domain == 'aste' and facet == 1:  # this facet is empty
+            pass
+        else:
+            assert facets['facet' + str(facet)].shape == expected_shape
+
+
+def test_llc_facets_2d_to_compact(llc_mds_datadirs):
+    from xmitgcm.utils import llc_facets_2d_to_compact, get_extra_metadata
+    from xmitgcm.utils import rebuild_llc_facets, read_raw_data
+    from xmitgcm.utils import write_to_binary
+    from xmitgcm import open_mdsdataset
+
+    dirname, expected = llc_mds_datadirs
+
+    # open dataset
+    ds = open_mdsdataset(dirname,
+                         iters=expected['test_iternum'],
+                         geometry=expected['geometry'])
+
+    nt, nfaces, ny, nx = expected['shape']
+    md = get_extra_metadata(domain=expected['geometry'], nx=nx)
+    # split in facets
+    facets = rebuild_llc_facets(ds['XC'], md)
+    flatdata = llc_facets_2d_to_compact(facets, md)
+    # compare with raw data
+    raw = read_raw_data(dirname + '/XC.data', np.dtype('>f'), (nfaces, ny, nx))
+    flatraw = raw.flatten()
+
+    assert len(flatdata) == len(flatraw)
+    assert flatdata.min() == flatraw.min()
+    assert flatdata.max() == flatraw.max()
+
+    # write new file
+    write_to_binary(flatdata, 'tmp.bin', dtype=np.dtype('f'))
+    md5new = file_md5_checksum('tmp.bin')
+    md5old = file_md5_checksum(dirname + '/XC.data')
+    assert md5new == md5old
+    os.remove('tmp.bin')
+
+
+def test_llc_facets_3d_spatial_to_compact(llc_mds_datadirs):
+    from xmitgcm.utils import llc_facets_3d_spatial_to_compact
+    from xmitgcm.utils import get_extra_metadata
+    from xmitgcm.utils import rebuild_llc_facets, read_raw_data
+    from xmitgcm.utils import write_to_binary
+    from xmitgcm import open_mdsdataset
+
+    dirname, expected = llc_mds_datadirs
+
+    # open dataset
+    ds = open_mdsdataset(dirname,
+                         iters=expected['test_iternum'],
+                         geometry=expected['geometry'])
+
+    nz, nfaces, ny, nx = expected['shape']
+    md = get_extra_metadata(domain=expected['geometry'], nx=nx)
+    # split in facets
+    facets = rebuild_llc_facets(ds['T'], md)
+    flatdata = llc_facets_3d_spatial_to_compact(facets, 'k', md)
+    # compare with raw data
+    raw = read_raw_data(dirname + '/T.' +
+                        str(expected['test_iternum']).zfill(10) + '.data',
+                        np.dtype('>f'), (nz, nfaces, ny, nx))
+    flatraw = raw.flatten()
+
+    assert len(flatdata) == len(flatraw)
+    assert flatdata.min() == flatraw.min()
+    assert flatdata.max() == flatraw.max()
+
+    # write new file
+    write_to_binary(flatdata, 'tmp.bin', dtype=np.dtype('f'))
+    md5new = file_md5_checksum('tmp.bin')
+    md5old = file_md5_checksum(dirname + '/T.' +
+                               str(expected['test_iternum']).zfill(10) +
+                               '.data')
+    assert md5new == md5old
+    os.remove('tmp.bin')
