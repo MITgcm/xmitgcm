@@ -1089,8 +1089,8 @@ def test_llc_facets_2d_to_compact(llc_mds_datadirs):
     os.remove('tmp.bin')
 
 
-def test_llc_facets_3d_spatial_to_compact(llc_mds_datadirs):
-    from xmitgcm.utils import llc_facets_3d_spatial_to_compact
+def test_llc_facets_3d_to_compact(llc_mds_datadirs):
+    from xmitgcm.utils import llc_facets_3d_to_compact
     from xmitgcm.utils import get_extra_metadata
     from xmitgcm.utils import rebuild_llc_facets, read_raw_data
     from xmitgcm.utils import write_to_binary
@@ -1107,7 +1107,7 @@ def test_llc_facets_3d_spatial_to_compact(llc_mds_datadirs):
     md = get_extra_metadata(domain=expected['geometry'], nx=nx)
     # split in facets
     facets = rebuild_llc_facets(ds['T'], md)
-    flatdata = llc_facets_3d_spatial_to_compact(facets, 'k', md)
+    flatdata = llc_facets_3d_to_compact(facets, 'k', md)
     # compare with raw data
     raw = read_raw_data(dirname + '/T.' +
                         str(expected['test_iternum']).zfill(10) + '.data',
