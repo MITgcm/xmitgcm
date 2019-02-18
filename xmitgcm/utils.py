@@ -13,6 +13,7 @@ from dask import delayed
 import dask.array as dsa
 from dask.base import tokenize
 import xarray as xr
+import sys
 
 def parse_meta_file(fname):
     """Get the metadata as a dict out of the MITgcm mds .meta file.
@@ -1140,7 +1141,7 @@ def get_extra_metadata(domain='llc', nx=90):
 
 
 def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
-                        precision='double', endian='>', use_dask=False,
+                        dtype=np.dtype('d'), endian='>', use_dask=False,
                         extra_metadata=None):
     """ Read grid variables from grid input files, this is especially useful
         for llc and cube sphere configurations used with land tiles
@@ -1157,7 +1158,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
         size of the face in the y direction
     geometry: str
         domain geometry can be llc, cs or carthesian not supported yet
-    precision: string
+    dtype: np.dtype
         numeric precision (single/double) of input data
     endian: string
         endianness of input data
@@ -1197,10 +1198,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
 
     # numeric representation
     file_metadata['endian'] = endian
-    if precision == 'double':
-        file_metadata['dtype'] = np.dtype('d')
-    elif precision == 'single':  # pragma: no cover
-        file_metadata['dtype'] = np.dtype('f')
+    file_metadata['dtype'] = dtype
 
     if geometry == 'llc':
         nfacets = 5
@@ -1332,3 +1330,237 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                           )
 
     return grid
+
+
+########## WRITING BINARIES #############################
+
+def find_concat_dim_facet(da, facet, extra_metadata):
+    """ In llc grids, find along which horizontal dimension to concatenate
+    facet between i, i_g and j, j_g. If the order of the facet is F, concat
+    along i or i_g. If order is C, concat along j or j_g. Also return
+    horizontal dim not to concatenate
+
+    PARAMETERS:
+
+    da: xarray.DataArray
+        xmitgcm llc data array
+    facet: int
+        facet number
+    extra_metadata: dict
+        dict of extra_metadata from get_extra_metadata
+
+    RETURN:
+
+    str, str
+
+
+    """
+    order = extra_metadata['facet_orders'][facet]
+    if order == 'C':
+        possible_concat_dims = ['j', 'j_g']
+    elif order == 'F':
+        possible_concat_dims = ['i', 'i_g']
+
+    concat_dim = find_concat_dim(da, possible_concat_dims)
+
+    # we also need to other horizontal dimension for vector indexing
+    all_dims = list(da.dims)
+    # discard face
+    all_dims.remove('face')
+    # remove the concat_dim to find horizontal non_concat dimension
+    all_dims.remove(concat_dim)
+    non_concat_dim = all_dims[0]
+    return concat_dim, non_concat_dim
+
+
+def find_concat_dim(da, possible_concat_dims):
+    """ look for available dimensions in dataaray and pick the one
+    from a list of candidates
+
+    PARAMETERS:
+
+    da: xarray.DataArray
+        xmitgcm llc data array
+
+    possible_concat_dims: list
+        list of potential dims
+
+    RETURN:
+
+    str
+    """
+    out = None
+    for d in possible_concat_dims:
+        if d in da.dims:
+            out = d
+    return out
+
+
+def rebuild_llc_facets(da, extra_metadata):
+    """ For LLC grids, rebuilds facets from a xmitgcm dataarray and
+    store into a dictionary
+
+    PARAMETERS:
+
+    da: xarray.DataArray
+        xmitgcm llc data array
+    extra_metadata: dict
+        dict of extra_metadata from get_extra_metadata
+
+    RETURN:
+
+    dict
+
+    """
+
+    nfacets = len(extra_metadata['facet_orders'])
+    nfaces = len(extra_metadata['face_facets'])
+    facets = {}
+
+    # rebuild the facets (with padding if present)
+    for kfacet in range(nfacets):
+        facets.update({'facet' + str(kfacet): None})
+
+        concat_dim, non_concat_dim = find_concat_dim_facet(
+            da, kfacet, extra_metadata)
+
+        for kface in range(nfaces):
+            # concatenate faces back into facets
+            if extra_metadata['face_facets'][kface] == kfacet:
+                if extra_metadata['face_offsets'][kface] == 0:
+                    # first face of facet
+                    tmp = da.sel(face=kface)
+                else:
+                    # any other face needs to be concatenated
+                    newface = da.sel(face=kface)
+                    tmp = xr.concat([facets['facet' + str(kfacet)],
+                                     newface], dim=concat_dim)
+
+                facets['facet' + str(kfacet)] = tmp
+
+    # if present, remove padding from facets
+    for kfacet in range(nfacets):
+
+        concat_dim, non_concat_dim = find_concat_dim_facet(
+            da, kfacet, extra_metadata)
+
+        # remove pad before
+        if 'pad_before_y' in extra_metadata:
+            pad = extra_metadata['pad_before_y'][kfacet]
+            # padded array
+            padded = facets['facet' + str(kfacet)]
+
+            if pad != 0:
+                # we need to relabel the grid cells
+                ng = len(padded[concat_dim].values)
+                padded[concat_dim] = np.arange(ng)
+                # select index from non-padded array
+                unpadded_bef = padded.isel({concat_dim: range(pad, ng)})
+            else:
+                unpadded_bef = padded
+
+            facets['facet' + str(kfacet)] = unpadded_bef
+
+        # remove pad after
+        if 'pad_after_y' in extra_metadata:
+            pad = extra_metadata['pad_after_y'][kfacet]
+            # padded array
+            padded = facets['facet' + str(kfacet)]
+
+            if pad != 0:
+                # we need to relabel the grid cells
+                ng = len(padded[concat_dim].values)
+                padded[concat_dim] = np.arange(ng)
+                # select index from non-padded array
+                last = ng-pad
+                unpadded_aft = padded.isel({concat_dim: range(last)})
+            else:
+                unpadded_aft = padded
+
+            facets['facet' + str(kfacet)] = unpadded_aft
+
+    return facets
+
+
+def llc_facets_3d_spatial_to_compact(facets, dimname, extra_metadata):
+    """ Write in compact form a list of 3d facets
+
+    PARAMETERS:
+
+    facets: dict
+        dict of xarray.dataarrays for the facets
+    extra_metadata: dict
+        extra_metadata from get_extra_metadata
+
+    RETURN:
+
+    numpy.array
+    """
+
+    nz = len(facets['facet0'][dimname])
+    nfacets = len(facets)
+    flatdata = np.array([])
+
+    for kz in range(nz):
+        # rebuild the dict
+        tmpdict = {}
+        for kfacet in range(nfacets):
+            this_facet = facets['facet' + str(kfacet)]
+            if this_facet is not None:
+                tmpdict['facet' + str(kfacet)] = this_facet.isel(k=kz)
+            else:
+                tmpdict['facet' + str(kfacet)] = None
+        # concatenate all 2d arrays
+        compact2d = llc_facets_2d_to_compact(tmpdict, extra_metadata)
+        flatdata = np.concatenate([flatdata, compact2d])
+
+    return flatdata
+
+
+def llc_facets_2d_to_compact(facets, extra_metadata):
+    """ Write in compact form a list of 2d facets
+
+    PARAMETERS:
+
+    facets: dict
+        dict of xarray.dataarrays for the facets
+    extra_metadata: dict
+        extra_metadata from get_extra_metadata
+
+    RETURN:
+
+    numpy.array
+    """
+
+    flatdata = np.array([])
+    # loop over facets
+    for kfacet in range(len(facets)):
+        if facets['facet' + str(kfacet)] is not None:
+            tmp = np.reshape(facets['facet' + str(kfacet)].values, (-1))
+            flatdata = np.concatenate([flatdata, tmp])
+
+    return flatdata
+
+
+def write_to_binary(flatdata, fileout, dtype=np.dtype('f')):
+    """ write data in binary file
+
+    PARAMETERS:
+
+    flatdata: numpy.array
+        vector of data to write
+    fileout: str
+        output file name
+    dtype: np.dtype
+        single/double precision
+
+
+    """
+    # write data to binary files
+    fid = open(fileout, "wb")
+    tmp = flatdata.astype(dtype)
+    if sys.byteorder == 'little':
+        tmp = tmp.byteswap(True)
+    fid.write(tmp.tobytes())
+    fid.close()
+    return None
