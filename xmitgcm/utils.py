@@ -1532,16 +1532,17 @@ def llc_facets_2dtime_to_compact(facets, extra_metadata, dimtime='time'):
 
     nt = len(facets['facet0'][dimtime])
     nfacets = len(facets)
-    flatdata = np.empty((nt,extra_metadata['ny'] * extra_metadata['nx']))
+    flatdata = np.empty((nt, extra_metadata['ny'] * extra_metadata['nx']))
 
     for kt in np.arange(nt):
         # loop over facets
         allfacets = np.array([])
         for kfacet in range(len(facets)):
             if facets['facet' + str(kfacet)] is not None:
-                tmp = np.reshape(facets['facet' + str(kfacet)].values[kt,:,:], (-1))
+                tmp = np.reshape(
+                    facets['facet' + str(kfacet)].values[kt, :, :], (-1))
                 allfacets = np.concatenate([allfacets, tmp])
-        flatdata[kt,:] = allfacets 
+        flatdata[kt, :] = allfacets
     out = np.reshape(flatdata, (-1))
     return out
 
