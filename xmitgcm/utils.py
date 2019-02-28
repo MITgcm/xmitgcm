@@ -1518,12 +1518,16 @@ def llc_facets_3d_to_compact(facets, dimname):
 
 
 def llc_facets_2dtime_to_compact(facets, extra_metadata, dimtime='time'):
-    """ Write in compact form a list of 2d facets
+    """ Write in compact form a list of 2d facets, with a time dimension
 
     PARAMETERS:
 
     facets: dict
         dict of xarray.dataarrays for the facets
+    extra_metadata: dict
+        dict of extra metadata for composed grids (llc, cs)
+    dimtime: str
+        name of the time dimension
 
     RETURN:
 
@@ -1537,7 +1541,7 @@ def llc_facets_2dtime_to_compact(facets, extra_metadata, dimtime='time'):
     for kt in np.arange(nt):
         # loop over facets
         allfacets = np.array([])
-        for kfacet in range(len(facets)):
+        for kfacet in range(nfacets):
             if facets['facet' + str(kfacet)] is not None:
                 tmp = np.reshape(
                     facets['facet' + str(kfacet)].values[kt, :, :], (-1))
