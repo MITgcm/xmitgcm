@@ -1072,7 +1072,7 @@ def test_llc_facets_2d_to_compact(llc_mds_datadirs):
     md = get_extra_metadata(domain=expected['geometry'], nx=nx)
     # split in facets
     facets = rebuild_llc_facets(ds['XC'], md)
-    flatdata = llc_facets_2d_to_compact(facets, md)
+    flatdata = llc_facets_2d_to_compact(facets)
     # compare with raw data
     raw = read_raw_data(dirname + '/XC.data', np.dtype('>f'), (nfaces, ny, nx))
     flatraw = raw.flatten()
@@ -1107,7 +1107,7 @@ def test_llc_facets_3d_to_compact(llc_mds_datadirs):
     md = get_extra_metadata(domain=expected['geometry'], nx=nx)
     # split in facets
     facets = rebuild_llc_facets(ds['T'], md)
-    flatdata = llc_facets_3d_to_compact(facets, 'k', md)
+    flatdata = llc_facets_3d_to_compact(facets, 'k')
     # compare with raw data
     raw = read_raw_data(dirname + '/T.' +
                         str(expected['test_iternum']).zfill(10) + '.data',
