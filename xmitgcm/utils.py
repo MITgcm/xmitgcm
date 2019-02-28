@@ -1482,7 +1482,7 @@ def rebuild_llc_facets(da, extra_metadata):
     return facets
 
 
-def llc_facets_3d_to_compact(facets, dimname, extra_metadata):
+def llc_facets_3d_to_compact(facets, dimname):
     """ Write in compact form a list of 3d facets
 
     PARAMETERS:
@@ -1491,8 +1491,6 @@ def llc_facets_3d_to_compact(facets, dimname, extra_metadata):
         dict of xarray.dataarrays for the facets
     dimname:
         name of the extra dimension (not j, i)
-    extra_metadata: dict
-        extra_metadata from get_extra_metadata
 
     RETURN:
 
@@ -1513,21 +1511,48 @@ def llc_facets_3d_to_compact(facets, dimname, extra_metadata):
             else:
                 tmpdict['facet' + str(kfacet)] = None
         # concatenate all 2d arrays
-        compact2d = llc_facets_2d_to_compact(tmpdict, extra_metadata)
+        compact2d = llc_facets_2d_to_compact(tmpdict)
         flatdata = np.concatenate([flatdata, compact2d])
 
     return flatdata
 
 
-def llc_facets_2d_to_compact(facets, extra_metadata):
+def llc_facets_2dtime_to_compact(facets, extra_metadata, dimtime='time'):
     """ Write in compact form a list of 2d facets
 
     PARAMETERS:
 
     facets: dict
         dict of xarray.dataarrays for the facets
-    extra_metadata: dict
-        extra_metadata from get_extra_metadata
+
+    RETURN:
+
+    numpy.array
+    """
+
+    nt = len(facets['facet0'][dimtime])
+    nfacets = len(facets)
+    flatdata = np.empty((nt,extra_metadata['ny'] * extra_metadata['nx']))
+
+    for kt in np.arange(nt):
+        # loop over facets
+        allfacets = np.array([])
+        for kfacet in range(len(facets)):
+            if facets['facet' + str(kfacet)] is not None:
+                tmp = np.reshape(facets['facet' + str(kfacet)].values[kt,:,:], (-1))
+                allfacets = np.concatenate([allfacets, tmp])
+        flatdata[kt,:] = allfacets 
+    out = np.reshape(flatdata, (-1))
+    return out
+
+
+def llc_facets_2d_to_compact(facets):
+    """ Write in compact form a list of 2d facets
+
+    PARAMETERS:
+
+    facets: dict
+        dict of xarray.dataarrays for the facets
 
     RETURN:
 
