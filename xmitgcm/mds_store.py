@@ -544,11 +544,10 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         return vname, dims, data, attrs
 
     def calc_masks(self, vname, data):
-        """Compute mask(C/W/S) as 1 where hFac(C/W/S) nonzero,
-           0 otherwise"""
+        """Compute mask as True where hFac nonzero, otherwise False"""
 
         if vname[0:4] == 'mask':
-            data = np.ceil(data)
+            data = data > 0
 
         return data
 
