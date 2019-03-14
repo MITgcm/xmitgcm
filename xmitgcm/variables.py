@@ -213,6 +213,23 @@ volume_grid_variables = OrderedDict(
         long_name="vertical fraction of open cell"))
 )
 
+# Mask files denoting wet points
+# set filename to hFac then compute mask as 1 where hFacC nonzero
+mask_variables = OrderedDict(
+    maskC=dict(dims=['k', 'j', 'i'], attrs=dict(
+        standard_name="sea_binary_mask_at_t_location",
+        long_name="mask denoting wet point at center"),
+        filename="hFacC"),
+    maskW=dict(dims=['k', 'j', 'i_g'], attrs=dict(
+        standard_name="cell_vertical_fraction_at_u_location",
+        long_name="mask denoting wet point at interface"),
+        filename="hFacW"),
+    maskS=dict(dims=['k', 'j_g', 'i'], attrs=dict(
+        standard_name="cell_vertical_fraction_at_v_location",
+        long_name="mask denoting wet point at interface"),
+        filename="hFacS")
+)
+
 # this a template: NAME gets replaced with the layer name (e.g. 1RHO)
 #                  dim gets prepended with the layer number (e.g. l1_b)
 layers_grid_variables = OrderedDict(
