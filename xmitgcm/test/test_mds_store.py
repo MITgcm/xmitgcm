@@ -448,7 +448,7 @@ def test_mask_values(all_mds_datadirs):
     mask_list = ['maskC', 'maskW', 'maskS']
 
     for hFac, mask in zip(hFac_list, mask_list):
-        assert (ds[hFac] * ds[mask] == ds[hFac]).all()
+        xr.testing.assert_equal(ds[hFac] * ds[mask], ds[hFac])
 
 #
 # Series of tests which try to open a dataset with different combinations of
