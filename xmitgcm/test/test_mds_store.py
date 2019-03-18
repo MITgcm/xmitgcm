@@ -433,6 +433,19 @@ def test_drc_length(all_mds_datadirs):
                 geometry=expected['geometry'])
     assert len(ds.drC)==(len(ds.drF)+1)
 
+def test_mask_values(all_mds_datadirs):
+    """Test that open_mdsdataset generates binary masks with correct values"""
+
+    dirname, expected = all_mds_datadirs
+    ds = xmitgcm.open_mdsdataset(
+                dirname, iters=None, read_grid=True,
+                geometry=expected['geometry'])
+
+    hFac_list = ['hFacC','hFacW','hFacS']
+    mask_list = ['maskC','maskW','maskS']
+
+    for hFac,mask in zip(hFac_list,mask_list):
+        assert ( ds[hFac] * ds[mask] == ds[hFac] ).all()
 
 #
 # Series of tests which try to open a dataset with different combinations of
