@@ -46,7 +46,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     grid_vars_to_coords=True, swap_dims=None,
                     endian=">", chunks=None,
                     ignore_unknown_vars=False, default_dtype=None,
-                    nx=None, ny=None, nz=None,
+                    nx=None, ny=None, nz=None, levels=None,
                     llc_method="smallchunks", extra_metadata=None):
     """Open MITgcm-style mds (.data / .meta) file output as xarray datset.
 
@@ -151,6 +151,10 @@ def open_mdsdataset(data_dir, grid_dir=None,
     else:
         pass
 
+    # if nz is a slice or a list, a subset of levels is needed
+    if levels is not None:
+        nz = len(nz)
+
     # We either have a single iter, in which case we create a fresh store,
     # or a list of iters, in which case we combine.
     if iters == 'all':
@@ -204,9 +208,11 @@ def open_mdsdataset(data_dir, grid_dir=None,
                         kwargs.remove('iters')
                     if 'read_grid' in kwargs:
                         kwargs.remove('read_grid')
-                    datasets.insert(0,
-                        open_mdsdataset(data_dir, iters=None, read_grid=True,
-                                        **kwargs))
+                    grid_dataset = open_mdsdataset(data_dir, iters=None,
+                                                   read_grid=True, **kwargs)
+                    if levels is not None:
+                        grid_dataset = _subset_levels(grid_dataset, levels)
+                    datasets.insert(0, grid_dataset)
                 # apply chunking
                 ds = xr.auto_combine(datasets)
                 if swap_dims:
