@@ -5,8 +5,12 @@ All of the metadata related to MITgcm variables, grids, naming conventions, etc.
 from __future__ import print_function, division
 import numpy as np
 
-from xarray.core.pycompat import OrderedDict
-
+# xarray>=0.12.0 compatiblity
+try:
+    from xarray.core.pycompat import OrderedDict
+except ImportError:
+    from collections import OrderedDict
+    
 # We are trying to combine the following two things:
 # - MITgcm grid
 #   http://mitgcm.org/sealion/online_documents/node47.html
