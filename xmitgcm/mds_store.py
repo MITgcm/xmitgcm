@@ -34,6 +34,12 @@ if (sys.version_info > (3, 0)):
 else:
     stringtypes = [str, unicode]
 
+# xarray>=0.12.0 compatiblity
+try:
+    from xarray.core.pycompat import OrderedDict
+except ImportError:
+    from collections import OrderedDict
+    
 # should we hard code this?
 LLC_NUM_FACES = 13
 LLC_FACE_DIMNAME = 'face'
@@ -353,8 +359,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             self.default_dtype = default_dtype
 
         # storage dicts for variables and attributes
-        self._variables = xr.core.pycompat.OrderedDict()
-        self._attributes = xr.core.pycompat.OrderedDict()
+        self._variables = OrderedDict()
+        self._attributes = OrderedDict()
         self._dimensions = []
 
         # the dimensions are theoretically the same for all datasets
@@ -778,7 +784,7 @@ def _get_extra_grid_variables(grid_dir):
 def _make_layers_variables(layer_name):
     """Translate metadata template to actual variable metadata."""
     from .variables import layers_grid_variables
-    lvars = xr.core.pycompat.OrderedDict()
+    lvars = OrderedDict()
     layer_num = layer_name[0]
     # should always be int
     assert isinstance(int(layer_num), int)
@@ -826,7 +832,7 @@ def _get_all_data_variables(data_dir, layers):
     # Now add the suffix '-T' to every diagnostic. This is a somewhat hacky
     # way to increase the coverage of possible output filenames.
     # But it doesn't work in python3!!!
-    extra_metadata = xr.core.pycompat.OrderedDict()
+    extra_metadata = OrderedDict()
     for name, val in metadata.items():
         newname = name + '-T'
         extra_metadata[newname] = val
@@ -840,7 +846,7 @@ def _get_all_data_variables(data_dir, layers):
 
 
 def _concat_dicts(list_of_dicts):
-    result = xr.core.pycompat.OrderedDict()
+    result = OrderedDict()
     for eachdict in list_of_dicts:
         for k, v in eachdict.items():
             result[k] = v
