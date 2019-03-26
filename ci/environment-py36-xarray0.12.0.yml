@@ -1,0 +1,11 @@
+name: test_env
+dependencies:
+  - python=3.6
+  - xarray>=0.12.0
+  - dask
+  - numpy
+  - pytest
+  - future
+  - pip:
+    - codecov
+    - pytest-cov
