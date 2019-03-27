@@ -1,0 +1,12 @@
+name: root
+channels:
+  - conda-forge
+dependencies:
+  - python=3.6
+  - xarray
+  - dask
+  - netcdf4
+  - matplotlib
+  - cartopy
+  - pip:
+    - git+https://github.com/xgcm/xmitgcm.git

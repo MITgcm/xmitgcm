@@ -1,7 +1,7 @@
 xmitgcm: Read MITgcm mds binary files into xarray
 =================================================
 
-|pypi| |Build Status| |codecov| |docs| |DOI|
+|pypi| |Build Status| |Binder| |codecov| |docs| |DOI|
 
 xmitgcm is a python package for reading MITgcm_ binary MDS files into
 xarray_ data structures. By storing data in dask_ arrays, xmitgcm enables
@@ -102,6 +102,8 @@ more details.
 .. |docs| image:: http://readthedocs.org/projects/xmitgcm/badge/?version=stable
    :target: http://xmitgcm.readthedocs.org/en/stable/?badge=stable
    :alt: documentation status
+.. |Binder| image:: http://binder.pangeo.io/badge.svg
+    :target: http://binder.pangeo.io/v2/gh/xgcm/xmitgcm/master
 
 .. _dask: http://dask.pydata.org
 .. _xarray: http://xarray.pydata.org
@@ -111,3 +113,6 @@ more details.
 .. _MITgcm: http://mitgcm.org/public/r2_manual/latest/online_documents/node277.html
 .. _out-of-core: https://en.wikipedia.org/wiki/Out-of-core_algorithm
 .. _Anaconda: https://www.continuum.io/downloads
+.. _pangeo.binder.io: http://binder.pangeo.io/
+
+
