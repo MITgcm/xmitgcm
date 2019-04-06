@@ -10,9 +10,9 @@ parallel, out-of-core_ analysis of MITgcm output data.
 Links
 -----
 
--  HTML documentation: http://xmitgcm.readthedocs.org
--  Issue tracker: http://github.com/xgcm/xmitgcm/issues
--  Source code: http://github.com/xgcm/xmitgcm
+-  HTML documentation: https://xmitgcm.readthedocs.org
+-  Issue tracker: https://github.com/xgcm/xmitgcm/issues
+-  Source code: https://github.com/xgcm/xmitgcm
 
 Installation
 ------------
@@ -23,7 +23,7 @@ Requirements
 xmitgcm is compatible with python 3 and python 2.7. It requires xarray_
 (>= version 0.8.2) and dask_ (>= version 0.11.2).
 These packages are most reliably installed via the
-`conda <http://conda.pydata.org/docs/>`_ environment management
+`conda <https://conda.pydata.org/docs/>`_ environment management
 system, which is part of the Anaconda_ python distribution. Assuming you have
 conda available on your system, the dependencies can be installed with the
 command::
@@ -85,7 +85,7 @@ try to determine the file prefixes and iteration numbers to read. In some
 configurations, the ``open_mdsdataset`` function may work without further
 keyword arguments. In most cases, you will have to specify further details.
 
-Consult the `online documentation <http://xmitgcm.readthedocs.org>`_ for
+Consult the `online documentation <https://xmitgcm.readthedocs.org>`_ for
 more details.
 
 .. |DOI| image:: https://zenodo.org/badge/70649781.svg
@@ -99,13 +99,13 @@ more details.
 .. |pypi| image:: https://badge.fury.io/py/xmitgcm.svg
    :target: https://badge.fury.io/py/xmitgcm
    :alt: pypi package
-.. |docs| image:: http://readthedocs.org/projects/xmitgcm/badge/?version=stable
-   :target: http://xmitgcm.readthedocs.org/en/stable/?badge=stable
+.. |docs| image:: https://readthedocs.org/projects/xmitgcm/badge/?version=stable
+   :target: https://xmitgcm.readthedocs.org/en/stable/?badge=stable
    :alt: documentation status
 
-.. _dask: http://dask.pydata.org
-.. _xarray: http://xarray.pydata.org
-.. _Comodo: http://pycomodo.forge.imag.fr/norm.html
+.. _dask: https://dask.pydata.org
+.. _xarray: https://xarray.pydata.org
+.. _Comodo: https://pycomodo.forge.imag.fr/norm.html
 .. _issues: https://github.com/xgcm/xmitgcm/issues
 .. _`pull requests`: https://github.com/xgcm/xmitgcm/pulls
 .. _MITgcm: http://mitgcm.org/public/r2_manual/latest/online_documents/node277.html
