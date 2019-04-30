@@ -41,6 +41,7 @@ extensions = [
     'sphinx.ext.extlinks',
     'sphinx.ext.viewcode',
     'numpydoc',
+    'nbsphinx',
 ]
 
 # link to github issues

@@ -12,9 +12,11 @@ parallel, out-of-core_ analysis of MITgcm output data.
    quick_start
    usage
    examples
+   demo_read_input_grid
    performance
    utils
    development
+
 
 .. _dask: http://dask.pydata.org
 .. _xarray: http://xarray.pydata.org
