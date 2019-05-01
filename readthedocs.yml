@@ -2,3 +2,10 @@ version: 2
 
 conda:
     environment: doc/environment.yml
+
+python:
+   version: 2.7
+   install:
+      - method: setuptools
+        path: .
+   system_packages: true
