@@ -2,6 +2,3 @@ version: 2
 
 conda:
     environment: doc/environment.yml
-python:
-   version: 2
-   setup_py_install: true
