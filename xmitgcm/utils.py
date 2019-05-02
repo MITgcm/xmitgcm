@@ -674,6 +674,7 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False,
         Whether to read 2D (default) or 3D chunks
         2D chunks are reading (x,y) levels and 3D chunks
         are reading the a (x,y,z) field
+
     RETURNS
     -------
     out : list
