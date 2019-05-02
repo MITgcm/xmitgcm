@@ -1148,28 +1148,28 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
         elimination. Reading the input grid files (e.g. tile00[1-5].mitgrid)
         allows to fill in the blanks of eliminated land tiles.
 
-    PARAMETERS:
-    -----------
-    gridfile: str
+    PARAMETERS
+    ----------
+    gridfile : str
         gridfile must contain <NFACET> as wildcard (e.g. tile<NFACET>.mitgrid)
-    nx:     int
+    nx : int
         size of the face in the x direction
-    ny:     int
+    ny : int
         size of the face in the y direction
-    geometry: str
+    geometry : str
         domain geometry can be llc, cs or carthesian not supported yet
-    dtype: np.dtype
+    dtype : np.dtype
         numeric precision (single/double) of input data
-    endian: string
+    endian : string
         endianness of input data
-    use_dask: bool
+    use_dask : bool
         use dask or not
-    extra_metadata: dict
+    extra_metadata : dict
         dictionary of extra metadata, needed for llc configurations
-
-    RETURNS:
-    --------
-    xarray.Dataset of grid variables
+    RETURNS
+    ------- 
+    grid : xarray.Dataset
+        all grid variables
     """
 
     file_metadata = {}
@@ -1340,19 +1340,18 @@ def find_concat_dim_facet(da, facet, extra_metadata):
     along i or i_g. If order is C, concat along j or j_g. Also return
     horizontal dim not to concatenate
 
-    PARAMETERS:
-
-    da: xarray.DataArray
+    PARAMETERS
+    ----------
+    da : xarray.DataArray
         xmitgcm llc data array
-    facet: int
+    facet : int
         facet number
-    extra_metadata: dict
+    extra_metadata : dict
         dict of extra_metadata from get_extra_metadata
-
-    RETURN:
-
-    str, str
-
+    RETURNS
+    -------
+    concat_dim, nonconcat_dim : str, str
+        names of the dimensions for concatenation or not
 
     """
     order = extra_metadata['facet_orders'][facet]
@@ -1377,17 +1376,17 @@ def find_concat_dim(da, possible_concat_dims):
     """ look for available dimensions in dataaray and pick the one
     from a list of candidates
 
-    PARAMETERS:
-
-    da: xarray.DataArray
+    PARAMETERS
+    ----------
+    da : xarray.DataArray
         xmitgcm llc data array
-
-    possible_concat_dims: list
+    possible_concat_dims : list
         list of potential dims
+    RETURNS
+    -------
+    out : str
+        dimension on which to concatenate
 
-    RETURN:
-
-    str
     """
     out = None
     for d in possible_concat_dims:
@@ -1400,16 +1399,16 @@ def rebuild_llc_facets(da, extra_metadata):
     """ For LLC grids, rebuilds facets from a xmitgcm dataarray and
     store into a dictionary
 
-    PARAMETERS:
-
-    da: xarray.DataArray
+    PARAMETERS
+    ----------
+    da : xarray.DataArray
         xmitgcm llc data array
-    extra_metadata: dict
+    extra_metadata : dict
         dict of extra_metadata from get_extra_metadata
-
-    RETURN:
-
-    dict
+    RETURNS
+    -------
+    facets : dict
+        all facets data in xarray.DataArray form packed into a dictionary
 
     """
 
@@ -1485,16 +1484,17 @@ def rebuild_llc_facets(da, extra_metadata):
 def llc_facets_3d_spatial_to_compact(facets, dimname, extra_metadata):
     """ Write in compact form a list of 3d facets
 
-    PARAMETERS:
-
-    facets: dict
+    PARAMETERS
+    ----------
+    facets : dict
         dict of xarray.dataarrays for the facets
-    extra_metadata: dict
+    extra_metadata : dict
         extra_metadata from get_extra_metadata
+    RETURNS
+    -------
+    flatdata : numpy.array
+        all the data in vector form
 
-    RETURN:
-
-    numpy.array
     """
 
     nz = len(facets['facet0'][dimname])
@@ -1520,16 +1520,17 @@ def llc_facets_3d_spatial_to_compact(facets, dimname, extra_metadata):
 def llc_facets_2d_to_compact(facets, extra_metadata):
     """ Write in compact form a list of 2d facets
 
-    PARAMETERS:
-
+    PARAMETERS
+    ----------
     facets: dict
         dict of xarray.dataarrays for the facets
     extra_metadata: dict
         extra_metadata from get_extra_metadata
+    RETURNS
+    -------
+    flatdata : numpy.array
+        all the data in vector form
 
-    RETURN:
-
-    numpy.array
     """
 
     flatdata = np.array([])
@@ -1545,14 +1546,17 @@ def llc_facets_2d_to_compact(facets, extra_metadata):
 def write_to_binary(flatdata, fileout, dtype=np.dtype('f')):
     """ write data in binary file
 
-    PARAMETERS:
-
+    PARAMETERS
+    ----------
     flatdata: numpy.array
         vector of data to write
     fileout: str
         output file name
     dtype: np.dtype
         single/double precision
+    RETURNS
+    -------
+    None
 
 
     """
