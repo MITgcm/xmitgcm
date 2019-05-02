@@ -13,6 +13,7 @@ parallel, out-of-core_ analysis of MITgcm output data.
    usage
    examples
    demo_read_input_grid
+   demo_writing_binary_file
    performance
    utils
    development
