@@ -503,6 +503,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                                                            self.grid_dir,
                                                            self.layers)
         self._all_data_variables = _get_all_data_variables(self.data_dir,
+                                                           self.grid_dir,
                                                            self.layers)
 
         # The rest of the data has to be read from disk.
@@ -812,17 +813,25 @@ def _recursively_replace(item, search, replace):
         return item
 
 
-def _get_all_data_variables(data_dir, layers):
+def _get_all_data_variables(data_dir, grid_dir, layers):
     """"Put all the relevant data metadata into one big dictionary."""
     allvars = [state_variables]
     allvars.append(package_state_variables)
+    
     # add others from available_diagnostics.log
-    fname = os.path.join(data_dir, 'available_diagnostics.log')
-    if os.path.exists(fname):
-        diag_file = fname
+    # search in the data dir
+    fnameD = os.path.join(data_dir, 'available_diagnostics.log')
+    # and in the grid dir
+    fnameG = os.path.join(grid_dir, 'available_diagnostics.log')
+    # first look in the data dir
+    if os.path.exists(fnameD):
+        diag_file = fnameD
+    # then in the grid dir
+    elif os.path.exists(fnameG):
+        diag_file = fnameG
     else:
         warnings.warn("Couldn't find available_diagnostics.log "
-                      "in %s. Using default version." % data_dir)
+                      "in %s or %s. Using default version." % (data_dir, grid_dir)
         from .default_diagnostics import diagnostics
         diag_file = StringIO(diagnostics)
     available_diags = parse_available_diagnostics(diag_file, layers)
