@@ -39,7 +39,7 @@ try:
     from xarray.core.pycompat import OrderedDict
 except ImportError:
     from collections import OrderedDict
-    
+
 # should we hard code this?
 LLC_NUM_FACES = 13
 LLC_FACE_DIMNAME = 'face'
@@ -671,6 +671,10 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 # for some reason, dask arrays don't work here
                 # ok to promote to numpy array because data is always 1D
                 data = np.atleast_1d(np.asarray(data).squeeze())
+
+            # hack to get 2d diags of 3d fields work
+            if len(dims) == 3 and data.ndim == 3 and 'face' not in dims:
+                dims = dims[1:]
 
             if self.llc:
                 dims, data = _reshape_for_llc(dims, data)
