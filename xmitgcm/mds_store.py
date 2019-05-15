@@ -683,18 +683,27 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 # ok to promote to numpy array because data is always 1D
                 data = np.atleast_1d(np.asarray(data).squeeze())
 
-            # hack to get 2d diags of 3d fields work
-            if extra_metadata is not None and '2d_diag_of_3d_var' in extra_metadata:
-                if extra_metadata['2d_diag_of_3d_var'] and vname in self._all_data_variables.keys():
-                    #Expect 3 dims, vertical and 2 horizontal
-                    ndims_expected = 3
-                    if self.llc:
-                        # llc geometry adds face dim
-                        ndims_expected += 1
 
-                    if len(dims) == 3 and data.ndim == ndims_expected-1:
-                        dims = dims[1:]
-                        vname = '%s_2D' % vname
+            ndims_expected = len(dims)
+            if self.llc:
+                # llc geometry adds face dim
+                ndims_expected += 1
+
+            # hack to get 2d diags of 3d fields work
+            # Expect 3 dims, vertical and 2 horizontal
+            if vname in self._all_data_variables.keys():
+                if ndims_expected == 3 and data.ndim == ndims_expected-1:
+                    if extra_metadata is not None and '2d_diag_of_3d_var' in extra_metadata:
+                        if extra_metadata['2d_diag_of_3d_var']:
+                            dims = dims[1:]
+                            vname = '%s_2D' % vname
+                    else:
+                        raise TypeError('Variable %s from file prefix %s has '
+                                        'unexpected number of dimensions. \n'
+                                        'Set 2d_diag_of_3d_var=True in extra_metadata to read 2D '
+                                        'diagnostic of a typically 3D variable'
+                                        % (vname,prefix))
+
 
             if self.llc:
                 dims, data = _reshape_for_llc(dims, data)
