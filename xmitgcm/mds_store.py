@@ -669,17 +669,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             dims = list(metadata['dims'])
             attrs = dict(metadata['attrs'])
 
-            # Some 2D output squeezes one of the dimensions out (e.g. hFacC).
-            # How should we handle this? Can either eliminate one of the dims
-            # or add an extra axis to the data. Let's try the former, on the
-            # grounds that it is simpler for the user.
-            if len(dims) == 3 and data.ndim == 2:
-                # Deleting the first dimension (z) assumes that 2D data always
-                # corresponds to x,y horizontal data. Is this really true?
-                # The answer appears to be yes: 2D (x|y,z) data retains the
-                # missing dimension as an axis of length 1.
-                dims = dims[1:]
-            elif len(dims) == 1 and data.ndim > 1:
+            if len(dims) == 1 and data.ndim > 1:
                 # this is for certain profile data like RC, PHrefC, etc.
                 # for some reason, dask arrays don't work here
                 # ok to promote to numpy array because data is always 1D
@@ -693,6 +683,18 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
 
             # Get 2D diags of 3D vars
             # Expect 3 dims, vertical and 2 horizontal
+            # Leaving previous comments here from how this was implemented
+            # earlier
+            #
+            # Some 2D output squeezes one of the dimensions out (e.g. hFacC).
+            # How should we handle this? Can either eliminate one of the dims
+            # or add an extra axis to the data. Let's try the former, on the
+            # grounds that it is simpler for the user.
+            #
+            # Deleting the first dimension (z) assumes that 2D data always
+            # corresponds to x,y horizontal data. Is this really true?
+            # The answer appears to be yes: 2D (x|y,z) data retains the
+            # missing dimension as an axis of length 1.
             if len(dims) == 3 and data.ndim == ndims_expected-1:
                 if allow_2d_diags:
                     dims = dims[1:]
