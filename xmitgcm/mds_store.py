@@ -692,7 +692,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             # hack to get 2d diags of 3d fields work
             # Expect 3 dims, vertical and 2 horizontal
             if vname in self._all_data_variables.keys():
-                if ndims_expected == 3 and data.ndim == ndims_expected-1:
+                if len(dims) == 3 and data.ndim == ndims_expected-1:
                     if extra_metadata is not None and '2d_diag_of_3d_var' in extra_metadata:
                         if extra_metadata['2d_diag_of_3d_var']:
                             dims = dims[1:]
