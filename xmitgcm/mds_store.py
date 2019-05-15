@@ -53,7 +53,8 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     endian=">", chunks=None,
                     ignore_unknown_vars=False, default_dtype=None,
                     nx=None, ny=None, nz=None,
-                    llc_method="smallchunks", extra_metadata=None):
+                    llc_method="smallchunks", extra_metadata=None,
+                    allow_2d_diags=False):
     """Open MITgcm-style mds (.data / .meta) file output as xarray datset.
 
     Parameters
@@ -109,8 +110,6 @@ def open_mdsdataset(data_dir, grid_dir=None,
         configuration.
     extra_metadata : dict, optional
         Allow to pass information on llc type grid (global or regional),
-        or notify that we want to read in 2D diagnostic of a 3D variable
-        (e.g. one level, vertical integral).
 
         The additional metadata is typically such as :
 
@@ -127,9 +126,12 @@ def open_mdsdataset(data_dir, grid_dir=None,
         For global llc grids, no extra metadata is required and code
         will set up to global llc default configuration.
 
-        To tell xmitgcm to read 2D diagnostics of an otherwise 3D variable, then set
-
-        extra_metadata = {'2d_diag_of_3d_var': True}
+    allow_2d_diags : logical, optional
+        Allow to read 2D versions of otherwise 3D variables, snipping
+        the vertical coordinate (first dimension). This may be necessary for
+            - barotropic simulations
+            - when data.diagnostics specifies vertical integrals or a single
+              vertical level of a 3D variable and this is not in meta file
 
     Returns
     -------
@@ -207,7 +209,8 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     ignore_unknown_vars=ignore_unknown_vars,
                     default_dtype=default_dtype,
                     nx=nx, ny=ny, nz=nz, llc_method=llc_method,
-                    extra_metadata=extra_metadata)
+                    extra_metadata=extra_metadata,
+                    allow_2d_diags=allow_2d_diags)
                 datasets = [open_mdsdataset(
                         data_dir, iters=iternum, read_grid=False, **kwargs)
                     for iternum in iters]
@@ -234,7 +237,8 @@ def open_mdsdataset(data_dir, grid_dir=None,
                           ignore_unknown_vars=ignore_unknown_vars,
                           default_dtype=default_dtype,
                           nx=nx, ny=ny, nz=nz, llc_method=llc_method,
-                          extra_metadata=extra_metadata)
+                          extra_metadata=extra_metadata,
+                          allow_2d_diags=allow_2d_diags)
     ds = xr.Dataset.load_store(store)
 
     if swap_dims:
@@ -330,7 +334,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                  endian='>', ignore_unknown_vars=False,
                  default_dtype=np.dtype('f4'),
                  nx=None, ny=None, nz=None, llc_method="smallchunks",
-                 extra_metadata=None):
+                 extra_metadata=None,allow_2d_diags=False):
         """
         This is not a user-facing class. See open_mdsdataset for argument
         documentation. The only ones which are distinct are.
@@ -395,11 +399,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 # default to llc90, we only need number of facets
                 # and we cannot know nx at this point
                 llc = get_extra_metadata(domain='llc', nx=90)
-                if extra_metadata is None:
-                    extra_metadata = llc
-                else:
-                    # Don't erase what the user sent
-                    extra_metadata.update(llc)
+                extra_metadata = llc
         # --------------- /LEGACY ----------------------
 
         # we don't need to know ny if using llc
@@ -534,7 +534,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         for p in prefixes:
             # use a generator to loop through the variables in each file
             for (vname, dims, data, attrs) in \
-                    self.load_from_prefix(p, iternum, extra_metadata):
+                    self.load_from_prefix(p, iternum, extra_metadata,
+                                          allow_2d_diags):
                 # print(vname, dims, data.shape)
                 # Sizes of grid variables can vary between mitgcm versions.
                 # Check for such inconsistency and correct if so
@@ -568,7 +569,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
 
         return data
 
-    def load_from_prefix(self, prefix, iternum=None, extra_metadata=None):
+    def load_from_prefix(self, prefix, iternum=None, extra_metadata=None,
+                         allow_2d_diags=False):
         """Read data and look up metadata for grid variable `name`.
 
         Parameters
@@ -689,20 +691,18 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 # llc geometry adds face dim
                 ndims_expected += 1
 
-            # hack to get 2d diags of 3d fields work
+            # Get 2D diags of 3D vars
             # Expect 3 dims, vertical and 2 horizontal
-            if vname in self._all_data_variables.keys():
-                if len(dims) == 3 and data.ndim == ndims_expected-1:
-                    if extra_metadata is not None and '2d_diag_of_3d_var' in extra_metadata:
-                        if extra_metadata['2d_diag_of_3d_var']:
-                            dims = dims[1:]
-                            vname = '%s_2D' % vname
-                    else:
-                        raise TypeError('Variable %s from file prefix %s has '
-                                        'unexpected number of dimensions. \n'
-                                        'Set 2d_diag_of_3d_var=True in extra_metadata to read 2D '
-                                        'diagnostic of a typically 3D variable'
-                                        % (vname,prefix))
+            if len(dims) == 3 and data.ndim == ndims_expected-1:
+                if allow_2d_diags:
+                    dims = dims[1:]
+                    vname = '%s_2D' % vname
+                else:
+                    raise TypeError('Variable %s from file prefix %s has '
+                                    'unexpected number of dimensions. \n'
+                                    'Set allow_2d_diags=True to read 2D '
+                                    'diagnostic of a typically 3D variable'
+                                    % (vname,prefix))
 
 
             if self.llc:
