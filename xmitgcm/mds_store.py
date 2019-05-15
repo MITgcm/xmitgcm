@@ -109,7 +109,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
         configuration.
     extra_metadata : dict, optional
         Allow to pass information on llc type grid (global or regional),
-        or notify that we want to read in 2D slice of a 3D variable
+        or notify that we want to read in 2D diagnostic of a 3D variable
         (e.g. one level, vertical integral).
 
         The additional metadata is typically such as :
