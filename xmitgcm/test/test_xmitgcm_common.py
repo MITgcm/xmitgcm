@@ -54,7 +54,8 @@ _experiments = {
                                            'ADVx_TH', 'ADVy_TH',
                                            'DFrE_TH', 'DFxE_TH',
                                            'DFyE_TH', 'DFrI_TH',
-                                           'UTHMASS', 'VTHMASS', 'WTHMASS'])},
+                                           'UTHMASS', 'VTHMASS', 'WTHMASS']),
+                          'allow_2d_diags':False},
     'barotropic_gyre': {'geometry': 'cartesian',
                         'dlink': dlroot + '14066618',
                         'md5': '5200149791bfd24989ad8b98c18937dc',
@@ -62,7 +63,8 @@ _experiments = {
                         'dtype': np.dtype('f4'),
                         'expected_values': {'XC': ((0, 0), 10000.0)},
                         'all_iters': [0, 10],
-                        'prefixes': ['T', 'S', 'Eta', 'U', 'V', 'W']},
+                        'prefixes': ['T', 'S', 'Eta', 'U', 'V', 'W'],
+                        'allow_2d_diags':True},
     'internal_wave': {'geometry': 'sphericalpolar',
                       'dlink': dlroot + '14066642',
                       'md5': 'eedfab1aec365fd8c17d3bc0f86a1431',
@@ -78,7 +80,8 @@ _experiments = {
                       # these diagnostics won't load because not all levels
                       # were output...no idea how to overcome that bug
                       # 'diagnostics': ('diagout1', ['UVEL', 'VVEL']),
-                      'prefixes': ['T', 'S', 'Eta', 'U', 'V', 'W']},
+                      'prefixes': ['T', 'S', 'Eta', 'U', 'V', 'W'],
+                      'allow_2d_diags':False},
     'global_oce_llc90': {'geometry': 'llc',
                          'dlink': dlroot + '14066567',
                          'md5': '6c309416f91ae9baaf1fb21b3dc50e49',
@@ -114,7 +117,8 @@ _experiments = {
                                                            'DFxESNOW',
                                                            'DFyESNOW',
                                                            'SIuice',
-                                                           'SIvice'])},
+                                                           'SIvice']),
+                         'allow_2d_diags':False},
     'curvilinear_leman': {'geometry': 'curvilinear',
                           'dlink': dlroot + '14066621',
                           'md5': 'c3203ae1fb0d6a61174dd680b7660894',
@@ -128,7 +132,8 @@ _experiments = {
                           'expected_time': [
                               (0, np.datetime64('2013-11-12T12:00:00.000000000')),
                               (1, np.datetime64('2013-11-12T12:02:00.000000000'))],
-                          'prefixes': ['THETA']},
+                          'prefixes': ['THETA'],
+                          'allow_2d_diags':False},
 
 }
 

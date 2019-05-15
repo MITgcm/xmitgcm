@@ -39,7 +39,8 @@ def test_open_mdsdataset_minimal(all_mds_datadirs):
 
     ds = xmitgcm.open_mdsdataset(
         dirname, iters=None, read_grid=False, swap_dims=False,
-        geometry=expected['geometry'])
+        geometry=expected['geometry'],
+        allow_2d_diags=expected['allow_2d_diags'])
 
     # the expected dimensions of the dataset
     eshape = expected['shape']
@@ -95,7 +96,8 @@ def test_read_grid(all_mds_datadirs):
     dirname, expected = all_mds_datadirs
     ds = xmitgcm.open_mdsdataset(
         dirname, iters=None, read_grid=True,
-        geometry=expected['geometry'])
+        geometry=expected['geometry'],
+        allow_2d_diags=expected['allow_2d_diags'])
 
     for vname in _EXPECTED_GRID_VARS:
         assert vname in ds.variables
@@ -118,12 +120,14 @@ def test_values_and_endianness(all_mds_datadirs):
     # default endianness
     ds = xmitgcm.open_mdsdataset(
                 dirname, iters=None, read_grid=True, swap_dims=False,
-                geometry=expected['geometry'])
+                geometry=expected['geometry'],
+                allow_2d_diags=expected['allow_2d_diags'])
     # now reverse endianness
     ds_le = xmitgcm.open_mdsdataset(
                 dirname, iters=None, read_grid=True, endian='<',
                 swap_dims=False,
-                geometry=expected['geometry'])
+                geometry=expected['geometry'],
+                allow_2d_diags=expected['allow_2d_diags'])
 
     for vname, (idx, val) in expected['expected_values'].items():
         np.testing.assert_allclose(ds[vname].values[idx], val)
@@ -152,7 +156,8 @@ def test_open_dataset_no_meta(all_mds_datadirs):
 
     it = expected['test_iternum']
     kwargs = dict(iters=it, geometry=expected['geometry'], read_grid=False,
-                  swap_dims=False, default_dtype=expected['dtype'])
+                  swap_dims=False, default_dtype=expected['dtype'],
+                  allow_2d_diags=expected['allow_2d_diags'])
 
     # a 3D file
     to_hide = ['T.%010d.meta' % it, 'Eta.%010d.meta' % it]
@@ -167,7 +172,8 @@ def test_open_dataset_no_meta(all_mds_datadirs):
                                             "is not precised (i.e., None)"):
             xmitgcm.open_mdsdataset(dirname, prefix=['T', 'Eta'], iters=it,
                                     geometry=expected['geometry'],
-                                    read_grid=False)
+                                    read_grid=False,
+                                    allow_2d_diags=expected['allow_2d_diags'])
 
     # now get rid of the variables used to infer dimensions
     with hide_file(dirname, 'XC.meta', 'RC.meta'):
@@ -216,7 +222,7 @@ def test_open_dataset_2D_diags(all_mds_datadirs):
 
     it = expected['test_iternum']
     kwargs = dict(iters=it, geometry=expected['geometry'], read_grid=False,
-                  swap_dims=False)
+                  swap_dims=False,allow_2d_diags=True)
 
     to_hide = ['T.%010d.meta' % it, 'T.%010d.data' % it]
     with hide_file(dirname, *to_hide):
@@ -238,13 +244,15 @@ def test_swap_dims(all_mds_datadirs):
     """See if we can swap dimensions."""
 
     dirname, expected = all_mds_datadirs
-    kwargs = dict(iters=None, read_grid=True, geometry=expected['geometry'])
+    kwargs = dict(iters=None, read_grid=True, geometry=expected['geometry'],
+                  allow_2d_diags=expected['allow_2d_diags'])
 
     expected_dims = ['XC', 'XG', 'YC', 'YG', 'Z', 'Zl', 'Zp1', 'Zu']
 
     # make sure we never swap if not reading grid
     assert 'i' in xmitgcm.open_mdsdataset(dirname,
-        iters=None, read_grid=False, geometry=expected['geometry'])
+        iters=None, read_grid=False, geometry=expected['geometry'],
+        allow_2d_diags=expected['allow_2d_diags'])
     if expected['geometry'] in ('llc', 'curvilinear'):
         # make sure swapping is not the default
         ds = xmitgcm.open_mdsdataset(dirname, **kwargs)
@@ -259,7 +267,8 @@ def test_swap_dims(all_mds_datadirs):
         ds = xmitgcm.open_mdsdataset(
                     dirname, geometry=expected['geometry'],
                     iters=None, read_grid=True, swap_dims=True,
-                    grid_vars_to_coords=True)
+                    grid_vars_to_coords=True,
+                    allow_2d_diags=expected['allow_2d_diags'])
 
 
         # check for comodo metadata needed by xgcm
@@ -284,7 +293,8 @@ def test_swap_dims(all_mds_datadirs):
 
         # make sure swapping works with multiple iters
         ds = xmitgcm.open_mdsdataset(dirname, geometry=expected['geometry'],
-                                     prefix=['S'])
+                                     prefix=['S'],
+                                     allow_2d_diags=expected['allow_2d_diags'])
         #print(ds)
         ds.load()
         assert 'XC' in ds['S'].dims
@@ -300,7 +310,8 @@ def test_prefixes(all_mds_datadirs):
     iters = [expected['test_iternum']]
     ds = xmitgcm.open_mdsdataset(
                 dirname, iters=iters, prefix=prefixes,
-                read_grid=False, geometry=expected['geometry'])
+                read_grid=False, geometry=expected['geometry'],
+                allow_2d_diags=expected['allow_2d_diags'])
 
     for p in prefixes:
         assert p in ds
@@ -316,7 +327,8 @@ def test_separate_grid_dir(all_mds_datadirs):
                     *['XC.meta', 'XC.data', 'RC.meta', 'RC.data']) as grid_dir:
         ds = xmitgcm.open_mdsdataset(
                 dirname, grid_dir=grid_dir, iters=iters, prefix=prefixes,
-                read_grid=False, geometry=expected['geometry'])
+                read_grid=False, geometry=expected['geometry'],
+                allow_2d_diags=expected['allow_2d_diags'])
         for p in prefixes:
             assert p in ds
 
@@ -328,13 +340,14 @@ def test_multiple_iters(multidim_mds_datadirs):
     ds = xmitgcm.open_mdsdataset(
         dirname, read_grid=False, geometry=expected['geometry'],
         iters=expected['all_iters'],
-        prefix=expected['prefixes'])
+        prefix=expected['prefixes'],
+        allow_2d_diags=expected['allow_2d_diags'])
     assert list(ds.iter.values) == expected['all_iters']
 
     # now infer the iters, should be the same
     ds2 = xmitgcm.open_mdsdataset(
         dirname, read_grid=False, iters='all', geometry=expected['geometry'],
-        prefix=expected['prefixes'])
+        prefix=expected['prefixes'], allow_2d_diags=expected['allow_2d_diags'])
     assert ds.equals(ds2)
 
     # In the test datasets, there is no PHL.0000000000.data file.
@@ -345,7 +358,7 @@ def test_multiple_iters(multidim_mds_datadirs):
     with pytest.raises(IOError):
         ds = xmitgcm.open_mdsdataset(
             dirname, read_grid=False, iters=expected['all_iters'],
-            geometry=expected['geometry'])
+            geometry=expected['geometry'], allow_2d_diags=expected['allow_2d_diags'])
 
     # now hide all the PH and PHL files: should be able to infer prefixes fine
     missing_files = [os.path.basename(f)
@@ -353,7 +366,7 @@ def test_multiple_iters(multidim_mds_datadirs):
     with hide_file(dirname, *missing_files):
         ds = xmitgcm.open_mdsdataset(
             dirname, read_grid=False, iters=expected['all_iters'],
-            geometry=expected['geometry'])
+            geometry=expected['geometry'], allow_2d_diags=expected['allow_2d_diags'])
 
 
 def test_date_parsing(mds_datadirs_with_refdate):
@@ -363,7 +376,8 @@ def test_date_parsing(mds_datadirs_with_refdate):
     ds = xmitgcm.open_mdsdataset(dirname, iters='all', prefix=['S'],
                               ref_date=expected['ref_date'], read_grid=False,
                               delta_t=expected['delta_t'],
-                              geometry=expected['geometry'])
+                              geometry=expected['geometry'],
+                              allow_2d_diags=expected['allow_2d_diags'])
 
     for i, date in expected['expected_time']:
         assert ds.time[i].values == date
@@ -382,7 +396,8 @@ def test_diagnostics(mds_datadirs_with_diagnostics):
                                               read_grid=False,
                                               iters=expected['test_iternum'],
                                               prefix=[diag_prefix],
-                                              geometry=expected['geometry'])
+                                              geometry=expected['geometry'],
+                                              allow_2d_diags=expected['allow_2d_diags'])
     for diagname in expected_diags:
         assert diagname in ds
         # check vector mates
@@ -400,7 +415,8 @@ def test_default_diagnostics(mds_datadirs_with_diagnostics):
                                               read_grid=False,
                                               iters=expected['test_iternum'],
                                               prefix=[diag_prefix],
-                                              geometry=expected['geometry'])
+                                              geometry=expected['geometry'],
+                                              allow_2d_diags=expected['allow_2d_diags'])
     for diagname in expected_diags:
         assert diagname in ds
         # check vector mates
@@ -412,7 +428,8 @@ def test_layers_diagnostics(layers_mds_datadirs):
     """Try reading dataset with layers output."""
     dirname, expected = layers_mds_datadirs
     ds = xmitgcm.open_mdsdataset(dirname, iters='all', swap_dims=False,
-                            geometry=expected['geometry'])
+                            geometry=expected['geometry'],
+                            allow_2d_diags=expected['allow_2d_diags'])
     layer_name = list(expected['layers'].keys())[0]
     layer_id = 'l' + layer_name[0]
     for suf in ['bounds', 'center', 'interface']:
@@ -443,6 +460,7 @@ def test_llc_dims(llc_mds_datadirs, method, with_refdate):
     ds = xmitgcm.open_mdsdataset(dirname,
                             iters=expected['test_iternum'],
                             geometry=expected['geometry'], llc_method=method,
+                            allow_2d_diags=expected['allow_2d_diags'],
                             **kwargs)
 
     nz, nface, ny, nx = expected['shape']
@@ -471,7 +489,8 @@ def test_drc_length(all_mds_datadirs):
              os.path.join(dirname, 'DRC.meta'))
     ds = xmitgcm.open_mdsdataset(
         dirname, iters=None, read_grid=True,
-        geometry=expected['geometry'])
+        geometry=expected['geometry'], 
+        allow_2d_diags=expected['allow_2d_diags'])
     assert len(ds.drC) == (len(ds.drF)+1)
 
 
@@ -481,7 +500,8 @@ def test_mask_values(all_mds_datadirs):
     dirname, expected = all_mds_datadirs
     ds = xmitgcm.open_mdsdataset(
         dirname, iters=None, read_grid=True,
-        geometry=expected['geometry'])
+        geometry=expected['geometry'], 
+        allow_2d_diags=expected['allow_2d_diags'])
 
     hFac_list = ['hFacC', 'hFacW', 'hFacS']
     mask_list = ['maskC', 'maskW', 'maskS']
@@ -511,7 +531,8 @@ def test_ref_date(mds_datadirs_with_refdate, swap_dims, read_grid, load):
                                  ref_date=expected['ref_date'],
                                  delta_t=expected['delta_t'],
                                  geometry=expected['geometry'],
-                                 read_grid=read_grid, swap_dims=swap_dims)
+                                 read_grid=read_grid, swap_dims=swap_dims,
+                                 allow_2d_diags=expected['allow_2d_diags'])
     if load:
         ds.time.load()
 
@@ -529,7 +550,8 @@ def test_llc_extra_metadata(llc_mds_datadirs, method):
                                  iters=expected['test_iternum'],
                                  geometry=expected['geometry'],
                                  llc_method=method,
-                                 extra_metadata=llc)
+                                 extra_metadata=llc,
+                                 allow_2d_diags=expected['allow_2d_diags'])
 
     assert ds.dims['face'] == 13
     assert ds.rA.dims == ('face', 'j', 'i')

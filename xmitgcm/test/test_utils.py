@@ -1066,7 +1066,8 @@ def test_llc_facets_2d_to_compact(llc_mds_datadirs):
     # open dataset
     ds = open_mdsdataset(dirname,
                          iters=expected['test_iternum'],
-                         geometry=expected['geometry'])
+                         geometry=expected['geometry'],
+                         allow_2d_diags=expected['allow_2d_diags'])
 
     nt, nfaces, ny, nx = expected['shape']
     md = get_extra_metadata(domain=expected['geometry'], nx=nx)
@@ -1101,7 +1102,8 @@ def test_llc_facets_3d_spatial_to_compact(llc_mds_datadirs):
     # open dataset
     ds = open_mdsdataset(dirname,
                          iters=expected['test_iternum'],
-                         geometry=expected['geometry'])
+                         geometry=expected['geometry'],
+                         allow_2d_diags=expected['allow_2d_diags'])
 
     nz, nfaces, ny, nx = expected['shape']
     md = get_extra_metadata(domain=expected['geometry'], nx=nx)
