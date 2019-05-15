@@ -686,9 +686,15 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             # hack to get 2d diags of 3d fields work
             if extra_metadata is not None and '2d_diag_of_3d_var' in extra_metadata:
                 if extra_metadata['2d_diag_of_3d_var'] and vname in self._all_data_variables.keys():
-                    if len(dims) == 3 and data.ndim == 3:
-                        dims = dims[1:]
-                        vname = f'{vname}_2D'
+                #Expect 3 dims, vertical and 2 horizontal
+                ndims_expected = 3
+                if self.llc:
+                    # llc geometry adds face dim
+                    ndims_expected += 1
+
+                if len(dims) == 3 and data.ndim == ndims_expected-1:
+                    dims = dims[1:]
+                    vname = '%s_2D' % vname
 
             if self.llc:
                 dims, data = _reshape_for_llc(dims, data)
