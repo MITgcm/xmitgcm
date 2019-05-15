@@ -129,7 +129,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
 
         To tell xmitgcm to read 2D diagnostics of an otherwise 3D variable, then set
 
-        extra_metadata = {'2d_diag_from_3d_var': True}
+        extra_metadata = {'2d_diag_of_3d_var': True}
 
     Returns
     -------
@@ -684,10 +684,11 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 data = np.atleast_1d(np.asarray(data).squeeze())
 
             # hack to get 2d diags of 3d fields work
-            if extra_metadata is not None and '2d_diag_from_3d_var' in extra_metadata:
-                if extra_metadata['2d_diag_from_3d_var'] and vname in self._all_data_variables.keys():
+            if extra_metadata is not None and '2d_diag_of_3d_var' in extra_metadata:
+                if extra_metadata['2d_diag_of_3d_var'] and vname in self._all_data_variables.keys():
                     if len(dims) == 3 and data.ndim == 3:
                         dims = dims[1:]
+                        vname = f'{vname}_2D'
 
             if self.llc:
                 dims, data = _reshape_for_llc(dims, data)
