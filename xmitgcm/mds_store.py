@@ -108,7 +108,10 @@ def open_mdsdataset(data_dir, grid_dir=None,
         memory and i/o performance depending on the details of the system
         configuration.
     extra_metadata : dict, optional
-        Allow to pass information on llc type grid (global or regional).
+        Allow to pass information on llc type grid (global or regional),
+        or notify that we want to read in 2D slice of a 3D variable
+        (e.g. one level, vertical integral).
+
         The additional metadata is typically such as :
 
         aste = {'has_faces': True, 'ny': 1350, 'nx': 270,
@@ -123,6 +126,10 @@ def open_mdsdataset(data_dir, grid_dir=None,
 
         For global llc grids, no extra metadata is required and code
         will set up to global llc default configuration.
+
+        To tell xmitgcm to read 2D diagnostics of an otherwise 3D variable, then set
+
+        extra_metadata = {'2d_diag_from_3d_var': True}
 
     Returns
     -------
@@ -388,7 +395,11 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 # default to llc90, we only need number of facets
                 # and we cannot know nx at this point
                 llc = get_extra_metadata(domain='llc', nx=90)
-                extra_metadata = llc
+                if extra_metadata is None:
+                    extra_metadata = llc
+                else:
+                    # Don't erase what the user sent
+                    extra_metadata.update(llc)
         # --------------- /LEGACY ----------------------
 
         # we don't need to know ny if using llc
@@ -673,8 +684,10 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 data = np.atleast_1d(np.asarray(data).squeeze())
 
             # hack to get 2d diags of 3d fields work
-            if len(dims) == 3 and data.ndim == 3 and 'face' not in dims:
-                dims = dims[1:]
+            if extra_metadata is not None and '2d_diag_from_3d_var' in extra_metadata:
+                if extra_metadata['2d_diag_from_3d_var'] and vname in self._all_data_variables.keys():
+                    if len(dims) == 3 and data.ndim == 3:
+                        dims = dims[1:]
 
             if self.llc:
                 dims, data = _reshape_for_llc(dims, data)
