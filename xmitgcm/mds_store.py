@@ -21,7 +21,7 @@ from .variables import dimensions, \
     horizontal_coordinates_curvcart, horizontal_coordinates_llc, \
     vertical_coordinates, horizontal_grid_variables, vertical_grid_variables, \
     volume_grid_variables, state_variables, aliases, package_state_variables, \
-    extra_grid_variables
+    extra_grid_variables, mask_variables
 # would it be better to import mitgcm_variables and then automate the search
 # for variable dictionaries
 
@@ -34,6 +34,12 @@ if (sys.version_info > (3, 0)):
 else:
     stringtypes = [str, unicode]
 
+# xarray>=0.12.0 compatiblity
+try:
+    from xarray.core.pycompat import OrderedDict
+except ImportError:
+    from collections import OrderedDict
+    
 # should we hard code this?
 LLC_NUM_FACES = 13
 LLC_FACE_DIMNAME = 'face'
@@ -359,8 +365,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             self.default_dtype = default_dtype
 
         # storage dicts for variables and attributes
-        self._variables = xr.core.pycompat.OrderedDict()
-        self._attributes = xr.core.pycompat.OrderedDict()
+        self._variables = OrderedDict()
+        self._attributes = OrderedDict()
         self._dimensions = []
 
         # the dimensions are theoretically the same for all datasets
@@ -530,6 +536,9 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 (vname, dims, data, attrs) = self.fix_inconsistent_variables(
                     vname, dims, data, attrs)
 
+                # Create masks from hFac variables
+                data = self.calc_masks(vname, data)
+
                 thisvar = xr.Variable(dims, data, attrs)
                 self._variables[vname] = thisvar
                 # print(type(data), type(thisvar._data), thisvar._in_memory)
@@ -545,6 +554,14 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 drc_data[-1] = 0.5 * data[-1]
                 data = drc_data
         return vname, dims, data, attrs
+
+    def calc_masks(self, vname, data):
+        """Compute mask as True where hFac nonzero, otherwise False"""
+
+        if vname[0:4] == 'mask':
+            data = data > 0
+
+        return data
 
     def load_from_prefix(self, prefix, iternum=None, extra_metadata=None):
         """Read data and look up metadata for grid variable `name`.
@@ -743,7 +760,8 @@ def _get_all_grid_variables(geometry, grid_dir, layers={}):
     extravars = _get_extra_grid_variables(grid_dir)
 
     allvars = [hcoords, vertical_coordinates, horizontal_grid_variables,
-               vertical_grid_variables, volume_grid_variables, extravars]
+               vertical_grid_variables, volume_grid_variables, mask_variables,
+               extravars]
 
     # tortured logic to add layers grid variables
     layersvars = [_make_layers_variables(layer_name)
@@ -772,7 +790,7 @@ def _get_extra_grid_variables(grid_dir):
 def _make_layers_variables(layer_name):
     """Translate metadata template to actual variable metadata."""
     from .variables import layers_grid_variables
-    lvars = xr.core.pycompat.OrderedDict()
+    lvars = OrderedDict()
     layer_num = layer_name[0]
     # should always be int
     assert isinstance(int(layer_num), int)
@@ -820,7 +838,7 @@ def _get_all_data_variables(data_dir, layers):
     # Now add the suffix '-T' to every diagnostic. This is a somewhat hacky
     # way to increase the coverage of possible output filenames.
     # But it doesn't work in python3!!!
-    extra_metadata = xr.core.pycompat.OrderedDict()
+    extra_metadata = OrderedDict()
     for name, val in metadata.items():
         newname = name + '-T'
         extra_metadata[newname] = val
@@ -834,7 +852,7 @@ def _get_all_data_variables(data_dir, layers):
 
 
 def _concat_dicts(list_of_dicts):
-    result = xr.core.pycompat.OrderedDict()
+    result = OrderedDict()
     for eachdict in list_of_dicts:
         for k, v in eachdict.items():
             result[k] = v

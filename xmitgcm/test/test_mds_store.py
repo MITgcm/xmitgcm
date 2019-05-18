@@ -425,19 +425,37 @@ def test_llc_dims(llc_mds_datadirs, method, with_refdate):
 def test_drc_length(all_mds_datadirs):
     """Test that open_mdsdataset is adding an extra level to drC if it has length nr"""
     dirname, expected = all_mds_datadirs
-    #Only older versions of the gcm have len(drC) = nr, so force len(drC) = nr for the test
-    copyfile(os.path.join(dirname, 'DRF.data'), os.path.join(dirname, 'DRC.data'))
-    copyfile(os.path.join(dirname, 'DRF.meta'), os.path.join(dirname, 'DRC.meta'))
+    # Only older versions of the gcm have len(drC) = nr, so force len(drC) = nr for the test
+    copyfile(os.path.join(dirname, 'DRF.data'),
+             os.path.join(dirname, 'DRC.data'))
+    copyfile(os.path.join(dirname, 'DRF.meta'),
+             os.path.join(dirname, 'DRC.meta'))
     ds = xmitgcm.open_mdsdataset(
-                dirname, iters=None, read_grid=True,
-                geometry=expected['geometry'])
-    assert len(ds.drC)==(len(ds.drF)+1)
+        dirname, iters=None, read_grid=True,
+        geometry=expected['geometry'])
+    assert len(ds.drC) == (len(ds.drF)+1)
 
+
+def test_mask_values(all_mds_datadirs):
+    """Test that open_mdsdataset generates binary masks with correct values"""
+
+    dirname, expected = all_mds_datadirs
+    ds = xmitgcm.open_mdsdataset(
+        dirname, iters=None, read_grid=True,
+        geometry=expected['geometry'])
+
+    hFac_list = ['hFacC', 'hFacW', 'hFacS']
+    mask_list = ['maskC', 'maskW', 'maskS']
+
+    for hFac, mask in zip(hFac_list, mask_list):
+        xr.testing.assert_equal(ds[hFac] * ds[mask], ds[hFac])
 
 #
 # Series of tests which try to open a dataset with different combinations of
 # of options, to identify if ref_date can trigger an error
 #
+
+
 @pytest.mark.parametrize("load", [True, False])
 # can't call swap_dims without read_grid=True
 @pytest.mark.parametrize("swap_dims, read_grid", [(True, True),

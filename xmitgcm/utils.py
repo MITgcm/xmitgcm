@@ -113,23 +113,23 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
         extra metadata used is of the form :
 
         aste = {'has_faces': True, 'ny': 1350, 'nx': 270,
-                'ny_facets': [450,0,270,180,450],
-                'pad_before_y': [90,0,0,0,0],
-                'pad_after_y': [0,0,0,90,90],
-                'face_facets': [0, 0, 2, 3, 4, 4],
-                'facet_orders' : ['C', 'C', 'C', 'F', 'F'],
-                'face_offsets' : [0, 1, 0, 0, 0, 1],
-                'transpose_face' : [False, False, False,
-                                    True, True, True]}
+        'ny_facets': [450,0,270,180,450],
+        'pad_before_y': [90,0,0,0,0],
+        'pad_after_y': [0,0,0,90,90],
+        'face_facets': [0, 0, 2, 3, 4, 4],
+        'facet_orders' : ['C', 'C', 'C', 'F', 'F'],
+        'face_offsets' : [0, 1, 0, 0, 0, 1],
+        'transpose_face' : [False, False, False,
+        True, True, True]}
 
         llc90 = {'has_faces': True, 'ny': 13*90, 'nx': 90,
-                 'ny_facets': [3*90, 3*90, 90, 3*90, 3*90],
-                 'face_facets': [0, 0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 4, 4],
-                 'facet_orders': ['C', 'C', 'C', 'F', 'F'],
-                 'face_offsets': [0, 1, 2, 0, 1, 2, 0, 0, 1, 2, 0, 1, 2],
-                 'transpose_face' : [False, False, False,
-                                     False, False, False, False,
-                                     True, True, True, True, True, True]}
+        'ny_facets': [3*90, 3*90, 90, 3*90, 3*90],
+        'face_facets': [0, 0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 4, 4],
+        'facet_orders': ['C', 'C', 'C', 'F', 'F'],
+        'face_offsets': [0, 1, 2, 0, 1, 2, 0, 0, 1, 2, 0, 1, 2],
+        'transpose_face' : [False, False, False,
+        False, False, False, False,
+        True, True, True, True, True, True]}
 
         llc grids have typically 5 rectangular facets and will be mapped onto
         N (=13 for llc, =6 for aste) square faces.
@@ -144,11 +144,11 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
         * list of len=nfacets:
 
         #. ny_facets : number of points in y direction of each facet
-                      (usually n * nx)
+        (usually n * nx)
         #. pad_before_y (Regional configuration) : pad data with N zeros
-                                                  before array
+        before array
         #. pad_after_y (Regional configuration) : pad data with N zeros
-                                                 after array
+        after array
         #. facet_order : row/column major order of this facet
 
         * list of len=nfaces:
@@ -739,23 +739,25 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False,
     """
     Return a dictionary of dask arrays for variables in a MDS file
 
-    Parameters
+    PARAMETERS
     ----------
     variable_list : list
-                    list of MITgcm variables, from fldList in .meta
+        list of MITgcm variables, from fldList in .meta
     file_metadata : dict
-                    internal metadata for binary file
-    use_mmap      : bool, optional
-                    Whether to read the data using a numpy.memmap
-    chunks        : str, optional
-                    Whether to read 2D (default) or 3D chunks
-                    2D chunks are reading (x,y) levels and 3D chunks
-                    are reading the a (x,y,z) field
-    Returns
+        internal metadata for binary file
+    use_mmap : bool, optional
+        Whether to read the data using a numpy.memmap
+    chunks : str, optional
+        Whether to read 2D (default) or 3D chunks
+        2D chunks are reading (x,y) levels and 3D chunks
+        are reading the a (x,y,z) field
+
+    RETURNS
     -------
-    list of data arrays (dask.array, numpy.ndarray or memmap)
-    corresponding to variables from given list in the file
-    described by file_metadata
+    out : list
+        list of data arrays (dask.array, numpy.ndarray or memmap)
+        corresponding to variables from given list in the file
+        described by file_metadata
 
     """
 
@@ -1161,17 +1163,20 @@ def _pad_array(data, file_metadata, face=0):
 
 
 def get_extra_metadata(domain='llc', nx=90):
-    """ Return the extra_metadata dictionay for selected domains
+    """ 
+    Return the extra_metadata dictionay for selected domains
 
-    PARAMETERS:
-    -----------
-    domain: str
-    domain can be llc, aste, cs
-    nx:     int
-    size of the face in the x direction
-    RETURNS:
-    --------
-    dict of extra_metadata
+    PARAMETERS
+    ----------
+    domain : str
+        domain can be llc, aste, cs
+    nx : int
+        size of the face in the x direction
+
+    RETURNS
+    -------
+    extra_metadata : dict
+        all extra_metadata to handle multi-faceted grids
     """
 
     available_domains = ['llc', 'aste', 'cs']
@@ -1220,33 +1225,35 @@ def get_extra_metadata(domain='llc', nx=90):
 def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                         dtype=np.dtype('d'), endian='>', use_dask=False,
                         extra_metadata=None):
-    """ Read grid variables from grid input files, this is especially useful
-        for llc and cube sphere configurations used with land tiles
-        elimination. Reading the input grid files (e.g. tile00[1-5].mitgrid)
-        allows to fill in the blanks of eliminated land tiles.
+    """ 
+    Read grid variables from grid input files, this is especially useful
+    for llc and cube sphere configurations used with land tiles
+    elimination. Reading the input grid files (e.g. tile00[1-5].mitgrid)
+    allows to fill in the blanks of eliminated land tiles.
 
-    PARAMETERS:
-    -----------
-    gridfile: str
+    PARAMETERS
+    ----------
+    gridfile : str
         gridfile must contain <NFACET> as wildcard (e.g. tile<NFACET>.mitgrid)
-    nx:     int
+    nx : int
         size of the face in the x direction
-    ny:     int
+    ny : int
         size of the face in the y direction
-    geometry: str
+    geometry : str
         domain geometry can be llc, cs or carthesian not supported yet
-    dtype: np.dtype
+    dtype : np.dtype
         numeric precision (single/double) of input data
-    endian: string
+    endian : string
         endianness of input data
-    use_dask: bool
+    use_dask : bool
         use dask or not
-    extra_metadata: dict
+    extra_metadata : dict
         dictionary of extra metadata, needed for llc configurations
 
-    RETURNS:
-    --------
-    xarray.Dataset of grid variables
+    RETURNS
+    ------- 
+    grid : xarray.Dataset
+        all grid variables
     """
 
     file_metadata = {}
@@ -1417,19 +1424,19 @@ def find_concat_dim_facet(da, facet, extra_metadata):
     along i or i_g. If order is C, concat along j or j_g. Also return
     horizontal dim not to concatenate
 
-    PARAMETERS:
-
-    da: xarray.DataArray
+    PARAMETERS
+    ----------
+    da : xarray.DataArray
         xmitgcm llc data array
-    facet: int
+    facet : int
         facet number
-    extra_metadata: dict
+    extra_metadata : dict
         dict of extra_metadata from get_extra_metadata
 
-    RETURN:
-
-    str, str
-
+    RETURNS
+    -------
+    concat_dim, nonconcat_dim : str, str
+        names of the dimensions for concatenation or not
 
     """
     order = extra_metadata['facet_orders'][facet]
@@ -1454,17 +1461,18 @@ def find_concat_dim(da, possible_concat_dims):
     """ look for available dimensions in dataaray and pick the one
     from a list of candidates
 
-    PARAMETERS:
-
-    da: xarray.DataArray
+    PARAMETERS
+    ----------
+    da : xarray.DataArray
         xmitgcm llc data array
-
-    possible_concat_dims: list
+    possible_concat_dims : list
         list of potential dims
 
-    RETURN:
+    RETURNS
+    -------
+    out : str
+        dimension on which to concatenate
 
-    str
     """
     out = None
     for d in possible_concat_dims:
@@ -1477,16 +1485,17 @@ def rebuild_llc_facets(da, extra_metadata):
     """ For LLC grids, rebuilds facets from a xmitgcm dataarray and
     store into a dictionary
 
-    PARAMETERS:
-
-    da: xarray.DataArray
+    PARAMETERS
+    ----------
+    da : xarray.DataArray
         xmitgcm llc data array
-    extra_metadata: dict
+    extra_metadata : dict
         dict of extra_metadata from get_extra_metadata
 
-    RETURN:
-
-    dict
+    RETURNS
+    -------
+    facets : dict
+        all facets data in xarray.DataArray form packed into a dictionary
 
     """
 
@@ -1562,16 +1571,17 @@ def rebuild_llc_facets(da, extra_metadata):
 def llc_facets_3d_spatial_to_compact(facets, dimname, extra_metadata):
     """ Write in compact form a list of 3d facets
 
-    PARAMETERS:
-
-    facets: dict
+    PARAMETERS
+    ----------
+    facets : dict
         dict of xarray.dataarrays for the facets
-    extra_metadata: dict
+    extra_metadata : dict
         extra_metadata from get_extra_metadata
 
-    RETURN:
-
-    numpy.array
+    RETURNS
+    -------
+    flatdata : numpy.array
+        all the data in vector form
     """
 
     nz = len(facets['facet0'][dimname])
@@ -1597,16 +1607,17 @@ def llc_facets_3d_spatial_to_compact(facets, dimname, extra_metadata):
 def llc_facets_2d_to_compact(facets, extra_metadata):
     """ Write in compact form a list of 2d facets
 
-    PARAMETERS:
-
+    PARAMETERS
+    ----------
     facets: dict
         dict of xarray.dataarrays for the facets
     extra_metadata: dict
         extra_metadata from get_extra_metadata
 
-    RETURN:
-
-    numpy.array
+    RETURNS
+    -------
+    flatdata : numpy.array
+        all the data in vector form
     """
 
     flatdata = np.array([])
@@ -1622,8 +1633,8 @@ def llc_facets_2d_to_compact(facets, extra_metadata):
 def write_to_binary(flatdata, fileout, dtype=np.dtype('f')):
     """ write data in binary file
 
-    PARAMETERS:
-
+    PARAMETERS
+    ----------
     flatdata: numpy.array
         vector of data to write
     fileout: str
@@ -1631,7 +1642,9 @@ def write_to_binary(flatdata, fileout, dtype=np.dtype('f')):
     dtype: np.dtype
         single/double precision
 
-
+    RETURNS
+    -------
+    None
     """
     # write data to binary files
     fid = open(fileout, "wb")
