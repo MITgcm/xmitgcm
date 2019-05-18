@@ -227,8 +227,6 @@ def test_open_dataset_2D_diags(all_mds_datadirs):
             lp = ldir.join(old_prefix + suffix)
             lp.copy(ldir.join(new_prefix + suffix))
 
-        # currently raises ONLY with LLC-type datasets, but not regular grids
-        # WHY?!?
         ds = xmitgcm.open_mdsdataset(dirname, prefix=['T'], **kwargs)
 
 def test_swap_dims(all_mds_datadirs):
