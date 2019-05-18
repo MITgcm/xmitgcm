@@ -3,6 +3,7 @@ import xmitgcm
 import xarray as xr
 from glob import glob
 from shutil import copyfile
+import py
 
 _TESTDATA_FILENAME = 'testdata.tar.gz'
 _TESTDATA_ITERS = [39600, ]
@@ -194,6 +195,41 @@ def test_open_dataset_no_meta(all_mds_datadirs):
             ds = xmitgcm.open_mdsdataset(dirname, prefix=['T', 'Eta'],
                                          nz=nz, **kwargs)
 
+def test_open_dataset_2D_diags(all_mds_datadirs):
+    # convert 3D fields with only 2D diagnostic output
+    # https://github.com/xgcm/xmitgcm/issues/140
+    dirname, expected = all_mds_datadirs
+
+    shape = expected['shape']
+
+    nz = shape[0]
+    ny, nx = shape[-2:]
+    shape_2d = shape[1:]
+    dims_2d = ('j', 'i')
+    if expected['geometry']=='llc':
+        dims_2d = ('face',) + dims_2d
+        ny = nx*shape[-3]
+    dims_3d = dims_2d if nz==1 else ('k',) + dims_2d
+    dims_2d = ('time',) + dims_2d
+    dims_3d = ('time',) + dims_3d
+
+    it = expected['test_iternum']
+    kwargs = dict(iters=it, geometry=expected['geometry'], read_grid=False,
+                  swap_dims=False)
+
+    to_hide = ['T.%010d.meta' % it, 'T.%010d.data' % it]
+    with hide_file(dirname, *to_hide):
+
+        ldir = py.path.local(dirname)
+        old_prefix = 'Eta.%010d' % it
+        new_prefix = 'T.%010d' % it
+        for suffix in ['.data', '.meta']:
+            lp = ldir.join(old_prefix + suffix)
+            lp.copy(ldir.join(new_prefix + suffix))
+
+        # currently raises ONLY with LLC-type datasets, but not regular grids
+        # WHY?!?
+        ds = xmitgcm.open_mdsdataset(dirname, prefix=['T'], **kwargs)
 
 def test_swap_dims(all_mds_datadirs):
     """See if we can swap dimensions."""
