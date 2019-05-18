@@ -831,7 +831,7 @@ def _get_all_data_variables(data_dir, grid_dir, layers):
         diag_file = fnameG
     else:
         warnings.warn("Couldn't find available_diagnostics.log "
-                      "in %s or %s. Using default version." % (data_dir, grid_dir)
+                      "in %s or %s. Using default version." % (data_dir, grid_dir))
         from .default_diagnostics import diagnostics
         diag_file = StringIO(diagnostics)
     available_diags = parse_available_diagnostics(diag_file, layers)
