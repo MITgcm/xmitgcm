@@ -158,8 +158,8 @@ def open_mdsdataset(data_dir, grid_dir=None,
         pass
 
     # if nz is a slice or a list, a subset of levels is needed
-    if levels is not None:
-        nz = len(nz)
+    if levels is not None and nz is None:
+        nz = len(levels)
 
     # We either have a single iter, in which case we create a fresh store,
     # or a list of iters, in which case we combine.
@@ -172,7 +172,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
             iternum = int(iters)
         # if not we probably have some kind of list
         except TypeError:
-            if len(iters) == 1:
+            if len(iters) == 1 and levels is None:
                 iternum = int(iters[0])
             else:
                 # We have to check to make sure we have the same prefixes at
@@ -204,21 +204,27 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     ignore_unknown_vars=ignore_unknown_vars,
                     default_dtype=default_dtype,
                     nx=nx, ny=ny, nz=nz, llc_method=llc_method,
-                    extra_metadata=extra_metadata)
+                    levels=levels, extra_metadata=extra_metadata)
                 datasets = [open_mdsdataset(
                         data_dir, iters=iternum, read_grid=False, **kwargs)
                     for iternum in iters]
                 # now add the grid
                 if read_grid:
                     if 'iters' in kwargs:
-                        kwargs.remove('iters')
+                        kwargs.pop('iters')
                     if 'read_grid' in kwargs:
-                        kwargs.remove('read_grid')
+                        kwargs.pop('read_grid')
+                    if levels is not None:
+                        kwargs.pop('nz')
+                        kwargs.pop('levels')
                     grid_dataset = open_mdsdataset(data_dir, iters=None,
                                                    read_grid=True, **kwargs)
                     if levels is not None:
-                        grid_dataset = _subset_levels(grid_dataset, levels)
+                        grid_dataset = grid_dataset.isel(**{coord: levels
+                                    for coord in ['k', 'k_l', 'k_u', 'k_p1']})
                     datasets.insert(0, grid_dataset)
+                for dataset in datasets:
+                    print(dataset.dims)
                 # apply chunking
                 ds = xr.auto_combine(datasets)
                 if swap_dims:
@@ -233,7 +239,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
                           ignore_unknown_vars=ignore_unknown_vars,
                           default_dtype=default_dtype,
                           nx=nx, ny=ny, nz=nz, llc_method=llc_method,
-                          extra_metadata=extra_metadata)
+                          levels=levels, extra_metadata=extra_metadata)
     ds = xr.Dataset.load_store(store)
 
     if swap_dims:
@@ -329,7 +335,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                  endian='>', ignore_unknown_vars=False,
                  default_dtype=np.dtype('f4'),
                  nx=None, ny=None, nz=None, llc_method="smallchunks",
-                 extra_metadata=None):
+                 levels=None, extra_metadata=None):
         """
         This is not a user-facing class. See open_mdsdataset for argument
         documentation. The only ones which are distinct are.
@@ -438,8 +444,12 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         # http://pycomodo.forge.imag.fr/norm.html
         irange = np.arange(self.nx)
         jrange = np.arange(self.ny)
-        krange = np.arange(self.nz)
-        krange_p1 = np.arange(self.nz+1)
+        if levels is None:
+            krange = np.arange(self.nz)
+            krange_p1 = np.arange(self.nz+1)
+        else:
+            krange = levels
+            krange_p1 = levels + [levels[-1] + 1]
         # the keys are `standard_name` attribute
         dimension_data = {
             "x_grid_index": irange,
