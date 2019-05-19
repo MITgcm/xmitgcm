@@ -354,7 +354,7 @@ def read_raw_data(datafile, dtype, shape, use_mmap=False, offset=0,
     return data
 
 
-def parse_namelist(file):
+def parse_namelist(file, silence_errors=True):
     """Read a FOTRAN namelist file into a dictionary.
 
     PARAMETERS
@@ -378,12 +378,10 @@ def parse_namelist(file):
             return [parse_val(number)] * int(repeat)
         elif val in ['.TRUE.', '.FALSE.']:
             return val == '.TRUE.'
-        elif '.' in val:  # It is a Real (float)
+        elif '.' in val or 'E' in val:  # It is a Real (float)
             return float(val)
-        try:  # Finally try for an int
-            return int(val)
-        except ValueError:  # Nothing works, return None.
-            return
+        # Finally try for an int
+        return int(val)
 
     data = {}
     current_namelist = ''
@@ -404,7 +402,17 @@ def parse_namelist(file):
                 data[current_namelist] = {}
         else:
             field, value = map(str.strip, line[:-1].split('='))
-            value = parse_val(value)
+            try:
+                value = parse_val(value)
+            except ValueError:
+                mess = ('Unable to read value for field {field} in file {file}: {value}'
+                        ).format(field=field, file=file, value=value)
+                if silence_errors:
+                    warnings.warn(mess)
+                    value = None
+                else:
+                    raise ValueError(mess)
+
             if '(' in field:  # Field is an array
                 field, idxs = field[:-1].split('(')
                 if field not in data[current_namelist]:
