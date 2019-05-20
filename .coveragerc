@@ -10,3 +10,4 @@ exclude_lines =
 ignore_errors = True
 omit = xmitgcm/test/*
        xmitgcm/__init__.py
+       versioneer.py
