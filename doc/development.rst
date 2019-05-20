@@ -4,6 +4,17 @@ Development
 Release History
 ---------------
 
+v0.3.0 (2019-05-19)
+~~~~~~~~~~~~~~~~~~~~
+  - Ability to read ASTE grids
+  - Ability to read seaice and thsice native output
+  - Reading of optional grid files
+  - Moved test data to figshare
+  - Writing of binary files
+  - Xarray 0.12 compatibility
+  - Ability to read 2D slice diagnostics of 3D fields
+
+
 v.0.2.2 (2018-07-18)
 ~~~~~~~~~~~~~
   - Extend capabilities of read_raw_data (:issue:`84`)
