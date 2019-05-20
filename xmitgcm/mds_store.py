@@ -660,11 +660,14 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             # How should we handle this? Can either eliminate one of the dims
             # or add an extra axis to the data. Let's try the former, on the
             # grounds that it is simpler for the user.
-            if len(dims) == 3 and data.ndim == 2:
+            if ((len(dims) == 3 and data.ndim == 2) or
+                (self.llc and (len(dims) == 3 and data.ndim == 3))):
                 # Deleting the first dimension (z) assumes that 2D data always
                 # corresponds to x,y horizontal data. Is this really true?
                 # The answer appears to be yes: 2D (x|y,z) data retains the
                 # missing dimension as an axis of length 1.
+                # Also handles https://github.com/xgcm/xmitgcm/issues/140
+                # (special case for 2d llc diags)
                 dims = dims[1:]
             elif len(dims) == 1 and data.ndim > 1:
                 # this is for certain profile data like RC, PHrefC, etc.
@@ -928,5 +931,5 @@ def _reshape_for_llc(dims, data):
             # add face dimension to dims
             jdim = dims.index(dim)
             dims.insert(jdim, LLC_FACE_DIMNAME)
-            assert data.ndim==len(dims)
+    assert data.ndim==len(dims), '%r %r' % (data.shape, dims)
     return dims, data
