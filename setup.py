@@ -3,10 +3,10 @@ import os
 import re
 import sys
 import warnings
+import versioneer
 
 from setuptools import setup, find_packages
 
-VERSION = '0.2.2'
 DISTNAME = 'xmitgcm'
 LICENSE = 'Apache'
 AUTHOR = 'Ryan Abernathey'
@@ -37,7 +37,8 @@ def readme():
         return f.read()
 
 setup(name=DISTNAME,
-      version=VERSION,
+      version=versioneer.get_version(),
+      cmdclass=versioneer.get_cmdclass(),
       license=LICENSE,
       author=AUTHOR,
       author_email=AUTHOR_EMAIL,

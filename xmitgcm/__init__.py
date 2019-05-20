@@ -1,2 +1,6 @@
 __version__ = "0.2.2"
 from .mds_store import open_mdsdataset
+
+from ._version import get_versions
+__version__ = get_versions()['version']
+del get_versions
