@@ -5,6 +5,9 @@ from dask.base import tokenize, normalize_token
 import xarray as xr
 import warnings
 
+from .duck_array_ops import concatenate
+from .shrunk_index import all_index_data
+
 def _get_var_metadata():
     # The LLC run data comes with zero metadata. So we import metadata from
     # the xmitgcm package.
@@ -29,6 +32,19 @@ def _get_var_metadata():
 
 _VAR_METADATA = _get_var_metadata()
 
+def _get_variable_point(vname):
+    dims = _VAR_METADATA[vname]['dims']
+    if 'i' in dims and 'j' in dims:
+        point = 'c'
+    elif 'i_g' in dims and 'j' in dims:
+        point = 'w'
+    elif 'i' in dims and 'j_g' in dims:
+        point = 's'
+    elif 'i_g' in dims and 'j_g' in dims:
+        raise ValueError("Don't have masks for corner points!")
+    else:
+        raise ValueError("Variable `%s` is not a horizontal variable." % vname)
+    return point
 
 def _get_scalars_and_vectors(varnames, type):
 
@@ -104,7 +120,7 @@ def _facets_to_faces(facets):
     for nfacet, data_facet in enumerate(facets):
         data_rs = _facet_to_faces(data_facet, nfacet)
         all_faces.append(data_rs)
-    return dsa.concatenate(all_faces, axis=-3)
+    return concatenate(all_faces, axis=-3)
 
 def _faces_to_facets(data, facedim=-3):
     assert data.shape[facedim] == _nfaces
@@ -117,7 +133,7 @@ def _faces_to_facets(data, facedim=-3):
         else:
             concat_axis = facedim + 1
         # todo: use duck typing for concat
-        facet_data = dsa.concatenate(face_data, axis=concat_axis)
+        facet_data = concatenate(face_data, axis=concat_axis)
         facets.append(facet_data)
     return facets
 
@@ -133,7 +149,7 @@ def _facets_to_latlon_scalar(all_facets):
                + [_rotate_scalar_facet(facet) for facet in all_facets[-2:]])
     # drop facet dimension
     rotated = [r[..., 0, :, :] for r in rotated]
-    return dsa.concatenate(rotated, axis=-1)
+    return concatenate(rotated, axis=-1)
 
 
 def _faces_to_latlon_scalar(data):
@@ -147,7 +163,7 @@ def _faces_to_latlon_scalar(data):
 def shift_and_pad(a):
     a_shifted = a[..., 1:]
     pad_array = dsa.zeros_like(a[..., -2:-1])
-    return dsa.concatenate([a_shifted, pad_array], axis=-1)
+    return concatenate([a_shifted, pad_array], axis=-1)
 
 def transform_v_to_u(facet):
     return _rotate_scalar_facet(facet)
@@ -178,8 +194,8 @@ def _facets_to_latlon_vector(facets_u, facets_v, metric=False):
     v_rot = (facets_v_drop[:2]
              + [transform_u_to_v(facet) for facet in facets_u_drop[-2:]])
 
-    u = dsa.concatenate(u_rot, axis=-1)
-    v = dsa.concatenate(v_rot, axis=-1)
+    u = concatenate(u_rot, axis=-1)
+    v = concatenate(v_rot, axis=-1)
     return u, v
 
 def _faces_to_latlon_vector(u_faces, v_faces, metric=False):
@@ -322,6 +338,70 @@ def _chunks(l, n):
     for i in range(0, len(l), n):
         yield l[i:i + n]
 
+
+def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype):
+    fs, path = store.get_fs_and_full_path(varname, iternum)
+    file = fs.open(path)
+
+    assert (nfacet >= 0) & (nfacet < _nfacets)
+
+    try:
+        # workaround for ecco data portal
+        file = fs.open(path, size_policy='get')
+    except TypeError:
+        file = fs.open(path)
+
+    # insert singleton axis for time and k level
+    facet_shape = (1, 1,) + _facet_shape(nfacet, nx)
+
+    level_data = []
+
+    # TODO: get index
+    # the store tells us whether we need a mask or not
+    point = _get_variable_point(varname)
+    if store.shrunk:
+        index = all_index_data[nx][point]
+        zgroup = store.open_mask_group()
+        mask = zgroup['mask_' + point].astype('bool')
+    else:
+        index = None
+        mask = None
+
+    for k in klevels:
+        assert (k >= 0) & (k < nz)
+
+        # figure out where in the file we have to read to get the data
+        # for this level and facet
+        if index:
+            i = np.ravel_multi_index((k, nfacet), (nz, _nfacets))
+            start = index[i]
+            end = index[i+1]
+        else:
+            level_start = k * nx**2 * _nfaces
+            facet_start, facet_end = _uncompressed_facet_index(nfacet, nx)
+            start = level_start + facet_start
+            end = level_start + facet_end
+
+        read_offset = start * dtype.itemsize # in bytes
+        read_length  = (end - start) * dtype.itemsize # in bytes
+        file.seek(read_offset)
+        buffer = file.read(read_length)
+        data = np.frombuffer(buffer, dtype=dtype)
+        assert len(data) == (end - start)
+
+        if mask:
+            mask_level = mask[k]
+            mask_facets = _faces_to_facets(mask_level)
+            this_mask = mask_facets[nfacet]
+            data = _decompress(data, this_mask, dtype)
+
+        # this is the shape this facet is supposed to have
+        data.shape = facet_shape
+        level_data.append(data)
+
+    return np.concatenate(level_data, axis=1)
+
+
 class _LLCDataRequest:
 
     def __init__(self, store, varname, iters, dtype, nz, nx,
@@ -362,54 +442,6 @@ class _LLCDataRequest:
         self.mask = mask
         self.index = index
 
-
-    def facet_chunk(self, iternum, nfacet, klevels):
-        fs, path = self.store.get_fs_and_full_path(self.varname, iternum)
-
-        assert (nfacet >= 0) & (nfacet < _nfacets)
-
-        try:
-            # workaround for ecco data portal
-            file = fs.open(path, size_policy='get')
-        except TypeError:
-            file = fs.open(path)
-
-        # insert singleton axis for time and k level
-        facet_shape = (1, 1,) + _facet_shape(nfacet, self.nx)
-
-        level_data = []
-        for k in klevels:
-            assert (k >= 0) & (k < self.nz)
-
-            # figure out where in the file we have to read to get the data
-            # for this level and facet
-            if self.index:
-                i = np.ravel_multi_index((k, nfacet), (self.nz, _nfacets))
-                start = self.index[i]
-                end = self.index[i+1]
-            else:
-                level_start = k * self.nx**2 * _nfaces
-                facet_start, facet_end = _uncompressed_facet_index(nfacet, self.nx)
-                start = level_start + facet_start
-                end = level_start + facet_end
-
-            read_offset = start * self.dtype.itemsize # in bytes
-            read_length  = (end - start) * self.dtype.itemsize # in bytes
-            file.seek(read_offset)
-            buffer = file.read(read_length)
-            data = np.frombuffer(buffer, dtype=self.dtype)
-            assert len(data) == (end - start)
-
-            if self.mask:
-                this_mask = self.mask[nfacet][k].compute()
-                data = _decompress(data, this_mask, self.dtype)
-
-            # this is the shape this facet is supposed to have
-            data.shape = facet_shape
-            level_data.append(data)
-
-        return np.concatenate(level_data, axis=1)
-
     def dask_array(self, nfacet):
         facet_shape =  _facet_shape(nfacet, self.nx)
         time_chunks = (len(self.iters) * (1,),)
@@ -424,8 +456,9 @@ class _LLCDataRequest:
         for n_iter, iternum in enumerate(self.iters):
             for n_k, klevels in enumerate(_chunks(self.klevels, self.k_chunksize)):
                 key = name, n_iter, n_k, 0, 0, 0
-                value = self.facet_chunk, iternum, nfacet, klevels
-                dsk[key] = value
+                task = (_get_facet_chunk, self.store, self.varname, iternum,
+                         nfacet, klevels, self.nx, self.nz, self.dtype)
+                dsk[key] = task
 
         return dsa.Array(dsk, name, chunks, self.dtype)
 

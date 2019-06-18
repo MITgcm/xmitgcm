@@ -54,7 +54,7 @@ class ECCOPortalLLC2160Model(LLC2160Model):
 
     def __init__(self):
         from fsspec.implementations.http import HTTPFileSystem
-        fs = HTTPFileSystem()
+        fs = HTTPFileSystem(size_policy='get')
         base_path = 'https://data.nas.nasa.gov/ecco/download_data.php?file=/eccodata/llc_2160/compressed'
         mask_path = 'https://storage.googleapis.com/pangeo-ecco/llc/masks/llc_2160_masks.zarr/'
         store = stores.NestedStore(fs, base_path=base_path, mask_path=mask_path,
@@ -66,7 +66,7 @@ class ECCOPortalLLC4320Model(LLC4320Model):
 
     def __init__(self):
         from fsspec.implementations.http import HTTPFileSystem
-        fs = HTTPFileSystem()
+        fs = HTTPFileSystem(size_policy='get')
         base_path = 'https://data.nas.nasa.gov/ecco/download_data.php?file=/eccodata/llc_4320/compressed'
         mask_path = 'https://storage.googleapis.com/pangeo-ecco/llc/masks/llc_4320_masks.zarr/'
         store = stores.NestedStore(fs, base_path=base_path, mask_path=mask_path,
