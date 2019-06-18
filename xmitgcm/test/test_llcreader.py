@@ -57,28 +57,36 @@ def test_llc90_local_faces_load(local_llc90_store, llc90_kwargs, rettype, k_leve
 
 ########### ECCO Portal Tests ##################################################
 
-@pytest.fixture(scope='module')
-def ecco_portal_model():
-    # TODO: include other models like 1080, etc.
-    return llcreader.ECCOPortalLLC4320Model()
+@pytest.fixture(scope='module', params=[2160, 4320])
+def ecco_portal_model(request):
+    if request.param==2160:
+        return llcreader.ECCOPortalLLC2160Model()
+    else:
+        return llcreader.ECCOPortalLLC4320Model()
 
 def test_ecco_portal_faces(ecco_portal_model):
-    ds_faces = ecco_portal_model.get_dataset(iter_start=10368, iter_stop=11000)
-    assert ds_faces.dims == {'face': 13, 'i': 4320, 'i_g': 4320, 'j': 4320,
-                              'j_g': 4320, 'k': 90, 'k_u': 90, 'k_l': 90,
-                              'k_p1': 90, 'time': 5}
+    # just get three timesteps
+    iter_stop = ecco_portal_model.iter_start + 2 * ecco_portal_model.iter_step + 1
+    ds_faces = ecco_portal_model.get_dataset(iter_stop=iter_stop)
+    nx = ecco_portal_model.nx
+    assert ds_faces.dims == {'face': 13, 'i': nx, 'i_g': nx, 'j': nx,
+                              'j_g': nx, 'k': 90, 'k_u': 90, 'k_l': 90,
+                              'k_p1': 90, 'time': 3}
     assert set(EXPECTED_VARS) == set(ds_faces.data_vars)
 
 def test_ecco_portal_load(ecco_portal_model):
     # an expensive test because it actually loads data
-    # results depend on the specific dataset
-    ds_faces = ecco_portal_model.get_dataset(iter_start=10368, iter_stop=11000)
-    assert ds_faces.Eta[0, 0, -1, -1].values.item() == -1.262018084526062
+    iter_stop = ecco_portal_model.iter_start + 2 * ecco_portal_model.iter_step + 1
+    ds_faces = ecco_portal_model.get_dataset(varnames=['Eta'], iter_stop=iter_stop)
+    # a lookup table
+    expected = {2160: -1.3054643869400024, 4320: -1.262018084526062}
+    assert ds_faces.Eta[0, 0, -1, -1].values.item() == expected[ecco_portal_model.nx]
 
 def test_ecco_portal_latlon(ecco_portal_model):
-    ds_ll = ecco_portal_model.get_dataset(iter_start=10368, iter_stop=11000,
-                                             type='latlon')
-    assert ds_ll.dims == {'i': 17280, 'k_u': 90, 'k_l': 90, 'time': 5,
-                             'k': 90, 'j_g': 12960, 'i_g': 17280, 'k_p1': 90,
-                             'j': 12960, 'face': 13}
+    iter_stop = ecco_portal_model.iter_start + 2 * ecco_portal_model.iter_step + 1
+    ds_ll = ecco_portal_model.get_dataset(iter_stop=iter_stop, type='latlon')
+    nx = ecco_portal_model.nx
+    assert ds_ll.dims == {'i': 4*nx, 'k_u': 90, 'k_l': 90, 'time': 3,
+                             'k': 90, 'j_g': 3*nx, 'i_g': 4*nx, 'k_p1': 90,
+                             'j': 3*nx, 'face': 13}
     assert set(EXPECTED_VARS) == set(ds_ll.data_vars)

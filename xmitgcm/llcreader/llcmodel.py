@@ -5,13 +5,6 @@ from dask.base import tokenize, normalize_token
 import xarray as xr
 import warnings
 
-try:
-    from tqdm.autonotebook import tqdm
-except ImportError:
-    warning.warn('TQDM is not installed, so progress bars will not be shown. '
-                 'Run `pip install tqdm` to enable progress bars.')
-    tqdm = lambda x: x
-
 def _get_var_metadata():
     # The LLC run data comes with zero metadata. So we import metadata from
     # the xmitgcm package.
@@ -485,16 +478,16 @@ class BaseLLCModel:
     iter_step = None
     varnames = []
 
-    def __init__(self, datastore, mask_ds=None):
+    def __init__(self, store):
         """Initialize model
 
         Parameters
         ----------
-        datastore : llcreader.BaseStore
+        store : llcreader.BaseStore
         mask_ds : zarr.Group
             Must contain variables `mask_c`, `masc_w`, `mask_s`
         """
-        self.store = datastore
+        self.store = store
         self.shape = (self.nz, self.nface, self.nx, self.nx)
         if self.store.shrunk:
             self.masks = self._get_masks()

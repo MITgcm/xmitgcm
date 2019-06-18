@@ -8,6 +8,21 @@ class LLC90Model(BaseLLCModel):
     time_units = 'seconds since 1948-01-01 12:00:00'
     calendar = 'gregorian'
 
+
+class LLC2160Model(BaseLLCModel):
+    nx = 2160
+    nz = 90
+    delta_t = 45
+    iter_start = 92160
+    iter_stop = 1586400 + 1
+    iter_step = 80
+    time_units='seconds since 2011-01-17'
+    calendar = 'gregorian'
+    varnames = ['Eta', 'KPPhbl', 'oceFWflx', 'oceQnet', 'oceQsw', 'oceSflux',
+                'oceTAUX', 'oceTAUY', 'PhiBot', 'Salt', 'SIarea', 'SIheff',
+                'SIhsalt', 'SIhsnow', 'SIuice', 'SIvice', 'Theta', 'U', 'V', 'W']
+
+
 class LLC4320Model(BaseLLCModel):
     nx = 4320
     nz = 90
@@ -20,6 +35,18 @@ class LLC4320Model(BaseLLCModel):
     varnames = ['Eta', 'KPPhbl', 'oceFWflx', 'oceQnet', 'oceQsw', 'oceSflux',
                 'oceTAUX', 'oceTAUY', 'PhiBot', 'Salt', 'SIarea', 'SIheff',
                 'SIhsalt', 'SIhsnow', 'SIuice', 'SIvice', 'Theta', 'U', 'V', 'W']
+
+
+class ECCOPortalLLC2160Model(LLC2160Model):
+
+    def __init__(self):
+        from fsspec.implementations.http import HTTPFileSystem
+        fs = HTTPFileSystem()
+        base_path = 'https://data.nas.nasa.gov/ecco/download_data.php?file=/eccodata/llc_2160/compressed'
+        mask_path = 'https://storage.googleapis.com/pangeo-ecco/llc/masks/llc_2160_masks.zarr/'
+        store = stores.NestedStore(fs, base_path=base_path, mask_path=mask_path,
+                                   shrunk=True)
+        super(ECCOPortalLLC2160Model, self).__init__(store)
 
 
 class ECCOPortalLLC4320Model(LLC4320Model):
