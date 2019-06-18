@@ -5,6 +5,7 @@ dependencies:
   - numpy
   - pytest
   - future
+  - zarr
   - pip:
     - git+https://github.com/pydata/xarray.git
     - fsspec
