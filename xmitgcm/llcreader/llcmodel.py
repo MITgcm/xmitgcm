@@ -547,8 +547,10 @@ class BaseLLCModel:
         # needs facets to be outer index of nested lists
         data_iters = [[] for i in range(5)]
         dims = _VAR_METADATA[varname]['dims']
+
         if len(dims)==2:
             klevels = [0,]
+
         for iternum in tqdm(iters, desc=varname):
             fs, path = self.store.get_fs_and_full_path(varname, iternum)
             dr = _LLCDataRequest(fs, path, self.dtype, self.nz, self.nx,
@@ -558,11 +560,15 @@ class BaseLLCModel:
             for n in range(5):
                 # insert a new axis for time at the beginning
                 data = data_facets[n][None]
-                if len(dims)==2:
-                    # squeeze depth dimension out of 2D variable
-                    data = data[..., 0, :, :, :]
                 data_iters[n].append(data)
-        return [dsa.concatenate(facet, axis=0) for facet in data_iters]
+
+        data_concat = [dsa.concatenate(facet, axis=0) for facet in data_iters]
+
+        if len(dims)==2:
+            # squeeze depth dimension out of 2D variable
+            data_concat = [facet[..., 0, :, :, :] for facet in data_concat]
+
+        return data_concat
 
 
     def get_dataset(self, varnames=None, iter_start=None, iter_stop=None,
