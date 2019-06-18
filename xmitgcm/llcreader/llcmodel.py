@@ -3,6 +3,8 @@ import dask
 import dask.array as dsa
 import xarray as xr
 
+from tqdm.autonotebook import tqdm
+
 def _get_var_metadata():
     # The LLC run data comes with zero metadata. So we import metadata from
     # the xmitgcm package.
@@ -422,12 +424,44 @@ class _LLCDataRequest:
 
 
 class BaseLLCModel:
+    """Class representing an LLC Model Dataset.
+
+    Parameters
+    ----------
+    datastore : llcreader.BaseStore
+        The datastore object where the data can be found
+    mask_ds : zarr.Group
+        Must contain variables `mask_c`, `masc_w`, `mask_s`
+
+    Attributes
+    ----------
+    dtype : numpy.dtype
+        Datatype of the data in the dataset
+    nx : int
+        Number of gridpoints per face (e.g. 90, 1080, 4320, etc.)
+    nz : int
+        Number of vertical gridpoints
+    delta_t : float
+        Numerical timestep
+    time_units : str
+        Date unit string, e.g 'seconds since 1948-01-01 12:00:00'
+    iter_start : int
+        First model iteration number (inclusive; follows python range conventions)
+    iter_stop : int
+        Final model iteration number (exclusive; follows python range conventions)
+    iter_step : int
+        Spacing between iterations
+    varnames : list
+        List of variable names contained in the dataset
+    """
+
     nface = 13
     dtype = np.dtype('>f4')
     # should be implemented by child classes
     nx = None
-    ny = None
+    nz = None
     delta_t = None
+    time_units = None
     iter_start = None
     iter_stop = None
     iter_step = None
@@ -515,7 +549,7 @@ class BaseLLCModel:
         dims = _VAR_METADATA[varname]['dims']
         if len(dims)==2:
             klevels = [0,]
-        for iternum in iters:
+        for iternum in tqdm(iters, desc=varname):
             fs, path = self.store.get_fs_and_full_path(varname, iternum)
             dr = _LLCDataRequest(fs, path, self.dtype, self.nz, self.nx,
                                  mask=mask, index=index, klevels=klevels,
