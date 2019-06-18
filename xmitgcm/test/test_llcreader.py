@@ -1,7 +1,7 @@
 import pytest
 
-#llcreader = pytest.importorskip("xmitgcm.llcreader")
-import xmitgcm.llcreader as llcreader
+llcreader = pytest.importorskip("xmitgcm.llcreader")
+
 from .test_xmitgcm_common import llc_mds_datadirs
 
 EXPECTED_VARS = ['Eta', 'KPPhbl', 'oceFWflx', 'oceQnet', 'oceQsw', 'oceSflux',
