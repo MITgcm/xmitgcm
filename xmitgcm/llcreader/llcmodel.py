@@ -369,7 +369,9 @@ class _LLCDataRequest:
             file = self.fs.open(self.path, size_policy='get')
         except TypeError:
             file = self.fs.open(self.path)
-        facet_shape = _facet_shape(nfacet, self.nx)
+
+        # insert singleton axis for time
+        facet_shape = (1,) + _facet_shape(nfacet, self.nx)
 
         level_data = []
         for k in klevels:
@@ -402,21 +404,20 @@ class _LLCDataRequest:
             data.shape = facet_shape
             level_data.append(data)
 
-        return np.concatenate(level_data, axis=0)
+        return np.concatenate(level_data, axis=1)
 
     def lazily_build_facet_chunk(self, nfacet):
         all_levels = []
         for klevels in _chunks(self.klevels, self.k_chunksize):
             facet_shape = _facet_shape(nfacet, self.nx)
-            shape = (len(klevels),) + facet_shape[1:]
+            shape = (1,) + (len(klevels),) + facet_shape[1:]
             delayed_func = dask.delayed(self.build_facet_chunk)(nfacet, klevels)
-            data_chunk =  dsa.from_delayed(delayed_func,
-                                           shape, self.dtype)
+            data_chunk =  dsa.from_delayed(delayed_func, shape, self.dtype)
             all_levels.append(data_chunk)
         if len(all_levels)==1:
             return all_levels[0]
         else:
-            return dsa.concatenate(all_levels, axis=0)
+            return dsa.concatenate(all_levels, axis=1)
 
     def facets(self):
         return [self.lazily_build_facet_chunk(nfacet) for nfacet in range(5)]
@@ -558,9 +559,7 @@ class BaseLLCModel:
                                  k_chunksize=k_chunksize)
             data_facets = dr.facets()
             for n in range(5):
-                # insert a new axis for time at the beginning
-                data = data_facets[n][None]
-                data_iters[n].append(data)
+                data_iters[n].append(data_facets[n])
 
         data_concat = [dsa.concatenate(facet, axis=0) for facet in data_iters]
 
