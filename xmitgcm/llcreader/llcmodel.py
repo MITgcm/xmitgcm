@@ -2,8 +2,14 @@ import numpy as np
 import dask
 import dask.array as dsa
 import xarray as xr
+import warnings
 
-from tqdm.autonotebook import tqdm
+try:
+    from tqdm.autonotebook import tqdm
+except ImportError:
+    warning.warn('TQDM is not installed, so progress bars will not be shown. '
+                 'Run `pip install tqdm` to enable progress bars.')
+    tqdm = lambda x: x
 
 def _get_var_metadata():
     # The LLC run data comes with zero metadata. So we import metadata from
@@ -406,10 +412,13 @@ class _LLCDataRequest:
 
         return np.concatenate(level_data, axis=1)
 
+    # TODO: this is very slow for full-depth datasets
+    # A better solution would be to manually build the dask graph:
+    # https://docs.dask.org/en/latest/array-design.html
     def lazily_build_facet_chunk(self, nfacet):
         all_levels = []
         for klevels in _chunks(self.klevels, self.k_chunksize):
-            facet_shape = _facet_shape(nfacet, self.nx)
+            facet_shape =  _facet_shape(nfacet, self.nx)
             shape = (1,) + (len(klevels),) + facet_shape[1:]
             delayed_func = dask.delayed(self.build_facet_chunk)(nfacet, klevels)
             data_chunk =  dsa.from_delayed(delayed_func, shape, self.dtype)
