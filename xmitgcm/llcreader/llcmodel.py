@@ -1,6 +1,7 @@
 import numpy as np
 import dask
 import dask.array as dsa
+from dask.base import tokenize, normalize_token
 import xarray as xr
 import warnings
 
@@ -84,9 +85,9 @@ def _uncompressed_facet_index(nfacet, nside):
 def _facet_shape(nfacet, nside):
     facet_length = _facet_strides[nfacet][1] - _facet_strides[nfacet][0]
     if _facet_reshape[nfacet]:
-        facet_shape = (1, 1, nside, facet_length*nside)
+        facet_shape = (1, nside, facet_length*nside)
     else:
-        facet_shape = (1, 1, facet_length*nside, nside)
+        facet_shape = (1, facet_length*nside, nside)
     return facet_shape
 
 def _facet_to_faces(data, nfacet):
@@ -330,7 +331,7 @@ def _chunks(l, n):
 
 class _LLCDataRequest:
 
-    def __init__(self, fs, path, dtype, nz, nx,
+    def __init__(self, store, varname, iters, dtype, nz, nx,
                  klevels=[0], index=None, mask=None, k_chunksize=1):
         """Create numpy data from a file
 
@@ -355,8 +356,11 @@ class _LLCDataRequest:
             The data
         """
 
-        self.fs = fs
-        self.path = path
+        self.store = store
+        self.varname = varname
+        self.iters = iters
+        #self.fs = fs
+        #self.path = path
         self.dtype = dtype
         self.nz = nz
         self.nx = nx
@@ -366,18 +370,19 @@ class _LLCDataRequest:
         self.index = index
 
 
-    def build_facet_chunk(self, nfacet, klevels):
+    def facet_chunk(self, iternum, nfacet, klevels):
+        fs, path = self.store.get_fs_and_full_path(self.varname, iternum)
 
         assert (nfacet >= 0) & (nfacet < _nfacets)
 
         try:
             # workaround for ecco data portal
-            file = self.fs.open(self.path, size_policy='get')
+            file = fs.open(path, size_policy='get')
         except TypeError:
-            file = self.fs.open(self.path)
+            file = fs.open(path)
 
-        # insert singleton axis for time
-        facet_shape = (1,) + _facet_shape(nfacet, self.nx)
+        # insert singleton axis for time and k level
+        facet_shape = (1, 1,) + _facet_shape(nfacet, self.nx)
 
         level_data = []
         for k in klevels:
@@ -412,24 +417,27 @@ class _LLCDataRequest:
 
         return np.concatenate(level_data, axis=1)
 
-    # TODO: this is very slow for full-depth datasets
-    # A better solution would be to manually build the dask graph:
-    # https://docs.dask.org/en/latest/array-design.html
-    def lazily_build_facet_chunk(self, nfacet):
-        all_levels = []
-        for klevels in _chunks(self.klevels, self.k_chunksize):
-            facet_shape =  _facet_shape(nfacet, self.nx)
-            shape = (1,) + (len(klevels),) + facet_shape[1:]
-            delayed_func = dask.delayed(self.build_facet_chunk)(nfacet, klevels)
-            data_chunk =  dsa.from_delayed(delayed_func, shape, self.dtype)
-            all_levels.append(data_chunk)
-        if len(all_levels)==1:
-            return all_levels[0]
-        else:
-            return dsa.concatenate(all_levels, axis=1)
+    def dask_array(self, nfacet):
+        facet_shape =  _facet_shape(nfacet, self.nx)
+        time_chunks = (len(self.iters) * (1,),)
+        k_chunks = (tuple([len(c)
+                          for c in _chunks(self.klevels, self.k_chunksize)]),)
+        chunks = time_chunks + k_chunks + tuple([(s,) for s in facet_shape])
+
+        # manually build dask graph
+        dsk = {}
+        token = tokenize(self.varname, self.store, nfacet)
+        name = '-'.join([self.varname, token])
+        for n_iter, iternum in enumerate(self.iters):
+            for n_k, klevels in enumerate(_chunks(self.klevels, self.k_chunksize)):
+                key = name, n_iter, n_k, 0, 0, 0
+                value = self.facet_chunk, iternum, nfacet, klevels
+                dsk[key] = value
+
+        return dsa.Array(dsk, name, chunks, self.dtype)
 
     def facets(self):
-        return [self.lazily_build_facet_chunk(nfacet) for nfacet in range(5)]
+        return [self.dask_array(nfacet) for nfacet in range(5)]
 
 
 
@@ -555,28 +563,23 @@ class BaseLLCModel:
     def _get_facet_data(self, varname, iters, klevels, k_chunksize):
         mask, index = self._get_mask_and_index_for_variable(varname)
         # needs facets to be outer index of nested lists
-        data_iters = [[] for i in range(5)]
         dims = _VAR_METADATA[varname]['dims']
 
         if len(dims)==2:
             klevels = [0,]
 
-        for iternum in tqdm(iters, desc=varname):
-            fs, path = self.store.get_fs_and_full_path(varname, iternum)
-            dr = _LLCDataRequest(fs, path, self.dtype, self.nz, self.nx,
-                                 mask=mask, index=index, klevels=klevels,
-                                 k_chunksize=k_chunksize)
-            data_facets = dr.facets()
-            for n in range(5):
-                data_iters[n].append(data_facets[n])
+        dr = _LLCDataRequest(self.store, varname,  iters,
+                             self.dtype, self.nz, self.nx,
+                             mask=mask, index=index, klevels=klevels,
+                             k_chunksize=k_chunksize)
+        data_facets = dr.facets()
 
-        data_concat = [dsa.concatenate(facet, axis=0) for facet in data_iters]
 
         if len(dims)==2:
             # squeeze depth dimension out of 2D variable
-            data_concat = [facet[..., 0, :, :, :] for facet in data_concat]
+            data_facets = [facet[..., 0, :, :, :] for facet in data_facets]
 
-        return data_concat
+        return data_facets
 
 
     def get_dataset(self, varnames=None, iter_start=None, iter_stop=None,
