@@ -1,8 +1,9 @@
 llcreader
 =========
 
-This module provides optimized routines for reading LLC data from disk or over the web.
-They were motivated explicitly by the need to provide easy access to the NASA-JPL
+This module provides optimized routines for reading LLC data from disk or over the web,
+via xarray and dask.
+This was motivated explicitly by the need to provide easy access to the NASA-JPL
 LLC4320 family of simulations, in support of the NASA SWOT Science Team.
 
 .. warning::
@@ -64,23 +65,35 @@ However, this can be done later, via xarray.
 Pre-Defined Models
 ------------------
 
-Because of the size and complexity of the LLC datasets, we provide some
-pre-defined references to existing stores and models that can be used right
-away.
+We provide some pre-defined references to existing stores and models that can
+be used right away. These are
+
+- ``llcreader.ECCOPortalLLC2160Model``: LLC2160 accessed via ECCO data portal
+- ``llcreader.ECCOPortalLLC4320Model``: LLC4320 accessed via ECCO data portal
+- ``llcreader.PleiadesLLC2160Model``: LLC2160 accessed on Pleaides filesystem
+- ``llcreader.PleiadesLLC4320Model``: LLC4320 accessed on Pleaides filesystem
+
+Below are a few examples of how to use these.
+
 
 ECCO HTTP Data Portal
 ~~~~~~~~~~~~~~~~~~~~~
 
-NASA has created an experimental data portal to access the LLC data over the
-web via standard HTTP calls. More info and a data browser can be found at
+NAS has created an experimental data portal to access the LLC data over the
+web via standard HTTP calls.
+More info and a data browser can be found at
 https://data.nas.nasa.gov/ecco/.
 The ``llcreader`` module provides a way to access this data directly via
 xarray and dask.
-In this example, we display the whole dataset laziy, following the advice above
+These examples can be run from anywhere; however the speed at which data can
+be loaded depends on the network bandwidth to the NAS HTTP server and the
+rate at which this server can extract data from the underling filesystem.
+
+In this example, we display the whole dataset lazily, following the advice above
 to use a large ``k_chunksize``.
 By default, all variables and all timesteps are loaded::
 
-  >>> import llcreader
+  >>> from xmitgcm import llcreader
   >>> model = llcreader.ECCOPortalLLC4320Model()
   >>> ds = model.get_dataset(k_chunksize=90)
   >>> print(ds)
@@ -179,11 +192,45 @@ The full set of options for these commands is enumerated at
 :meth:`xmitgcm.llcreader.BaseLLCModel.get_dataset`.
 
 
+Pleaides Filesystem
+~~~~~~~~~~~~~~~~~~~
+
+The home of the LLC is NASA's
+`Pleaides supercomputer <https://www.nas.nasa.gov/hecc/resources/pleiades.html>`_.
+llc reader provides classes for quickly initializing and loading this data.
+These classes only work from Pleaides itself and will raise an error if
+invoked on other systems.
+
+The Pleiades models work very similarly to the ones defined above::
+
+  >>> model = llcreader.PleiadesLLC2160Model()
+  >>> ds = model.get_dataset(varnames=['Eta'], type='latlon')
+  >>> print(ds)
+  <xarray.Dataset>
+  Dimensions:  (face: 13, i: 8640, i_g: 8640, j: 6480, j_g: 6480, k: 90, k_l: 90, k_p1: 90, k_u: 90, time: 18679)
+  Coordinates:
+    * time     (time) datetime64[ns] 2011-03-06 ... 2013-04-22T06:00:00
+    * k_p1     (k_p1) int64 0 1 2 3 4 5 6 7 8 9 ... 80 81 82 83 84 85 86 87 88 89
+    * face     (face) int64 0 1 2 3 4 5 6 7 8 9 10 11 12
+    * k        (k) int64 0 1 2 3 4 5 6 7 8 9 10 ... 80 81 82 83 84 85 86 87 88 89
+    * i        (i) int64 0 1 2 3 4 5 6 7 ... 8633 8634 8635 8636 8637 8638 8639
+    * k_u      (k_u) int64 0 1 2 3 4 5 6 7 8 9 ... 80 81 82 83 84 85 86 87 88 89
+    * j_g      (j_g) int64 0 1 2 3 4 5 6 7 ... 6473 6474 6475 6476 6477 6478 6479
+    * i_g      (i_g) int64 0 1 2 3 4 5 6 7 ... 8633 8634 8635 8636 8637 8638 8639
+    * k_l      (k_l) int64 0 1 2 3 4 5 6 7 8 9 ... 80 81 82 83 84 85 86 87 88 89
+    * j        (j) int64 0 1 2 3 4 5 6 7 ... 6473 6474 6475 6476 6477 6478 6479
+  Data variables:
+      Eta      (time, j, i) >f4 dask.array<shape=(18679, 6480, 8640), chunksize=(1, 6480, 2160)>
+
+Because of the high-performance Lustre filesystem on Pleiades, data throughput
+should be much higher than via the ECCO data portal.
 
 Manual Dataset Creation
 -----------------------
 
-One way to use this module is to manually create the necessary objects.
+Another way to use this module is to manually create the necessary objects.
+This would be needed if you are working with LLC output that is not stored
+in a known location.
 First we create a ``Store`` object::
 
   >>> from xmitgcm import llcreader
@@ -226,9 +273,20 @@ and dask chunking. See the class documentation for more details:
 :meth:`xmitgcm.llcreader.BaseLLCModel.get_dataset`.
 
 
-
 API Documentation
 -----------------
 
+Models
+~~~~~~
+
 .. autoclass:: xmitgcm.llcreader.BaseLLCModel
+  :members:
+
+Stores
+~~~~~~
+
+.. autoclass:: xmitgcm.llcreader.BaseStore
+  :members:
+
+.. autoclass:: xmitgcm.llcreader.NestedStore
   :members:

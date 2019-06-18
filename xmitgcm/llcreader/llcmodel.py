@@ -439,8 +439,8 @@ class BaseLLCModel:
 
     Parameters
     ----------
-    datastore : llcreader.BaseStore
-        The datastore object where the data can be found
+    store : llcreader.BaseStore
+        The store object where the data can be found
     mask_ds : zarr.Group
         Must contain variables `mask_c`, `masc_w`, `mask_s`
 

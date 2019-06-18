@@ -7,5 +7,6 @@ dependencies:
   - pytest
   - future
   - pip:
+    - fsspec
     - codecov
     - pytest-cov

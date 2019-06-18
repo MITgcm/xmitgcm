@@ -1,5 +1,18 @@
+import os
+
 from .llcmodel import BaseLLCModel
 from . import stores
+
+
+def _requires_pleiades(func):
+    def wrapper(*args, **kwargs):
+        # is there a better choice
+        test_path = '/home6/dmenemen'
+        if not os.path.exists(test_path):
+            raise OSError("Can't find %s. We must not be on Pleiades." % test_path)
+        func(*args, **kwargs)
+    return wrapper
+
 
 class LLC90Model(BaseLLCModel):
     nx = 90
@@ -59,3 +72,29 @@ class ECCOPortalLLC4320Model(LLC4320Model):
         store = stores.NestedStore(fs, base_path=base_path, mask_path=mask_path,
                                    shrunk=True)
         super(ECCOPortalLLC4320Model, self).__init__(store)
+
+
+class PleiadesLLC2160Model(LLC2160Model):
+
+    @_requires_pleiades
+    def __init__(self):
+        from fsspec.implementations.local import LocalFileSystem
+        fs = LocalFileSystem()
+        base_path = '/home6/dmenemen/llc_2160/compressed'
+        mask_path = '/nobackup/rpaberna/llc/masks/llc_2160_masks.zarr'
+        store = stores.NestedStore(fs, base_path=base_path, mask_path=mask_path,
+                                   shrunk=True)
+        super(PleiadesLLC2160Model, self).__init__(store)
+
+
+class PleiadesLLC4320Model(LLC4320Model):
+
+    @_requires_pleiades
+    def __init__(self):
+        from fsspec.implementations.local import LocalFileSystem
+        fs = LocalFileSystem()
+        base_path = '/home6/dmenemen/llc_4320/compressed'
+        mask_path = '/nobackup/rpaberna/llc/masks/llc_4320_masks.zarr'
+        store = stores.NestedStore(fs, base_path=base_path, mask_path=mask_path,
+                                   shrunk=True)
+        super(PleiadesLLC4320Model, self).__init__(store)

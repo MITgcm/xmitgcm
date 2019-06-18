@@ -7,5 +7,6 @@ dependencies:
   - future
   - pip:
     - git+https://github.com/pydata/xarray.git
+    - fsspec
     - codecov
     - pytest-cov
