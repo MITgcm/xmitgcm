@@ -46,7 +46,7 @@ install:
   - conda list xarray
 
 script:
-  - py.test xmitgcm --cov=xmitgcm --cov-config .coveragerc --cov-report term-missing
+  - py.test -v xmitgcm --cov=xmitgcm --cov-config .coveragerc --cov-report term-missing
 
 after_success:
   - codecov
