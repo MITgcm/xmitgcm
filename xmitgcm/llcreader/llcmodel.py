@@ -586,6 +586,10 @@ class BaseLLCModel:
             How many vertical levels per Dask chunk.
         type : {'faces', 'latlon'}, optional
             What type of dataset to create
+
+        Returns
+        -------
+        ds : xarray.Dataset
         """
 
         def _if_not_none(a, b):
