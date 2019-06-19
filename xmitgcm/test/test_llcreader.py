@@ -1,6 +1,7 @@
 import pytest
 
-llcreader = pytest.importorskip("xmitgcm.llcreader")
+#llcreader = pytest.importorskip("xmitgcm.llcreader")
+from xmitgc import llcreader
 
 from .test_xmitgcm_common import llc_mds_datadirs
 
