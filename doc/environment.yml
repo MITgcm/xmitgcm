@@ -7,4 +7,6 @@ dependencies:
   - sphinx=1.7.5
   - pip
   - pip:
+    - zarr
+    - fsspec
     - nbsphinx
