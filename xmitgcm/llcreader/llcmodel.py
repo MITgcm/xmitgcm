@@ -402,71 +402,6 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype):
     return np.concatenate(level_data, axis=1)
 
 
-class _LLCDataRequest:
-
-    def __init__(self, store, varname, iters, dtype, nz, nx,
-                 klevels=[0], index=None, mask=None, k_chunksize=1):
-        """Create numpy data from a file
-
-        Parameters
-        ----------
-        fs : fsspec.Filesystem
-        path : str
-        file_shape : tuple of ints
-            The shape of the data in the file
-        dtype : numpy.dtype
-            Data type of the data in the file
-        nfacet : int
-            Which facet to read
-        levels : int or lits of ints, optional
-            Which k levels to read
-        index : dict
-        mask : dask.array
-
-        Returns
-        -------
-        out : np.ndarray
-            The data
-        """
-
-        self.store = store
-        self.varname = varname
-        self.iters = iters
-        #self.fs = fs
-        #self.path = path
-        self.dtype = dtype
-        self.nz = nz
-        self.nx = nx
-        self.klevels = klevels
-        self.k_chunksize = k_chunksize
-        self.mask = mask
-        self.index = index
-
-    def dask_array(self, nfacet):
-        facet_shape =  _facet_shape(nfacet, self.nx)
-        time_chunks = (len(self.iters) * (1,),)
-        k_chunks = (tuple([len(c)
-                          for c in _chunks(self.klevels, self.k_chunksize)]),)
-        chunks = time_chunks + k_chunks + tuple([(s,) for s in facet_shape])
-
-        # manually build dask graph
-        dsk = {}
-        token = tokenize(self.varname, self.store, nfacet)
-        name = '-'.join([self.varname, token])
-        for n_iter, iternum in enumerate(self.iters):
-            for n_k, klevels in enumerate(_chunks(self.klevels, self.k_chunksize)):
-                key = name, n_iter, n_k, 0, 0, 0
-                task = (_get_facet_chunk, self.store, self.varname, iternum,
-                         nfacet, klevels, self.nx, self.nz, self.dtype)
-                dsk[key] = task
-
-        return dsa.Array(dsk, name, chunks, self.dtype)
-
-    def facets(self):
-        return [self.dask_array(nfacet) for nfacet in range(5)]
-
-
-
 class BaseLLCModel:
     """Class representing an LLC Model Dataset.
 
@@ -586,6 +521,28 @@ class BaseLLCModel:
         return mask, index
 
 
+    def _dask_array(self, nfacet, varname, iters, klevels, k_chunksize):
+        # return a dask array for a single facet
+        facet_shape =  _facet_shape(nfacet, self.nx)
+        time_chunks = (len(iters) * (1,),)
+        k_chunks = (tuple([len(c)
+                          for c in _chunks(klevels, k_chunksize)]),)
+        chunks = time_chunks + k_chunks + tuple([(s,) for s in facet_shape])
+
+        # manually build dask graph
+        dsk = {}
+        token = tokenize(varname, self.store, nfacet)
+        name = '-'.join([varname, token])
+        for n_iter, iternum in enumerate(iters):
+            for n_k, these_klevels in enumerate(_chunks(klevels, k_chunksize)):
+                key = name, n_iter, n_k, 0, 0, 0
+                task = (_get_facet_chunk, self.store, varname, iternum,
+                         nfacet, these_klevels, self.nx, self.nz, self.dtype)
+                dsk[key] = task
+
+        return dsa.Array(dsk, name, chunks, self.dtype)
+
+
     def _get_facet_data(self, varname, iters, klevels, k_chunksize):
         mask, index = self._get_mask_and_index_for_variable(varname)
         # needs facets to be outer index of nested lists
@@ -594,12 +551,8 @@ class BaseLLCModel:
         if len(dims)==2:
             klevels = [0,]
 
-        dr = _LLCDataRequest(self.store, varname,  iters,
-                             self.dtype, self.nz, self.nx,
-                             mask=mask, index=index, klevels=klevels,
-                             k_chunksize=k_chunksize)
-        data_facets = dr.facets()
-
+        data_facets = [self._dask_array(nfacet, varname, iters, klevels, k_chunksize)
+                       for nfacet in range(5)]
 
         if len(dims)==2:
             # squeeze depth dimension out of 2D variable
