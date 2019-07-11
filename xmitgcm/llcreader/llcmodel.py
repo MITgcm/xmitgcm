@@ -192,7 +192,7 @@ def _facets_to_latlon_vector(facets_u, facets_v, metric=False):
     u_rot = (facets_u_drop[:2]
              + [transform_v_to_u(facet) for facet in facets_v_drop[-2:]])
     v_rot = (facets_v_drop[:2]
-             + [transform_u_to_v(facet) for facet in facets_u_drop[-2:]])
+             + [transform_u_to_v(facet, metric) for facet in facets_u_drop[-2:]])
 
     u = concatenate(u_rot, axis=-1)
     v = concatenate(v_rot, axis=-1)
