@@ -4,6 +4,14 @@ Development
 Release History
 ---------------
 
+v0.4.0 (2019-07-11)
+~~~~~~~~~~~~~~~~~~~
+
+  - New :doc:`llcreader` module (see
+    `blog post <https://medium.com/pangeo/petabytes-of-ocean-data-part-1-nasa-ecco-data-portal-81e3c5e077be>`_
+    for more details.)
+
+
 v0.3.0 (2019-05-19)
 ~~~~~~~~~~~~~~~~~~~~
   - Ability to read ASTE grids
@@ -16,7 +24,7 @@ v0.3.0 (2019-05-19)
 
 
 v.0.2.2 (2018-07-18)
-~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
   - Extend capabilities of read_raw_data (:issue:`84`)
   - Fix the problem with testing type of prefix (:issue:`83`)
   - Cast prefix to list if it isn't already one (:issue:`79`)
@@ -34,12 +42,12 @@ v.0.2.2 (2018-07-18)
   - Added layers axis attribute (:issue:`47`)
 
 v.0.2.1 (2017-05-31)
-~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
   - Fix to ensure that grid indices are always interger dtype.
   - Fix to keep proper Comodo metadata when swapping dimensions.
 
 v0.2.0 (2017-02-14)
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 This release contains the following feature enhancements:
   - Files are not read until the data are accessed. This helps overcome a common
