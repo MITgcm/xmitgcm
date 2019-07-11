@@ -7,7 +7,7 @@ Release History
 v0.4.1 (2019-07-11)
 ~~~~~~~~~~~~~~~~~~~
 
-  - Incorporated llcreader bugfix from Spencer Jones
+  - Incorporated llcreader bugfix from Spencer Jones (:issue:`154`)
 
 v0.4.0 (2019-07-11)
 ~~~~~~~~~~~~~~~~~~~
