@@ -79,7 +79,7 @@ Below are a few examples of how to use these.
 ECCO HTTP Data Portal
 ~~~~~~~~~~~~~~~~~~~~~
 
-NAS has created an experimental data portal to access the LLC data over the
+NASA has created an experimental data portal to access the LLC data over the
 web via standard HTTP calls.
 More info and a data browser can be found at
 https://data.nas.nasa.gov/ecco/.
