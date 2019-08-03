@@ -39,7 +39,7 @@ try:
     from xarray.core.pycompat import OrderedDict
 except ImportError:
     from collections import OrderedDict
-    
+
 # should we hard code this?
 LLC_NUM_FACES = 13
 LLC_FACE_DIMNAME = 'face'
@@ -139,6 +139,14 @@ def open_mdsdataset(data_dir, grid_dir=None,
     _, _, _, arg_values = inspect.getargvalues(frame)
     del arg_values['frame']
     function_name = inspect.getframeinfo(frame)[2]
+
+    # if open_mdsdataset did not call itself,
+    # clear global variables created to speed up
+    if inspect.getframeinfo(frame)[0] != inspect.getframeinfo(frame.f_back)[0]:
+        glob_vars = ['_prev_layers', '_prev_all_grid_variables',
+                     '_prev_all_data_variables', '_prev_all_matching_prefixes']
+        for var in glob_vars:
+            globals().pop(var, None)
 
     # auto-detect whether to swap dims
     if swap_dims is None:
@@ -732,6 +740,19 @@ def _guess_model_horiz_dims(data_dir, is_llc=False):
 
 def _guess_layers(data_dir):
     """Return a dict matching layers suffixes to dimension length."""
+
+    # Define global variable to speed up
+    global _prev_layers
+
+    # Inspect current frame
+    frame = inspect.currentframe()
+    args, _, _, values = inspect.getargvalues(frame)
+
+    # Check previous frame and return here if arguments are matching
+    if ('_prev_layers' in globals() and
+            all([values[arg] == _prev_layers[arg] for arg in args])):
+        return _prev_layers['all_layers']
+
     layers_files = glob(os.path.join(data_dir, 'layers*.meta'))
     all_layers = {}
     for fname in layers_files:
@@ -743,11 +764,31 @@ def _guess_layers(data_dir):
             meta = parse_meta_file(fname)
             Nlayers = meta['dimList'][2][2]
             all_layers[layers_suf] = Nlayers
+
+    # Inspect frame+output and make it available for future use
+    frame = inspect.currentframe()
+    args, _, _, values = inspect.getargvalues(frame)
+    _prev_layers = {arg: values[arg] for arg in args+['all_layers']}
+
     return all_layers
 
 
 def _get_all_grid_variables(geometry, grid_dir, layers={}):
     """"Put all the relevant grid metadata into one big dictionary."""
+
+    # Define global variable to speed up
+    global _prev_all_grid_variables
+
+    # Inspect current frame
+    frame = inspect.currentframe()
+    args, _, _, values = inspect.getargvalues(frame)
+
+    # Check previous frame and return here if arguments are matching
+    if ('_prev_all_grid_variables' in globals() and
+            all([values[arg] == _prev_all_grid_variables[arg]
+                for arg in args])):
+        return _prev_all_grid_variables['metadata']
+
     possible_hcoords = {'cartesian': horizontal_coordinates_cartesian,
                         'llc': horizontal_coordinates_llc,
                         'curvilinear': horizontal_coordinates_curvcart,
@@ -767,6 +808,12 @@ def _get_all_grid_variables(geometry, grid_dir, layers={}):
     allvars += layersvars
 
     metadata = _concat_dicts(allvars)
+
+    # Inspect frame+output and make it available for future use
+    frame = inspect.currentframe()
+    args, _, _, values = inspect.getargvalues(frame)
+    _prev_all_grid_variables = {arg: values[arg] for arg in args+['metadata']}
+
     return metadata
 
 
@@ -818,9 +865,23 @@ def _recursively_replace(item, search, replace):
 
 def _get_all_data_variables(data_dir, grid_dir, layers):
     """"Put all the relevant data metadata into one big dictionary."""
+
+    # Define global variable to speed up
+    global _prev_all_data_variables
+
+    # Inspect current frame
+    frame = inspect.currentframe()
+    args, _, _, values = inspect.getargvalues(frame)
+
+    # Check previous frame and return here if arguments are matching
+    if ('_prev_all_data_variables' in globals() and
+            all([values[arg] == _prev_all_data_variables[arg]
+                for arg in args])):
+        return _prev_all_data_variables['metadata']
+
     allvars = [state_variables]
     allvars.append(package_state_variables)
-    
+
     # add others from available_diagnostics.log
     # search in the data dir
     fnameD = os.path.join(data_dir, 'available_diagnostics.log')
@@ -853,6 +914,11 @@ def _get_all_data_variables(data_dir, grid_dir, layers):
     # now fill in aliases
     for alias, original in aliases.items():
         metadata[alias] = metadata[original]
+
+    # Inspect frame+output and make it available for future use
+    frame = inspect.currentframe()
+    args, _, _, values = inspect.getargvalues(frame)
+    _prev_all_data_variables = {arg: values[arg] for arg in args+['metadata']}
 
     return metadata
 
@@ -895,10 +961,32 @@ def _get_all_matching_prefixes(data_dir, iternum, file_prefixes=None,
                                ignore_pickup=True):
     """Scan a directory and return all file prefixes matching a certain
     iteration number."""
+
+    # Define global variable to speed up
+    global _prev_all_matching_prefixes
+
+    # Inspect current frame
+    frame = inspect.currentframe()
+    args, _, _, values = inspect.getargvalues(frame)
+
+    # Check previous frame and return and
+    # use previous listdir if data_dir arguments are matching
+    if ('_prev_all_matching_prefixes' in globals() and
+            _prev_all_matching_prefixes['data_dir'] == data_dir):
+        data_listdir = _prev_all_matching_prefixes['data_listdir']
+    else:
+        data_listdir = [os.path.join(data_dir, f)
+                        for f in os.listdir(data_dir) if not f.startswith('.')]
+
     if iternum is None:
         return []
     prefixes = set()
-    all_datafiles = glob(os.path.join(data_dir, '*.%010d.data' % iternum))
+
+    # Same of:
+    # all_datafiles = glob(os.path.join(data_dir, '*.%010d.data' % iternum))
+    # for loop + endswith is faster than fnmatch
+    all_datafiles = [f for f in data_listdir
+                     if f.endswith('.%010d.data' % iternum)]
     for f in all_datafiles:
         iternum = int(f[-15:-5])
         prefix = os.path.split(f[:-16])[-1]
@@ -908,6 +996,13 @@ def _get_all_matching_prefixes(data_dir, iternum, file_prefixes=None,
         else:
             if prefix in file_prefixes:
                 prefixes.add(prefix)
+
+    # Inspect frame+data_listdir and make it available for future use
+    frame = inspect.currentframe()
+    args, _, _, values = inspect.getargvalues(frame)
+    _prev_all_matching_prefixes = {arg: values[arg]
+                                   for arg in args+['data_listdir']}
+
     return list(prefixes)
 
 
