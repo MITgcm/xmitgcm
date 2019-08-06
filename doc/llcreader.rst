@@ -290,3 +290,11 @@ Stores
 
 .. autoclass:: xmitgcm.llcreader.NestedStore
   :members:
+
+Utility Functions
+~~~~~~~~~~~~~~~~~
+
+The ``llcreader`` module also has a standalone function for converting
+13-face-style LLC datasets into rectangular quasi-lat-lon datasets.
+
+.. autofunction:: xmitgcm.llcreader.faces_dataset_to_latlon

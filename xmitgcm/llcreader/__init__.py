@@ -23,4 +23,4 @@ except (ImportError, AssertionError): # pramga: no cover
 
 from .known_models import *
 from .stores import *
-from .llcmodel import BaseLLCModel
+from .llcmodel import BaseLLCModel, faces_dataset_to_latlon
