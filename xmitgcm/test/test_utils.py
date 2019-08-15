@@ -1126,3 +1126,6 @@ def test_llc_facets_3d_spatial_to_compact(llc_mds_datadirs):
                                '.data')
     assert md5new == md5old
     os.remove('tmp.bin')
+
+
+def test_parse_namelist():
