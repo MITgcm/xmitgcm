@@ -15,6 +15,7 @@ parallel, out-of-core_ analysis of MITgcm output data.
    demo_read_input_grid
    demo_writing_binary_file
    performance
+   llcreader
    utils
    development
 

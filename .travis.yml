@@ -13,8 +13,6 @@ matrix:
     env: CONDA_ENV=py27-xarray0.10.9
   - python: 2.7
     env: CONDA_ENV=py27-xarray0.11.3
-  - python: 2.7
-    env: CONDA_ENV=py27-numpy1.11.1
   - python: 3.5
     env: CONDA_ENV=py35
   - python: 3.6
@@ -48,7 +46,7 @@ install:
   - conda list xarray
 
 script:
-  - py.test xmitgcm --cov=xmitgcm --cov-config .coveragerc --cov-report term-missing
+  - py.test -v xmitgcm --cov=xmitgcm --cov-config .coveragerc --cov-report term-missing
 
 after_success:
   - codecov

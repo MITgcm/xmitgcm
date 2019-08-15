@@ -519,6 +519,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                                                            self.grid_dir,
                                                            self.layers)
         self._all_data_variables = _get_all_data_variables(self.data_dir,
+                                                           self.grid_dir,
                                                            self.layers)
 
         # The rest of the data has to be read from disk.
@@ -676,11 +677,14 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             # How should we handle this? Can either eliminate one of the dims
             # or add an extra axis to the data. Let's try the former, on the
             # grounds that it is simpler for the user.
-            if len(dims) == 3 and data.ndim == 2:
+            if ((len(dims) == 3 and data.ndim == 2) or
+                (self.llc and (len(dims) == 3 and data.ndim == 3))):
                 # Deleting the first dimension (z) assumes that 2D data always
                 # corresponds to x,y horizontal data. Is this really true?
                 # The answer appears to be yes: 2D (x|y,z) data retains the
                 # missing dimension as an axis of length 1.
+                # Also handles https://github.com/xgcm/xmitgcm/issues/140
+                # (special case for 2d llc diags)
                 dims = dims[1:]
             elif len(dims) == 1 and data.ndim > 1:
                 # this is for certain profile data like RC, PHrefC, etc.
@@ -828,17 +832,25 @@ def _recursively_replace(item, search, replace):
         return item
 
 
-def _get_all_data_variables(data_dir, layers):
+def _get_all_data_variables(data_dir, grid_dir, layers):
     """"Put all the relevant data metadata into one big dictionary."""
     allvars = [state_variables]
     allvars.append(package_state_variables)
+    
     # add others from available_diagnostics.log
-    fname = os.path.join(data_dir, 'available_diagnostics.log')
-    if os.path.exists(fname):
-        diag_file = fname
+    # search in the data dir
+    fnameD = os.path.join(data_dir, 'available_diagnostics.log')
+    # and in the grid dir
+    fnameG = os.path.join(grid_dir, 'available_diagnostics.log')
+    # first look in the data dir
+    if os.path.exists(fnameD):
+        diag_file = fnameD
+    # then in the grid dir
+    elif os.path.exists(fnameG):
+        diag_file = fnameG
     else:
         warnings.warn("Couldn't find available_diagnostics.log "
-                      "in %s. Using default version." % data_dir)
+                      "in %s or %s. Using default version." % (data_dir, grid_dir))
         from .default_diagnostics import diagnostics
         diag_file = StringIO(diagnostics)
     available_diags = parse_available_diagnostics(diag_file, layers)
@@ -944,5 +956,5 @@ def _reshape_for_llc(dims, data):
             # add face dimension to dims
             jdim = dims.index(dim)
             dims.insert(jdim, LLC_FACE_DIMNAME)
-            assert data.ndim==len(dims)
+    assert data.ndim==len(dims), '%r %r' % (data.shape, dims)
     return dims, data
