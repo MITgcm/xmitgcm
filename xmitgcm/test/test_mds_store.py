@@ -556,3 +556,17 @@ def test_llc_extra_metadata(llc_mds_datadirs, method):
 
     if method == "smallchunks":
         assert ds.U.chunks == (nt*(1,), nz*(1,), nface*(1,), (ny,), (nx,))
+
+
+def test_levels_diagnostics(mds_datadirs_with_inputfiles):
+    dirname, expected = mds_datadirs_with_inputfiles
+
+    for diagname, (levels, (idx, value)) in expected['diag_levels'].items():
+        ds = xmitgcm.open_mdsdataset(dirname, prefix=[diagname], levels=levels,
+                                     geometry=expected['geometry'])
+
+        assert ds['Zl'].values[idx] == value
+
+        with pytest.warns(UserWarning, match='nz will be ignored'):
+            xmitgcm.open_mdsdataset(dirname, prefix=[diagname], levels=levels, 
+                                    geometry=expected['geometry'], nz=12)

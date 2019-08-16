@@ -84,7 +84,7 @@ def _get_useful_info_from_meta_file(metafile):
     return nrecs, shape, name, dtype, fldlist
 
 
-def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
+def read_mds(fname, iternum=None, use_mmap=None, endian='>', shape=None,
              dtype=None, use_dask=True, extra_metadata=None, chunks="3D",
              llc=False, llc_method="smallchunks", legacy=True):
     """Read an MITgcm .meta / .data file pair
@@ -186,6 +186,11 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
         istr = '.%010d' % iternum
     datafile = fname + istr + '.data'
     metafile = fname + istr + '.meta'
+
+    if use_mmap and use_dask:
+        raise TypeError('nope')
+    elif use_mmap is None:
+        use_mmap = False if use_dask else True
 
     # get metadata
     try:

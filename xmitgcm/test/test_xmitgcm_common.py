@@ -129,7 +129,26 @@ _experiments = {
                               (0, np.datetime64('2013-11-12T12:00:00.000000000')),
                               (1, np.datetime64('2013-11-12T12:02:00.000000000'))],
                           'prefixes': ['THETA']},
-
+    'ideal_2D_oce': {'geometry': 'sphericalpolar',
+                     'dlink': dlroot + '17288255',
+                     'md5': 'd8868731ff6a8fd951babefbc5ea69ba',
+                     'expected_namelistvals': {'eosType': 'LINEAR',
+                                               'viscAh': 12e5,
+                                               'niter0': 36000,
+                                               'delX': [3.],
+                                               'fileName': ['surfDiag', 'dynDiag',
+                                                            'oceDiag', 'flxDiag'],
+                                               'levels': [[1.0], [],
+                                                          [2., 3., 4., 5., 6.,
+                                                           7., 8., 9., 10., 11.,
+                                                           12., 13.]],
+                                               'useDiagnostics': True},
+                     'diag_levels': {'surfDiag': ([1], (0, -50)),
+                                     'oceDiag': (slice(2, 14), (0, -122.5))},
+                     'expected_values': {'XC': ((0, 0), 1.5)},
+                     'shape': (15, 56, 1),
+                     'test_iternum': 36020,
+                     'dtype': np.dtype('f4')}
 }
 
 
@@ -199,6 +218,7 @@ def download_archive(url, filename):
     req.urlretrieve(url, filename)
     return None
 
+
 def untar(data_dir, basename, target_dir):
     """Unzip a tar file into the target directory. Return path to unzipped
     directory."""
@@ -261,3 +281,8 @@ def llc_mds_datadirs(tmpdir_factory, request):
 @pytest.fixture(scope='module', params=_grids.keys())
 def all_grid_datadirs(tmpdir_factory, request):
     return setup_mds_dir(tmpdir_factory, request, _grids)
+
+
+@pytest.fixture(scope='module', params=['ideal_2D_oce'])
+def mds_datadirs_with_inputfiles(tmpdir_factory, request):
+    return setup_mds_dir(tmpdir_factory, request, _experiments)

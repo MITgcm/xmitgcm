@@ -48,11 +48,11 @@ LLC_FACE_DIMNAME = 'face'
 def open_mdsdataset(data_dir, grid_dir=None,
                     iters='all', prefix=None, read_grid=True,
                     delta_t=1, ref_date=None, calendar='gregorian',
-                    geometry='sphericalpolar',
+                    levels=None, geometry='sphericalpolar',
                     grid_vars_to_coords=True, swap_dims=None,
                     endian=">", chunks=None,
                     ignore_unknown_vars=False, default_dtype=None,
-                    nx=None, ny=None, nz=None, levels=None,
+                    nx=None, ny=None, nz=None,
                     llc_method="smallchunks", extra_metadata=None):
     """Open MITgcm-style mds (.data / .meta) file output as xarray datset.
 
@@ -78,6 +78,9 @@ def open_mdsdataset(data_dir, grid_dir=None,
         e.g. "1990-1-1 0:0:0" (See CF conventions [1]_)
     calendar : string, optional
         A calendar allowed by CF conventions [1]_
+    levels : list or slice, optional
+        A list or slice of the indexes of the grid levels to read
+        Same syntax as in the data.diagnostics file
     geometry : {'sphericalpolar', 'cartesian', 'llc', 'curvilinear'}
         MITgcm grid geometry specifier
     grid_vars_to_coords : boolean, optional
@@ -157,9 +160,12 @@ def open_mdsdataset(data_dir, grid_dir=None,
     else:
         pass
 
-    # if nz is a slice or a list, a subset of levels is needed
-    if levels is not None and nz is None:
-        nz = len(levels)
+    # if levels s a slice or a list, a subset of levels is needed
+    if levels is not None and nz is not None:
+        warnings.warn('levels has been set, nz will be ignored.')
+        nz = None
+    if isinstance(levels, slice):
+        levels = np.arange(levels.start, levels.stop)
 
     # We either have a single iter, in which case we create a fresh store,
     # or a list of iters, in which case we combine.
@@ -223,8 +229,6 @@ def open_mdsdataset(data_dir, grid_dir=None,
                         grid_dataset = grid_dataset.isel(**{coord: levels
                                     for coord in ['k', 'k_l', 'k_u', 'k_p1']})
                     datasets.insert(0, grid_dataset)
-                for dataset in datasets:
-                    print(dataset.dims)
                 # apply chunking
                 ds = xr.auto_combine(datasets)
                 if swap_dims:
