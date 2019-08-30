@@ -24,4 +24,4 @@ def listdir_startsandendswith(path, start, end):
 @cached(cache={})
 def listdir_fnmatch(path, pattern):
     files = listdir(path)
-    return [f for f in files if fnmatch.fnmatch(pattern)]
+    return [f for f in files if fnmatch.fnmatch(f, pattern)]
