@@ -8,6 +8,7 @@ dependencies:
   - pytest
   - future
   - zarr
+  - cachetools
   - pip:
     - git+https://github.com/pydata/xarray.git
     - fsspec

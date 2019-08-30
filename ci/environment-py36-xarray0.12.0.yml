@@ -9,6 +9,7 @@ dependencies:
   - numpy
   - pytest
   - future
+  - cachetools
   - pip:
     - codecov
     - pytest-cov
