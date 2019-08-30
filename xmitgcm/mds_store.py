@@ -28,6 +28,9 @@ from .variables import dimensions, \
 from .utils import parse_meta_file, read_mds, parse_available_diagnostics,\
     get_extra_metadata
 
+from .file_utils import listdir, listdir_startswith, listdir_endswith, \
+    listdir_startsandendswith
+
 # Python2/3 compatibility
 if (sys.version_info > (3, 0)):
     stringtypes = [str]
@@ -39,7 +42,7 @@ try:
     from xarray.core.pycompat import OrderedDict
 except ImportError:
     from collections import OrderedDict
-    
+
 # should we hard code this?
 LLC_NUM_FACES = 13
 LLC_FACE_DIMNAME = 'face'
@@ -732,7 +735,7 @@ def _guess_model_horiz_dims(data_dir, is_llc=False):
 
 def _guess_layers(data_dir):
     """Return a dict matching layers suffixes to dimension length."""
-    layers_files = glob(os.path.join(data_dir, 'layers*.meta'))
+    layers_files = file_startsandendswith(data_dir, 'layers', '.meta'))
     all_layers = {}
     for fname in layers_files:
         # make sure to exclude filenames such as
@@ -775,7 +778,7 @@ def _get_extra_grid_variables(grid_dir):
        Then return the variable information for each of these"""
     extra_grid = {}
 
-    all_datafiles = glob(os.path.join(grid_dir, '*.data'))
+    all_datafiles = files_endswith(grid_dir, '.data'))
     for f in all_datafiles:
         prefix = os.path.split(f[:-5])[-1]
         # Only consider what we find that matches extra_grid_vars
@@ -820,7 +823,7 @@ def _get_all_data_variables(data_dir, grid_dir, layers):
     """"Put all the relevant data metadata into one big dictionary."""
     allvars = [state_variables]
     allvars.append(package_state_variables)
-    
+
     # add others from available_diagnostics.log
     # search in the data dir
     fnameD = os.path.join(data_dir, 'available_diagnostics.log')
