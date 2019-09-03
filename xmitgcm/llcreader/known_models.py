@@ -1,4 +1,5 @@
 import os
+from distutils.version import LooseVersion
 
 from .llcmodel import BaseLLCModel
 from . import stores
@@ -13,6 +14,16 @@ def _requires_pleiades(func):
         func(*args, **kwargs)
     return wrapper
 
+def _make_http_filesystem():
+    import fsspec
+    from fsspec.implementations.http import HTTPFileSystem
+
+    if LooseVersion(fsspec.__version__) >= "0.4.3":
+        kwargs = {}
+    else:
+        kwargs = {"size_policy": "get"}
+
+    return HTTPFileSystem(**kwargs)
 
 class LLC90Model(BaseLLCModel):
     nx = 90
@@ -53,8 +64,7 @@ class LLC4320Model(BaseLLCModel):
 class ECCOPortalLLC2160Model(LLC2160Model):
 
     def __init__(self):
-        from fsspec.implementations.http import HTTPFileSystem
-        fs = HTTPFileSystem(size_policy='get')
+        fs = _make_http_filesystem()
         base_path = 'https://data.nas.nasa.gov/ecco/download_data.php?file=/eccodata/llc_2160/compressed'
         mask_path = 'https://storage.googleapis.com/pangeo-ecco/llc/masks/llc_2160_masks.zarr/'
         store = stores.NestedStore(fs, base_path=base_path, mask_path=mask_path,
@@ -65,8 +75,7 @@ class ECCOPortalLLC2160Model(LLC2160Model):
 class ECCOPortalLLC4320Model(LLC4320Model):
 
     def __init__(self):
-        from fsspec.implementations.http import HTTPFileSystem
-        fs = HTTPFileSystem(size_policy='get')
+        fs = _make_http_filesystem()
         base_path = 'https://data.nas.nasa.gov/ecco/download_data.php?file=/eccodata/llc_4320/compressed'
         mask_path = 'https://storage.googleapis.com/pangeo-ecco/llc/masks/llc_4320_masks.zarr/'
         store = stores.NestedStore(fs, base_path=base_path, mask_path=mask_path,
