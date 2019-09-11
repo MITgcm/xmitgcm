@@ -17,13 +17,7 @@ def _requires_pleiades(func):
 def _make_http_filesystem():
     import fsspec
     from fsspec.implementations.http import HTTPFileSystem
-
-    if LooseVersion(fsspec.__version__) >= "0.4.3":
-        kwargs = {}
-    else:
-        kwargs = {"size_policy": "get"}
-
-    return HTTPFileSystem(**kwargs)
+    return HTTPFileSystem()
 
 class LLC90Model(BaseLLCModel):
     nx = 90
