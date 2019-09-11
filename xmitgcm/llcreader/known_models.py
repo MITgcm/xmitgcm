@@ -1,5 +1,4 @@
 import os
-from distutils.version import LooseVersion
 
 from .llcmodel import BaseLLCModel
 from . import stores
