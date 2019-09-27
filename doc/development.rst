@@ -85,7 +85,7 @@ Anyone interested in helping to develop xmitgcm needs to create their own fork
 of our `git repository`. (Follow the github `forking instructions`_. You
 will need a github account.)
 
-.. _git repository: https://github.com/xgcm/xmitgcm
+.. _git repository: https://github.com/MITgcm/xmitgcm
 .. _forking instructions: https://help.github.com/articles/fork-a-repo/
 
 Clone your fork on your local machine.
@@ -101,7 +101,7 @@ Then set your fork to track the upstream xmitgcm repo.
 .. code-block:: bash
 
     $ cd xmitgcm
-    $ git remote add upstream git://github.com/xgcm/xmitgcm.git
+    $ git remote add upstream git://github.com/MITgcm/xmitgcm.git
 
 You will want to periodically sync your master branch with the upstream master.
 
