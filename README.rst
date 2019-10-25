@@ -11,8 +11,8 @@ Links
 -----
 
 -  HTML documentation: https://xmitgcm.readthedocs.org
--  Issue tracker: https://github.com/xgcm/xmitgcm/issues
--  Source code: https://github.com/xgcm/xmitgcm
+-  Issue tracker: https://github.com/MITgcm/xmitgcm/issues
+-  Source code: https://github.com/MITgcm/xmitgcm
 
 Installation
 ------------
@@ -47,10 +47,10 @@ Installation from github
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 xmitgcm is under active development. To obtain the latest development version,
-you may clone the `source repository <https://github.com/xgcm/xmitgcm>`_
+you may clone the `source repository <https://github.com/MITgcm/xmitgcm>`_
 and install it::
 
-    git clone https://github.com/xgcm/xmitgcm.git
+    git clone https://github.com/MITgcm/xmitgcm.git
     cd xmitgcm
     python setup.py install
 
@@ -90,11 +90,11 @@ more details.
 
 .. |DOI| image:: https://zenodo.org/badge/70649781.svg
    :target: https://zenodo.org/badge/latestdoi/70649781
-.. |Build Status| image:: https://travis-ci.org/xgcm/xmitgcm.svg?branch=master
-   :target: https://travis-ci.org/xgcm/xmitgcm
+.. |Build Status| image:: https://travis-ci.org/MITgcm/xmitgcm.svg?branch=master
+   :target: https://travis-ci.org/MITgcm/xmitgcm
    :alt: travis-ci build status
-.. |codecov| image:: https://codecov.io/github/xgcm/xmitgcm/coverage.svg?branch=master
-   :target: https://codecov.io/github/xgcm/xmitgcm?branch=master
+.. |codecov| image:: https://codecov.io/github/MITgcm/xmitgcm/coverage.svg?branch=master
+   :target: https://codecov.io/github/MITgcm/xmitgcm?branch=master
    :alt: code coverage
 .. |pypi| image:: https://badge.fury.io/py/xmitgcm.svg
    :target: https://badge.fury.io/py/xmitgcm
@@ -106,8 +106,8 @@ more details.
 .. _dask: https://dask.pydata.org
 .. _xarray: https://xarray.pydata.org
 .. _Comodo: https://pycomodo.forge.imag.fr/norm.html
-.. _issues: https://github.com/xgcm/xmitgcm/issues
-.. _`pull requests`: https://github.com/xgcm/xmitgcm/pulls
+.. _issues: https://github.com/MITgcm/xmitgcm/issues
+.. _`pull requests`: https://github.com/MITgcm/xmitgcm/pulls
 .. _MITgcm: http://mitgcm.org/public/r2_manual/latest/online_documents/node277.html
 .. _out-of-core: https://en.wikipedia.org/wiki/Out-of-core_algorithm
 .. _Anaconda: https://www.continuum.io/downloads

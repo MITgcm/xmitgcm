@@ -163,11 +163,12 @@ def test_open_dataset_no_meta(all_mds_datadirs):
         assert ds['Eta'].dims == dims_2d
         assert ds['Eta'].values.ndim == len(dims_2d)
 
-        with pytest.raises(IOError, message="Expecting IOError when default_dtype "
-                                            "is not precised (i.e., None)"):
+        with pytest.raises(IOError):
             xmitgcm.open_mdsdataset(dirname, prefix=['T', 'Eta'], iters=it,
                                     geometry=expected['geometry'],
                                     read_grid=False)
+            pytest.fail("Expecting IOError when default_dtype "
+                        "is not precised (i.e., None)")
 
     # now get rid of the variables used to infer dimensions
     with hide_file(dirname, 'XC.meta', 'RC.meta'):
@@ -345,6 +346,7 @@ def test_multiple_iters(multidim_mds_datadirs):
     # now hide all the PH and PHL files: should be able to infer prefixes fine
     missing_files = [os.path.basename(f)
                      for f in glob(os.path.join(dirname, 'PH*.0*data'))]
+    print(missing_files)
     with hide_file(dirname, *missing_files):
         ds = xmitgcm.open_mdsdataset(
             dirname, read_grid=False, iters=expected['all_iters'],
@@ -416,7 +418,7 @@ def test_avail_diags_in_grid_dir(mds_datadirs_with_diagnostics):
         ds = xmitgcm.open_mdsdataset(
                 dirname, grid_dir=grid_dir, iters=iters, prefix=[diag_prefix],
                 read_grid=False, geometry=expected['geometry'])
-    
+
     for diagname in expected_diags:
         assert diagname in ds
         if 'mate' in ds[diagname].attrs:

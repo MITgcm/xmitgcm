@@ -28,6 +28,9 @@ from .variables import dimensions, \
 from .utils import parse_meta_file, read_mds, parse_available_diagnostics,\
     get_extra_metadata
 
+from .file_utils import listdir, listdir_startswith, listdir_endswith, \
+    listdir_startsandendswith, listdir_fnmatch
+
 # Python2/3 compatibility
 if (sys.version_info > (3, 0)):
     stringtypes = [str]
@@ -39,7 +42,7 @@ try:
     from xarray.core.pycompat import OrderedDict
 except ImportError:
     from collections import OrderedDict
-    
+
 # should we hard code this?
 LLC_NUM_FACES = 13
 LLC_FACE_DIMNAME = 'face'
@@ -752,7 +755,7 @@ def _guess_model_horiz_dims(data_dir, is_llc=False):
 
 def _guess_layers(data_dir):
     """Return a dict matching layers suffixes to dimension length."""
-    layers_files = glob(os.path.join(data_dir, 'layers*.meta'))
+    layers_files = listdir_startsandendswith(data_dir, 'layers', '.meta')
     all_layers = {}
     for fname in layers_files:
         # make sure to exclude filenames such as
@@ -760,7 +763,7 @@ def _guess_layers(data_dir):
         if not re.search('\.\d{10}\.', fname):
             # should turn "foo/bar/layers1RHO.meta" into "1RHO"
             layers_suf = os.path.splitext(os.path.basename(fname))[0][6:]
-            meta = parse_meta_file(fname)
+            meta = parse_meta_file(os.path.join(data_dir, fname))
             Nlayers = meta['dimList'][2][2]
             all_layers[layers_suf] = Nlayers
     return all_layers
@@ -795,7 +798,7 @@ def _get_extra_grid_variables(grid_dir):
        Then return the variable information for each of these"""
     extra_grid = {}
 
-    all_datafiles = glob(os.path.join(grid_dir, '*.data'))
+    all_datafiles = listdir_endswith(grid_dir, '.data')
     for f in all_datafiles:
         prefix = os.path.split(f[:-5])[-1]
         # Only consider what we find that matches extra_grid_vars
@@ -840,7 +843,7 @@ def _get_all_data_variables(data_dir, grid_dir, layers):
     """"Put all the relevant data metadata into one big dictionary."""
     allvars = [state_variables]
     allvars.append(package_state_variables)
-    
+
     # add others from available_diagnostics.log
     # search in the data dir
     fnameD = os.path.join(data_dir, 'available_diagnostics.log')
@@ -889,7 +892,7 @@ def _get_all_iternums(data_dir, file_prefixes=None,
                       file_format='*.??????????.data'):
     """Scan a directory for all iteration number suffixes."""
     iternums = set()
-    all_datafiles = glob(os.path.join(data_dir, file_format))
+    all_datafiles = listdir_fnmatch(data_dir, file_format)
     istart = file_format.find('?')-len(file_format)
     iend = file_format.rfind('?')-len(file_format)+1
     for f in all_datafiles:
@@ -918,7 +921,7 @@ def _get_all_matching_prefixes(data_dir, iternum, file_prefixes=None,
     if iternum is None:
         return []
     prefixes = set()
-    all_datafiles = glob(os.path.join(data_dir, '*.%010d.data' % iternum))
+    all_datafiles = listdir_endswith(data_dir, '.%010d.data' % iternum)
     for f in all_datafiles:
         iternum = int(f[-15:-5])
         prefix = os.path.split(f[:-16])[-1]

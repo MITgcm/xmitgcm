@@ -41,10 +41,10 @@ Installation from github
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 xmitgcm is under active development. To obtain the latest development version,
-you may clone the `source repository <https://github.com/xgcm/xmitgcm>`_
+you may clone the `source repository <https://github.com/MITgcm/xmitgcm>`_
 and install it::
 
-    git clone https://github.com/xgcm/xmitgcm.git
+    git clone https://github.com/MITgcm/xmitgcm.git
     cd xmitgcm
     python setup.py install
 
@@ -65,8 +65,8 @@ shell, otherwise it will install in $HOME/.xmitgcm-test-data
 .. _dask: http://dask.pydata.org
 .. _xarray: http://xarray.pydata.org
 .. _Comodo: http://pycomodo.forge.imag.fr/norm.html
-.. _issues: https://github.com/xgcm/xmitgcm/issues
-.. _`pull requests`: https://github.com/xgcm/xmitgcm/pulls
+.. _issues: https://github.com/MITgcm/xmitgcm/issues
+.. _`pull requests`: https://github.com/MITgcm/xmitgcm/pulls
 .. _MITgcm: http://mitgcm.org/public/r2_manual/latest/online_documents/node277.html
 .. _out-of-core: https://en.wikipedia.org/wiki/Out-of-core_algorithm
 .. _Anaconda: https://www.continuum.io/downloads

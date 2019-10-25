@@ -341,22 +341,16 @@ def _chunks(l, n):
 
 def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype):
     fs, path = store.get_fs_and_full_path(varname, iternum)
-    file = fs.open(path)
 
     assert (nfacet >= 0) & (nfacet < _nfacets)
 
-    try:
-        # workaround for ecco data portal
-        file = fs.open(path, size_policy='get')
-    except TypeError:
-        file = fs.open(path)
+    file = fs.open(path)
 
     # insert singleton axis for time and k level
     facet_shape = (1, 1,) + _facet_shape(nfacet, nx)
 
     level_data = []
 
-    # TODO: get index
     # the store tells us whether we need a mask or not
     point = _get_variable_point(varname)
     if store.shrunk:

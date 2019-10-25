@@ -97,7 +97,8 @@ def read_mds(fname, iternum=None, use_mmap=None, endian='>', shape=None,
     iternum : int, optional
         The iteration number suffix
     use_mmap : bool, optional
-        Whether to read the data using a numpy.memmap
+        Whether to read the data using a numpy.memmap.
+        Mutually exclusive with `use_dask`.
     endian : {'>', '<', '|'}, optional
         Dndianness of the data
     dtype : numpy.dtype, optional
@@ -105,7 +106,8 @@ def read_mds(fname, iternum=None, use_mmap=None, endian='>', shape=None,
     shape : tuple, optional
         Shape of the data (will be inferred from the .meta file by default)
     use_dask : bool, optional
-        Whether wrap the reading of the raw data in a ``dask.delayed`` object
+        Whether wrap the reading of the raw data in a ``dask.delayed`` object.
+        Mutually exclusive with `use_mmap`.
     extra_metadata : dict, optional
         Dictionary containing some extra metadata that will be appended to
         content of MITgcm meta file to create the file_metadata. This is needed
@@ -178,6 +180,13 @@ def read_mds(fname, iternum=None, use_mmap=None, endian='>', shape=None,
        ``numpy.ndarray``, ``numpy.memmap``, or ``dask.array.Array`` depending
        on the options selected.
     """
+
+    if use_mmap and use_dask:
+        raise TypeError('`use_mmap` and `use_dask` are mutually exclusive:'
+                        ' Both memory-mapped and dask arrays'
+                        ' use lazy evaluation.')
+    elif use_mmap is None:
+        use_mmap = False if use_dask else True
 
     if iternum is None:
         istr = ''
