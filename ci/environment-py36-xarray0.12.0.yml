@@ -10,5 +10,6 @@ dependencies:
   - pytest
   - future
   - pip:
+    - cachetools
     - codecov
     - pytest-cov
