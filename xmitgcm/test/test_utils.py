@@ -5,7 +5,8 @@ import xarray
 import dask
 from xmitgcm.test.test_xmitgcm_common import (hide_file, file_md5_checksum,
     all_mds_datadirs, mds_datadirs_with_diagnostics, llc_mds_datadirs,
-    layers_mds_datadirs, all_grid_datadirs, _experiments)
+    layers_mds_datadirs, all_grid_datadirs, mds_datadirs_with_inputfiles,
+    _experiments)
 from xmitgcm.file_utils import listdir
 
 
