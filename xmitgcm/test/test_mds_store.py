@@ -379,7 +379,7 @@ def test_serialize_nonstandard_calendar(multidim_mds_datadirs, tmp_path):
                                  read_grid=False,
                                  delta_t=expected['delta_t'],
                                  geometry=expected['geometry'])
-    ds.to_netcdf(tmp_path / 'test.nc')
+    ds.to_zarr(tmp_path / 'test.zarr')
 
 
 def test_diagnostics(mds_datadirs_with_diagnostics):
