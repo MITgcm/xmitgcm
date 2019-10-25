@@ -10,6 +10,7 @@ dependencies:
   - future
   - zarr
   - pip:
+    - cachetools
     - fsspec
     - codecov
     - pytest-cov
