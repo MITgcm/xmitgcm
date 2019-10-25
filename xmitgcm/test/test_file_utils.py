@@ -28,3 +28,6 @@ def test_listdir_startsandendswith(directory_with_files):
 def test_listdir_fnmatch(directory_with_files):
     path = str(directory_with_files)
     assert file_utils.listdir_fnmatch(path, '*.??????????.meta') == ['bar.0000000001.meta']
+
+def test_clear_cache():
+    file_utils.clear_cache()
