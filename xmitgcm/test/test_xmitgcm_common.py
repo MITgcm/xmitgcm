@@ -65,6 +65,7 @@ _experiments = {
                         'dtype': np.dtype('f4'),
                         'expected_values': {'XC': ((0, 0), 10000.0)},
                         'all_iters': [0, 10],
+                        'delta_t': 3600,
                         'prefixes': ['T', 'S', 'Eta', 'U', 'V', 'W']},
     'internal_wave': {'geometry': 'sphericalpolar',
                       'dlink': dlroot + '14066642',

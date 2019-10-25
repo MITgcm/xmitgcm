@@ -369,6 +369,18 @@ def test_date_parsing(mds_datadirs_with_refdate):
     assert 'units' not in ds.time.attrs
     assert 'calendar' not in ds.time.attrs
 
+def test_serialize_nonstandard_calendar(multidim_mds_datadirs, tmp_path):
+    dirname, expected = multidim_mds_datadirs
+    ref_date = '2680-01-01 00:00:00'
+    calendar = '360_day'
+    ds = xmitgcm.open_mdsdataset(dirname, iters='all', prefix=['S'],
+                                 ref_date=ref_date,
+                                 calendar=calendar,
+                                 read_grid=False,
+                                 delta_t=expected['delta_t'],
+                                 geometry=expected['geometry'])
+    ds.to_netcdf(tmp_path / 'test.nc')
+
 
 def test_diagnostics(mds_datadirs_with_diagnostics):
     """Try reading dataset with diagnostics output."""
