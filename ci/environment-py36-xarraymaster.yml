@@ -8,6 +8,7 @@ dependencies:
   - pytest
   - future
   - zarr
+  - cftime
   - pip:
     - cachetools
     - git+https://github.com/pydata/xarray.git

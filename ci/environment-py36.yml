@@ -9,6 +9,7 @@ dependencies:
   - pytest
   - future
   - zarr
+  - cftime
   - pip:
     - cachetools
     - fsspec
