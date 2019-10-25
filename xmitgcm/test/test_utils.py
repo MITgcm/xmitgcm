@@ -5,8 +5,10 @@ import xarray
 import dask
 from xmitgcm.test.test_xmitgcm_common import (hide_file, file_md5_checksum,
     all_mds_datadirs, mds_datadirs_with_diagnostics, llc_mds_datadirs,
-    layers_mds_datadirs, all_grid_datadirs, _experiments)
+    layers_mds_datadirs, all_grid_datadirs, mds_datadirs_with_inputfiles,
+    _experiments)
 from xmitgcm.file_utils import listdir
+
 
 _xc_meta_content = """ simulation = { 'global_oce_latlon' };
  nDims = [   2 ];
@@ -1124,3 +1126,48 @@ def test_llc_facets_3d_spatial_to_compact(llc_mds_datadirs):
                                '.data')
     assert md5new == md5old
     os.remove('tmp.bin')
+
+
+def test_parse_namelist(tmpdir, mds_datadirs_with_inputfiles):
+    from xmitgcm.utils import parse_namelist
+
+    dirname, expected = mds_datadirs_with_inputfiles
+    exp_vals = expected['expected_namelistvals']
+    # read namelist "data"
+    data = parse_namelist(os.path.join(dirname, 'data'))
+
+    assert data['PARM01']['eosType'] == exp_vals['eosType']
+    assert data['PARM01']['viscAh'] == exp_vals['viscAh']
+    assert data['PARM03']['niter0'] == exp_vals['niter0']
+    assert data['PARM04']['delX'] == exp_vals['delX']
+
+    diags = parse_namelist(os.path.join(dirname, 'data.diagnostics'))
+
+    assert diags['DIAGNOSTICS_LIST']['levels'] == exp_vals['levels']
+    assert diags['DIAGNOSTICS_LIST']['fileName'] == exp_vals['fileName']
+
+    pkgs = parse_namelist(os.path.join(dirname, 'data.pkg'))
+
+    assert pkgs['PACKAGES']['useDiagnostics'] is exp_vals['useDiagnostics']
+
+    with open(os.path.join(str(tmpdir), 'invalid_namelists'), 'w') as f:
+        f.write("# This is an invalid namelist\n"
+                " &PARM01\n"
+                " tRef= 12*10.,\n"
+                " sRef= 15*1e3,\n"
+                " cosPower=invalid\n"
+                " viscAr=1.E-3,\n"
+                " &\n")
+
+    with pytest.warns(UserWarning, match='Unable to read value'):
+        data = parse_namelist(os.path.join(str(tmpdir), 'invalid_namelists'),
+                              silence_errors=True)
+    assert data['PARM01']['cosPower'] is None
+
+
+    with pytest.raises(ValueError, match='Unable to read value'):
+        parse_namelist(os.path.join(str(tmpdir), 'invalid_namelists'),
+                       silence_errors=False)
+
+
+
