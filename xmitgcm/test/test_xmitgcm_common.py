@@ -1,5 +1,6 @@
 import pytest
 import os
+import fnmatch
 import tarfile
 import numpy as np
 import dask
@@ -13,6 +14,7 @@ except ImportError:
     # urllib in python2 has different structure
     import urllib as req
 
+from xmitgcm.file_utils import clear_cache
 
 @contextmanager
 def hide_file(origdir, *basenames):
@@ -26,7 +28,8 @@ def hide_file(origdir, *basenames):
     # move the files
     for oldpath, newpath in zip(oldpaths, newpaths):
         oldpath.rename(newpath)
-
+    # clear the cache if it exists
+    clear_cache()
     try:
         yield str(tmpdir)
     finally:
@@ -215,6 +218,14 @@ def untar(data_dir, basename, target_dir):
     if not os.path.exists(fulldir):
         raise IOError('Could not find tar file output dir %s' % fulldir)
     # the actual data lives in a file called testdata
+    # clean up ugly weird hidden files that mac-os sometimes puts in the archive
+    # https://unix.stackexchange.com/questions/9665/create-tar-archive-of-a-directory-except-for-hidden-files
+    # https://superuser.com/questions/259703/get-mac-tar-to-stop-putting-filenames-in-tar-archives
+    bad_files = [f for f in os.listdir(fulldir)
+                 if fnmatch.fnmatch(f, '._*') ]
+    for f in bad_files:
+        os.remove(os.path.join(fulldir, f))
+
     return fulldir
 
 

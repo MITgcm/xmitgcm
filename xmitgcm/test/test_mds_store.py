@@ -346,6 +346,7 @@ def test_multiple_iters(multidim_mds_datadirs):
     # now hide all the PH and PHL files: should be able to infer prefixes fine
     missing_files = [os.path.basename(f)
                      for f in glob(os.path.join(dirname, 'PH*.0*data'))]
+    print(missing_files)
     with hide_file(dirname, *missing_files):
         ds = xmitgcm.open_mdsdataset(
             dirname, read_grid=False, iters=expected['all_iters'],
@@ -417,7 +418,7 @@ def test_avail_diags_in_grid_dir(mds_datadirs_with_diagnostics):
         ds = xmitgcm.open_mdsdataset(
                 dirname, grid_dir=grid_dir, iters=iters, prefix=[diag_prefix],
                 read_grid=False, geometry=expected['geometry'])
-    
+
     for diagname in expected_diags:
         assert diagname in ds
         if 'mate' in ds[diagname].attrs:

@@ -3,14 +3,10 @@ import os
 import numpy as np
 import xarray
 import dask
-from xmitgcm.test.test_xmitgcm_common import hide_file
-from xmitgcm.test.test_xmitgcm_common import file_md5_checksum
-from xmitgcm.test.test_xmitgcm_common import all_mds_datadirs
-from xmitgcm.test.test_xmitgcm_common import mds_datadirs_with_diagnostics
-from xmitgcm.test.test_xmitgcm_common import llc_mds_datadirs
-from xmitgcm.test.test_xmitgcm_common import layers_mds_datadirs
-from xmitgcm.test.test_xmitgcm_common import all_grid_datadirs
-from xmitgcm.test.test_xmitgcm_common import _experiments
+from xmitgcm.test.test_xmitgcm_common import (hide_file, file_md5_checksum,
+    all_mds_datadirs, mds_datadirs_with_diagnostics, llc_mds_datadirs,
+    layers_mds_datadirs, all_grid_datadirs, _experiments)
+from xmitgcm.file_utils import listdir
 
 _xc_meta_content = """ simulation = { 'global_oce_latlon' };
  nDims = [   2 ];
@@ -119,17 +115,19 @@ def test_read_raw_data(tmpdir, dtype):
                 shape[0]*shape[1]*shape[2]*dtype.itemsize), partial_read=True,
                 use_mmap=True)
 
-# a meta test
-
-
+# a meta test of our own utitity funcion
 def test_file_hiding(all_mds_datadirs):
     dirname, _ = all_mds_datadirs
     basenames = ['XC.data', 'XC.meta']
+    listed_files = listdir(dirname)
     for basename in basenames:
         assert os.path.exists(os.path.join(dirname, basename))
+        assert basename in listed_files
     with hide_file(dirname, *basenames):
+        listed_files = listdir(dirname)
         for basename in basenames:
             assert not os.path.exists(os.path.join(dirname, basename))
+            assert basename not in listed_files
     for basename in basenames:
         assert os.path.exists(os.path.join(dirname, basename))
 
