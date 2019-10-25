@@ -1150,7 +1150,7 @@ def test_parse_namelist(tmpdir, mds_datadirs_with_inputfiles):
 
     assert pkgs['PACKAGES']['useDiagnostics'] is exp_vals['useDiagnostics']
 
-    with open(os.path.join(tmpdir, 'invalid_namelists'), 'w') as f:
+    with open(os.path.join(str(tmpdir), 'invalid_namelists'), 'w') as f:
         f.write("# This is an invalid namelist\n"
                 " &PARM01\n"
                 " tRef= 12*10.,\n"
@@ -1160,13 +1160,13 @@ def test_parse_namelist(tmpdir, mds_datadirs_with_inputfiles):
                 " &\n")
 
     with pytest.warns(UserWarning, match='Unable to read value'):
-        data = parse_namelist(os.path.join(tmpdir, 'invalid_namelists'),
+        data = parse_namelist(os.path.join(str(tmpdir), 'invalid_namelists'),
                               silence_errors=True)
     assert data['PARM01']['cosPower'] is None
 
 
     with pytest.raises(ValueError, match='Unable to read value'):
-        parse_namelist(os.path.join(tmpdir, 'invalid_namelists'),
+        parse_namelist(os.path.join(str(tmpdir), 'invalid_namelists'),
                        silence_errors=False)
 
 
