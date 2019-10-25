@@ -6,6 +6,8 @@ dependencies:
   - numpy
   - pytest
   - future
+  - cftime
+  - zarr
   - pip:
     - cachetools
     - codecov

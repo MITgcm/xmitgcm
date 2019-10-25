@@ -254,23 +254,9 @@ def open_mdsdataset(data_dir, grid_dir=None,
     if grid_vars_to_coords:
         ds = _set_coords(ds)
 
-    if ref_date and 'time' in ds:
-        # our own little hack for decoding cf datetimes
-        encoding = {}
-        units = ds.time.attrs.get('units') or ''
-        if 'since' in units:
-            calendar = ds.time.attrs.get('calendar')
-            encoding['units'] = units
-            del ds.time.attrs['units']
-            if calendar:
-                encoding['calendar'] = calendar
-                del ds.time.attrs['calendar']
-            ds.time.data = (xr.coding.times
-                            .decode_cf_datetime(ds.time.data, units=units,
-                                            calendar=calendar))
-            # this doesn't seem to have any effect, so we remove it
-            #ds.time.encoding = encoding
-
+    if 'time' in ds:
+        ds['time'] = xr.decode_cf(ds[['time']])['time']
+        print(ds.time.encoding)
 
     # do we need more fancy logic (like open_dataset), or is this enough
     if chunks is not None:
