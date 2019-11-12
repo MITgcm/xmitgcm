@@ -17,15 +17,18 @@ class BaseStore:
         Where to find the mask datasets to decode the compression
     mask_path : str, optional
         Path the the mask datasets on the ``mask_fs`` filesystem
+    join_char : str or None
+        Character to use to join paths. Falls back on os.path.join if None.
     """
 
     def __init__(self, fs, base_path='/', shrunk=False,
-                 mask_fs=None, mask_path=None):
+                 mask_fs=None, mask_path=None, join_char=None):
         self.base_path = base_path
         self.fs = fs
         self.shrunk = shrunk
         self.mask_fs = mask_fs or self.fs
         self.mask_path = mask_path
+        self.join_char = join_char
         if shrunk and (mask_path is None):
             raise ValueError("`mask_path` can't be None if `shrunk` is True")
 
@@ -39,8 +42,14 @@ class BaseStore:
             fname += '.shrunk'
         return fname
 
+    def _join(self, *args):
+        if self.join_char:
+            return self.join_char.join(args)
+        else:
+            return os.path.join(*args)
+
     def _full_path(self, varname, iternum):
-        return os.path.join(self._directory(varname, iternum),
+        return self._join(self._directory(varname, iternum),
                             self._fname(varname, iternum))
 
     def get_fs_and_full_path(self, varname, iternum):
@@ -83,7 +92,7 @@ class BaseStore:
         -------
         mask_group : zarr.Group
         """
-        
+
         mapper = self.mask_fs.get_mapper(self.mask_path)
         zgroup = zarr.open_consolidated(mapper)
         return zgroup
@@ -94,4 +103,4 @@ class NestedStore(BaseStore):
     iteration number."""
 
     def _directory(self, varname, iternum):
-        return os.path.join(self.base_path, '%010d' % iternum)
+        return self._join(self.base_path, '%010d' % iternum)
