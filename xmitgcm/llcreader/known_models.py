@@ -61,7 +61,7 @@ class ECCOPortalLLC2160Model(LLC2160Model):
         base_path = 'https://data.nas.nasa.gov/ecco/download_data.php?file=/eccodata/llc_2160/compressed'
         mask_path = 'https://storage.googleapis.com/pangeo-ecco/llc/masks/llc_2160_masks.zarr/'
         store = stores.NestedStore(fs, base_path=base_path, mask_path=mask_path,
-                                   shrunk=True)
+                                   shrunk=True, join_char='/')
         super(ECCOPortalLLC2160Model, self).__init__(store)
 
 
@@ -72,7 +72,7 @@ class ECCOPortalLLC4320Model(LLC4320Model):
         base_path = 'https://data.nas.nasa.gov/ecco/download_data.php?file=/eccodata/llc_4320/compressed'
         mask_path = 'https://storage.googleapis.com/pangeo-ecco/llc/masks/llc_4320_masks.zarr/'
         store = stores.NestedStore(fs, base_path=base_path, mask_path=mask_path,
-                                   shrunk=True)
+                                   shrunk=True,  join_char='/')
         super(ECCOPortalLLC4320Model, self).__init__(store)
 
 
