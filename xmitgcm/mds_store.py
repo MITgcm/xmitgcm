@@ -256,7 +256,6 @@ def open_mdsdataset(data_dir, grid_dir=None,
 
     if 'time' in ds:
         ds['time'] = xr.decode_cf(ds[['time']])['time']
-        print(ds.time.encoding)
 
     # do we need more fancy logic (like open_dataset), or is this enough
     if chunks is not None:
