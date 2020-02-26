@@ -38,6 +38,7 @@ class LLC2160Model(BaseLLCModel):
     varnames = ['Eta', 'KPPhbl', 'oceFWflx', 'oceQnet', 'oceQsw', 'oceSflux',
                 'oceTAUX', 'oceTAUY', 'PhiBot', 'Salt', 'SIarea', 'SIheff',
                 'SIhsalt', 'SIhsnow', 'SIuice', 'SIvice', 'Theta', 'U', 'V', 'W']
+    mask_override = {'oceTAUX': 'c', 'oceTAUY': 'c'}
 
 
 class LLC4320Model(BaseLLCModel):
@@ -52,6 +53,7 @@ class LLC4320Model(BaseLLCModel):
     varnames = ['Eta', 'KPPhbl', 'oceFWflx', 'oceQnet', 'oceQsw', 'oceSflux',
                 'oceTAUX', 'oceTAUY', 'PhiBot', 'Salt', 'SIarea', 'SIheff',
                 'SIhsalt', 'SIhsnow', 'SIuice', 'SIvice', 'Theta', 'U', 'V', 'W']
+    mask_override = {'oceTAUX': 'c', 'oceTAUY': 'c'}
 
 
 class ECCOPortalLLC2160Model(LLC2160Model):
