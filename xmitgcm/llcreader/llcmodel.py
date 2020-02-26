@@ -32,7 +32,10 @@ def _get_var_metadata():
 
 _VAR_METADATA = _get_var_metadata()
 
-def _get_variable_point(vname):
+def _get_variable_point(vname, mask_override):
+    # fix for https://github.com/MITgcm/xmitgcm/issues/191
+    if vname in mask_override:
+        return mask_override[vname]
     dims = _VAR_METADATA[vname]['dims']
     if 'i' in dims and 'j' in dims:
         point = 'c'
@@ -339,7 +342,8 @@ def _chunks(l, n):
         yield l[i:i + n]
 
 
-def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype):
+def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
+                     mask_override):
     fs, path = store.get_fs_and_full_path(varname, iternum)
 
     assert (nfacet >= 0) & (nfacet < _nfacets)
@@ -352,7 +356,7 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype):
     level_data = []
 
     # the store tells us whether we need a mask or not
-    point = _get_variable_point(varname)
+    point = _get_variable_point(varname, mask_override)
     if store.shrunk:
         index = all_index_data[nx][point]
         zgroup = store.open_mask_group()
@@ -426,6 +430,8 @@ class BaseLLCModel:
         Spacing between iterations
     varnames : list
         List of variable names contained in the dataset
+    mask_override : dict
+        Override inference of masking variable, e.g. ``{'oceTAUX': 'c'}``
     """
 
     nface = 13
@@ -439,6 +445,7 @@ class BaseLLCModel:
     iter_stop = None
     iter_step = None
     varnames = []
+    mask_override = {}
 
     def __init__(self, store):
         """Initialize model
@@ -531,7 +538,8 @@ class BaseLLCModel:
             for n_k, these_klevels in enumerate(_chunks(klevels, k_chunksize)):
                 key = name, n_iter, n_k, 0, 0, 0
                 task = (_get_facet_chunk, self.store, varname, iternum,
-                         nfacet, these_klevels, self.nx, self.nz, self.dtype)
+                         nfacet, these_klevels, self.nx, self.nz, self.dtype,
+                         self.mask_override)
                 dsk[key] = task
 
         return dsa.Array(dsk, name, chunks, self.dtype)
