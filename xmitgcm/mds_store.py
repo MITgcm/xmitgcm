@@ -233,7 +233,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
                                     for coord in ['k', 'k_l', 'k_u', 'k_p1']})
                     datasets.insert(0, grid_dataset)
                 # apply chunking
-                ds = xr.auto_combine(datasets)
+                ds = xr.combine_by_coords(datasets)
                 if swap_dims:
                     ds = _swap_dimensions(ds, geometry)
                 if grid_vars_to_coords:
@@ -311,9 +311,9 @@ def _swap_dimensions(ds, geometry, drop_old=True):
     for orig_dim in ds.dims:
         if 'swap_dim' in ds[orig_dim].attrs:
             new_dim = ds[orig_dim].attrs['swap_dim']
-            ds = ds.swap_dims({orig_dim: new_dim})
+            ds = ds.swap_dims({orig_dim:  new_dim})
             if drop_old:
-                ds = ds.drop(orig_dim)
+                ds = ds.drop_vars(orig_dim)
     return ds
 
 
