@@ -756,6 +756,46 @@ def _llc_data_shape(llc_id, nz=None):
     return data_shape
 
 
+def _file_metadata(endian='>',dtype=np.dtype('d'),extra_metadata=None):
+    file_metadata = {}
+    # grid variables are stored in this order
+    file_metadata['fldList'] = ['XC', 'YC', 'DXF', 'DYF', 'RAC',
+                                'XG', 'YG', 'DXV', 'DYU', 'RAZ',
+                                'DXC', 'DYC', 'RAW', 'RAS', 'DXG', 'DYG']
+
+    file_metadata['vars'] = file_metadata['fldList']
+    dims_vars_list = []
+    for var in file_metadata['fldList']:
+        dims_vars_list.append(('ny', 'nx'))
+    file_metadata['dims_vars'] = dims_vars_list
+
+    # no vertical levels or time records
+    file_metadata['nz'] = 1
+    file_metadata['nt'] = 1
+
+# for curvilinear non-facet grids (TO DO)
+#    if nx is not None:
+#        file_metadata['nx'] = nx
+#    if ny is not None:
+#        file_metadata['ny'] = ny
+    if extra_metadata is not None:
+        file_metadata.update(extra_metadata)
+
+    # numeric representation
+    file_metadata['endian'] = endian
+    file_metadata['dtype'] = dtype
+    return file_metadata
+
+def _nxgrid_nygrid(file_metadata,kfacet):
+    if file_metadata['facet_orders'][kfacet] == 'C':
+        nxgrid = file_metadata['nx'] + 1
+        nygrid = file_metadata['ny_facets'][kfacet] + 1
+    elif file_metadata['facet_orders'][kfacet] == 'F':
+        nxgrid = file_metadata['ny_facets'][kfacet] + 1
+        nygrid = file_metadata['nx'] + 1
+    return nxgrid,nygrid
+
+
 def read_all_variables(variable_list, file_metadata, use_mmap=False,
                        use_dask=False, chunks="3D"):
     """
@@ -1278,33 +1318,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
         all grid variables
     """
 
-    file_metadata = {}
-    # grid variables are stored in this order
-    file_metadata['fldList'] = ['XC', 'YC', 'DXF', 'DYF', 'RAC',
-                                'XG', 'YG', 'DXV', 'DYU', 'RAZ',
-                                'DXC', 'DYC', 'RAW', 'RAS', 'DXG', 'DYG']
-
-    file_metadata['vars'] = file_metadata['fldList']
-    dims_vars_list = []
-    for var in file_metadata['fldList']:
-        dims_vars_list.append(('ny', 'nx'))
-    file_metadata['dims_vars'] = dims_vars_list
-
-    # no vertical levels or time records
-    file_metadata['nz'] = 1
-    file_metadata['nt'] = 1
-
-# for curvilinear non-facet grids (TO DO)
-#    if nx is not None:
-#        file_metadata['nx'] = nx
-#    if ny is not None:
-#        file_metadata['ny'] = ny
-    if extra_metadata is not None:
-        file_metadata.update(extra_metadata)
-
-    # numeric representation
-    file_metadata['endian'] = endian
-    file_metadata['dtype'] = dtype
+    file_metadata=_file_metadata(endian,dtype,extra_metadata)
 
     if geometry == 'llc':
         nfacets = 5
@@ -1328,12 +1342,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
             fname = gridfile.replace('<NFACET>', str(kfacet+1).zfill(3))
             grid_metadata['filename'] = fname
 
-            if file_metadata['facet_orders'][kfacet] == 'C':
-                nxgrid = file_metadata['nx'] + 1
-                nygrid = file_metadata['ny_facets'][kfacet] + 1
-            elif file_metadata['facet_orders'][kfacet] == 'F':
-                nxgrid = file_metadata['ny_facets'][kfacet] + 1
-                nygrid = file_metadata['nx'] + 1
+            nxgrid,nygrid=_nxgrid_nygrid(file_metadata,kfacet)
 
             grid_metadata.update({'nx': nxgrid, 'ny': nygrid,
                                   'has_faces': False})
@@ -1478,33 +1487,7 @@ def get_xg_yg_from_input(gridfile, nx=None, ny=None, geometry='llc',
         all grid variables
     """
 
-    file_metadata = {}
-    # grid variables are stored in this order
-    file_metadata['fldList'] = ['XC', 'YC', 'DXF', 'DYF', 'RAC',
-                                'XG', 'YG', 'DXV', 'DYU', 'RAZ',
-                                'DXC', 'DYC', 'RAW', 'RAS', 'DXG', 'DYG']
-
-    file_metadata['vars'] = file_metadata['fldList']
-    dims_vars_list = []
-    for var in file_metadata['fldList']:
-        dims_vars_list.append(('ny', 'nx'))
-    file_metadata['dims_vars'] = dims_vars_list
-
-    # no vertical levels or time records
-    file_metadata['nz'] = 1
-    file_metadata['nt'] = 1
-
-# for curvilinear non-facet grids (TO DO)
-#    if nx is not None:
-#        file_metadata['nx'] = nx
-#    if ny is not None:
-#        file_metadata['ny'] = ny
-    if extra_metadata is not None:
-        file_metadata.update(extra_metadata)
-
-    # numeric representation
-    file_metadata['endian'] = endian
-    file_metadata['dtype'] = dtype
+    file_metadata=_file_metadata(endian,dtype,extra_metadata)
 
     if geometry == 'llc':
         nfacets = 5
@@ -1530,12 +1513,7 @@ def get_xg_yg_from_input(gridfile, nx=None, ny=None, geometry='llc',
             fname = gridfile.replace('<NFACET>', str(kfacet+1).zfill(3))
             grid_metadata['filename'] = fname
 
-            if file_metadata['facet_orders'][kfacet] == 'C':
-                nxgrid = file_metadata['nx'] + 1
-                nygrid = file_metadata['ny_facets'][kfacet] + 1
-            elif file_metadata['facet_orders'][kfacet] == 'F':
-                nxgrid = file_metadata['ny_facets'][kfacet] + 1
-                nygrid = file_metadata['nx'] + 1
+            nxgrid,nygrid=_nxgrid_nygrid(file_metadata,kfacet)
 
             grid_metadata.update({'nx': nxgrid, 'ny': nygrid,
                                   'has_faces': False})
