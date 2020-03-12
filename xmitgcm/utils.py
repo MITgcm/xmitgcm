@@ -1343,6 +1343,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
             grid_metadata['filename'] = fname
 
             nxgrid,nygrid=_nxgrid_nygrid(file_metadata,kfacet)
+            
 
             grid_metadata.update({'nx': nxgrid, 'ny': nygrid,
                                   'has_faces': False})
