@@ -492,8 +492,8 @@ class BaseLLCModel:
         Final model iteration number (exclusive; follows python range conventions)
     iter_step : int
         Spacing between iterations
-    varnames : list
-        List of variable names contained in the dataset
+    varnames, grid_varnames : list
+        List of data variable and grid variable names contained in the dataset
     mask_override : dict
         Override inference of masking variable, e.g. ``{'oceTAUX': 'c'}``
     """
