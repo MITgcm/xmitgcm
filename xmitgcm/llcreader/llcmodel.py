@@ -373,14 +373,18 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
 
     file = fs.open(path)
 
-    # insert singleton axis for time and k level
-    facet_shape = (1, 1,) + _facet_shape(nfacet, nx)
+    # insert singleton axis for time (if not grid var) and k level
+    facet_shape = (1,) + _facet_shape(nfacet, nx)
+    facet_shape = (1,) + facet_shape if iternum is not None else facet_shape
 
     level_data = []
 
     # the store tells us whether we need a mask or not
     point = _get_variable_point(varname, mask_override)
-    if store.shrunk:
+
+    # it seems grid variables are not shrunk even though
+    # data variables are...
+    if store.shrunk and iternum is not None:
         index = all_index_data[nx][point]
         zgroup = store.open_mask_group()
         mask = zgroup['mask_' + point].astype('bool')
