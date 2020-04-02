@@ -43,7 +43,7 @@ class LLC2160Model(BaseLLCModel):
                      'hFacC','hFacS','hFacW','PHrefC','PHrefF','RAC','RAS','RAW',
                      'RC','RF','rLowC','rLowS','rLowW','rSurfC',
                      'rSurfS','rSurfW','XC','YC']
-    # unrecognized name: 'RhoRef'   
+    # unrecognized name: 'RhoRef'
     # corner point problems: 'RAZ','XG','YG'
     mask_override = {'oceTAUX': 'c', 'oceTAUY': 'c'}
 
@@ -60,6 +60,11 @@ class LLC4320Model(BaseLLCModel):
     varnames = ['Eta', 'KPPhbl', 'oceFWflx', 'oceQnet', 'oceQsw', 'oceSflux',
                 'oceTAUX', 'oceTAUY', 'PhiBot', 'Salt', 'SIarea', 'SIheff',
                 'SIhsalt', 'SIhsnow', 'SIuice', 'SIvice', 'Theta', 'U', 'V', 'W']
+    grid_varnames = ['DRC','DRF','DXC','DXG','DYC','DYG',
+                     'hFacC','hFacS','hFacW','PHrefC','PHrefF',
+                     'RAC','RAS','RAW','RC','RF','XC','YC']
+    # unrecognized name: 'RhoRef','DXV','DYU','DXF','DYF'
+    # corner point problems: 'RAZ','XG','YG'
     mask_override = {'oceTAUX': 'c', 'oceTAUY': 'c'}
 
 
@@ -71,7 +76,7 @@ class ECCOPortalLLC2160Model(LLC2160Model):
         grid_path = 'https://data.nas.nasa.gov/ecco/download_data.php?file=/eccodata/llc_2160/grid'
         mask_path = 'https://storage.googleapis.com/pangeo-ecco/llc/masks/llc_2160_masks.zarr/'
         store = stores.NestedStore(fs, base_path=base_path, mask_path=mask_path,
-                                   grid_path=grid_path,shrunk=True, join_char='/')
+                                   grid_path=grid_path, shrunk=True, join_char='/')
         super(ECCOPortalLLC2160Model, self).__init__(store)
 
 
@@ -80,9 +85,10 @@ class ECCOPortalLLC4320Model(LLC4320Model):
     def __init__(self):
         fs = _make_http_filesystem()
         base_path = 'https://data.nas.nasa.gov/ecco/download_data.php?file=/eccodata/llc_4320/compressed'
+        grid_path = 'https://data.nas.nasa.gov/ecco/download_data.php?file=/eccodata/llc_4320/grid'
         mask_path = 'https://storage.googleapis.com/pangeo-ecco/llc/masks/llc_4320_masks.zarr/'
         store = stores.NestedStore(fs, base_path=base_path, mask_path=mask_path,
-                                   shrunk=True,  join_char='/')
+                                   grid_path=grid_path, shrunk=True, join_char='/')
         super(ECCOPortalLLC4320Model, self).__init__(store)
 
 
