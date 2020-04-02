@@ -8,6 +8,15 @@ EXPECTED_VARS = ['Eta', 'KPPhbl', 'oceFWflx', 'oceQnet', 'oceQsw', 'oceSflux',
             'oceTAUX', 'oceTAUY', 'PhiBot', 'Salt', 'SIarea', 'SIheff',
             'SIhsalt', 'SIhsnow', 'SIuice', 'SIvice', 'Theta', 'U', 'V', 'W']
 
+EXPECTED_COORDS = {2160: ['AngleCS','AngleSN','Depth',
+                          'DRC','DRF','DXC','DXG','DYC','DYG',
+                          'hFacC','hFacS','hFacW','PHrefC','PHrefF','RAC','RAS','RAW',
+                          'RC','RF','rLowC','rLowS','rLowW','rSurfC',
+                          'rSurfS','rSurfW','XC','YC'],
+                   4320: ['DRC','DRF','DXC','DXG','DYC','DYG',
+                          'hFacC','hFacS','hFacW','PHrefC','PHrefF',
+                          'RAC','RAS','RAW','RC','RF','XC','YC']}
+
 ########### Generic llcreader tests on local data ##############################
 
 @pytest.fixture(scope='module')
@@ -74,6 +83,7 @@ def test_ecco_portal_faces(ecco_portal_model):
                               'j_g': nx, 'k': 90, 'k_u': 90, 'k_l': 90,
                               'k_p1': 90, 'time': 3}
     assert set(EXPECTED_VARS) == set(ds_faces.data_vars)
+    assert set(EXPECTED_COORDS[nx]).issubset(set(ds_faces.coords))
 
 def test_ecco_portal_load(ecco_portal_model):
     # an expensive test because it actually loads data
@@ -91,3 +101,4 @@ def test_ecco_portal_latlon(ecco_portal_model):
                              'k': 90, 'j_g': 3*nx, 'i_g': 4*nx, 'k_p1': 90,
                              'j': 3*nx, 'face': 13}
     assert set(EXPECTED_VARS) == set(ds_ll.data_vars)
+    assert set(EXPECTED_COORDS[nx]).issubset(set(ds_ll.coords))
