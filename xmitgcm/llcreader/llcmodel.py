@@ -109,7 +109,7 @@ _facet_strides = ((0,3), (3,6), (6,7), (7,10), (10,13))
 _facet_reshape = (False, False, False, True, True)
 _nfaces = 13
 _nfacets = 5
-_vgridvars = ['DRF','PHrefC','RC','DRF','PHrefF','RF']
+_vgridvars = ['DRC','DRF','PHrefC','PHrefF','RC','RF']
 
 def _uncompressed_facet_index(nfacet, nside):
     face_size = nside**2
