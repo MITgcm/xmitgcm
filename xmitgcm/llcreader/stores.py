@@ -13,17 +13,21 @@ class BaseStore:
         Where to find the data within the filesystem
     shrunk : bool, optional
         Whether the data files have been tagged with `.shrunk`
-    mask_fs : fsspec.AbstractFileSystem, optional
-        Where to find the mask datasets to decode the compression
-    mask_path : str, optional
-        Path the the mask datasets on the ``mask_fs`` filesystem
+    mask_fs, grid_fs : fsspec.AbstractFileSystem, optional
+        Where to find the mask or grid datasets to decode the compression
+    mask_path, grid_path : str, optional
+        Path to the mask or grid datasets on the ``mask_fs`` or ``grid_fs`` filesystem
+    shrunk_grid : bool, optional
+        Whether the grid files have been tagged with `.shrunk`
+        not always the same as for data variables
     join_char : str or None
         Character to use to join paths. Falls back on os.path.join if None.
     """
 
     def __init__(self, fs, base_path='/', shrunk=False,
                  mask_fs=None, mask_path=None, 
-                 grid_fs=None, grid_path=None, join_char=None):
+                 grid_fs=None, grid_path=None,
+                 shrunk_grid=False, join_char=None):
         self.base_path = base_path
         self.fs = fs
         self.shrunk = shrunk
@@ -31,6 +35,7 @@ class BaseStore:
         self.mask_path = mask_path
         self.grid_fs = grid_fs or self.fs
         self.grid_path = grid_path
+        self.shrunk_grid = shrunk_grid
         self.join_char = join_char
         if shrunk and (mask_path is None):
             raise ValueError("`mask_path` can't be None if `shrunk` is True")
@@ -50,6 +55,8 @@ class BaseStore:
                 fname += '.shrunk'
         else:
             fname = varname + '.data'
+            if self.shrunk_grid:
+                fname = varname + '.shrunk'
 
         return fname
 

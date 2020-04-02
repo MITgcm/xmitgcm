@@ -8,27 +8,43 @@ import warnings
 from .duck_array_ops import concatenate
 from .shrunk_index import all_index_data
 
+def _get_grid_metadata():
+    # keep this separate from get_var_metadata
+    # because grid stuff is weird
+    from ..variables import (horizontal_coordinates_llc,
+            vertical_coordinates, vertical_grid_variables,
+            horizontal_grid_variables, volume_grid_variables,
+            mask_variables, extra_grid_variables)
+
+    # get grid info
+    # keys are variable names
+    grid_vars = horizontal_coordinates_llc 
+    grid_vars.update(vertical_coordinates)
+    grid_vars.update(horizontal_grid_variables)
+    grid_vars.update(vertical_grid_variables)
+    grid_vars.update(volume_grid_variables)
+    grid_vars.update(mask_variables)
+    grid_vars.update(extra_grid_variables)
+
+    # make dictionary with keys as filenames
+    grid_metadata = {}
+    for key,val in grid_vars.items():
+        # masks use hFac filename to be computed in mds_store
+        if 'filename' in val and key[:4]!='mask':
+            val.update({'real_name':key})
+            grid_metadata[val['filename']] = val
+        else:
+            grid_metadata[key] = val
+
+    return grid_metadata
+
 def _get_var_metadata():
     # The LLC run data comes with zero metadata. So we import metadata from
     # the xmitgcm package.
-    from ..variables import (state_variables, package_state_variables,
-            horizontal_coordinates_llc, vertical_coordinates,
-            horizontal_grid_variables, vertical_grid_variables,
-            volume_grid_variables, mask_variables,
-            extra_grid_variables)
+    from ..variables import state_variables, package_state_variables
     from ..utils import parse_available_diagnostics
     from ..default_diagnostics import diagnostics
-    from ..mds_store import _get_all_grid_variables
     from io import StringIO
-
-    # get grid info
-    grid_metadata = horizontal_coordinates_llc 
-    grid_metadata.update(vertical_coordinates)
-    grid_metadata.update(horizontal_grid_variables)
-    grid_metadata.update(vertical_grid_variables)
-    grid_metadata.update(volume_grid_variables)
-    grid_metadata.update(mask_variables)
-    grid_metadata.update(extra_grid_variables)
 
     diag_file = StringIO(diagnostics)
     available_diags = parse_available_diagnostics(diag_file)
@@ -36,19 +52,14 @@ def _get_var_metadata():
     var_metadata.update(package_state_variables)
     var_metadata.update(available_diags)
 
-    # add grid vars
-    for key,val in grid_metadata.items():
-        if 'filename' in val:
-            val.update({'real_name':key})
-            var_metadata[val['filename']] = val
-        else:
-            var_metadata[key] = val
-
     # even the file names from the LLC data differ from standard MITgcm output
     aliases = {'Eta': 'ETAN', 'PhiBot': 'PHIBOT', 'Salt': 'SALT',
                'Theta': 'THETA'}
     for a, b in aliases.items():
         var_metadata[a] = var_metadata[b]
+
+    # add grid metadata
+    var_metadata.update(_get_grid_metadata())
 
     return var_metadata
 
@@ -109,7 +120,7 @@ _facet_strides = ((0,3), (3,6), (6,7), (7,10), (10,13))
 _facet_reshape = (False, False, False, True, True)
 _nfaces = 13
 _nfacets = 5
-_vgridvars = ['DRC','DRF','PHrefC','PHrefF','RC','RF']
+_vgrid_prefixes = ['DRC','DRF','PHrefC','PHrefF','RC','RF']
 
 def _uncompressed_facet_index(nfacet, nside):
     face_size = nside**2
@@ -382,9 +393,8 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
     # the store tells us whether we need a mask or not
     point = _get_variable_point(varname, mask_override)
 
-    # it seems grid variables are not shrunk even though
-    # data variables are...
-    if store.shrunk and iternum is not None:
+    if (store.shrunk and iternum is not None) or \
+       (store.shrunk_grid and iternum is None):
         index = all_index_data[nx][point]
         zgroup = store.open_mask_group()
         mask = zgroup['mask_' + point].astype('bool')
@@ -635,7 +645,7 @@ class BaseLLCModel:
         if len(dims)==2:
             klevels = [0,]
 
-        if varname in _vgridvars:
+        if varname in _vgrid_prefixes:
             data_facets = self._dask_array_vgrid(varname,klevels,k_chunksize)
         else:
             data_facets = [self._dask_array(nfacet, varname, iters, klevels, k_chunksize)
@@ -723,8 +733,8 @@ class BaseLLCModel:
         data = transformer(data_facets, _VAR_METADATA)
 
         # separate horizontal and vertical grid variables
-        hgrid_names = [x for x in self.grid_varnames if x not in _vgridvars]
-        vgrid_names = [x for x in self.grid_varnames if x in _vgridvars]
+        hgrid_names = [x for x in self.grid_varnames if x not in _vgrid_prefixes]
+        vgrid_names = [x for x in self.grid_varnames if x in _vgrid_prefixes]
 
         hgrid_facets = {key: grid_facets[key] for key in hgrid_names}
         vgrid_facets = {key: grid_facets[key] for key in vgrid_names}
