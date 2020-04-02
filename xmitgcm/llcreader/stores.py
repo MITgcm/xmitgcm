@@ -43,9 +43,14 @@ class BaseStore:
             return self.grid_path
 
     def _fname(self, varname, iternum):
-        fname = varname + '.%010d.data' % iternum if iternum is not None else varname
-        if self.shrunk:
-            fname += '.shrunk'
+
+        if iternum is not None:
+            fname = varname + '.%010d.data' % iternum
+            if self.shrunk:
+                fname += '.shrunk'
+        else:
+            fname = varname + '.data'
+
         return fname
 
     def _join(self, *args):
@@ -109,4 +114,7 @@ class NestedStore(BaseStore):
     iteration number."""
 
     def _directory(self, varname, iternum):
-        return self._join(self.base_path, '%010d' % iternum)
+        if iternum is not None:
+            return self._join(self.base_path, '%010d' % iternum)
+        else:
+            return self.grid_path
