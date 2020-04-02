@@ -22,22 +22,28 @@ class BaseStore:
     """
 
     def __init__(self, fs, base_path='/', shrunk=False,
-                 mask_fs=None, mask_path=None, join_char=None):
+                 mask_fs=None, mask_path=None, 
+                 grid_fs=None, grid_path=None, join_char=None):
         self.base_path = base_path
         self.fs = fs
         self.shrunk = shrunk
         self.mask_fs = mask_fs or self.fs
         self.mask_path = mask_path
+        self.grid_fs = grid_fs or self.fs
+        self.grid_path = grid_path
         self.join_char = join_char
         if shrunk and (mask_path is None):
             raise ValueError("`mask_path` can't be None if `shrunk` is True")
 
 
     def _directory(self, varname, iternum):
-        return self.base_path
+        if iternum is not None:
+            return self.base_path
+        else:
+            return self.grid_path
 
     def _fname(self, varname, iternum):
-        fname = varname + '.%010d.data' % iternum
+        fname = varname + '.%010d.data' % iternum if iternum is not None else varname
         if self.shrunk:
             fname += '.shrunk'
         return fname

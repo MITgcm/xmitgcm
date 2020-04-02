@@ -11,16 +11,37 @@ from .shrunk_index import all_index_data
 def _get_var_metadata():
     # The LLC run data comes with zero metadata. So we import metadata from
     # the xmitgcm package.
-    from ..variables import state_variables, package_state_variables
+    from ..variables import (state_variables, package_state_variables,
+            horizontal_coordinates_llc, vertical_coordinates,
+            horizontal_grid_variables, vertical_grid_variables,
+            volume_grid_variables, mask_variables,
+            extra_grid_variables)
     from ..utils import parse_available_diagnostics
     from ..default_diagnostics import diagnostics
+    from ..mds_store import _get_all_grid_variables
     from io import StringIO
+
+    # get grid info
+    grid_metadata = horizontal_coordinates_llc 
+    grid_metadata.update(vertical_coordinates)
+    grid_metadata.update(horizontal_grid_variables)
+    grid_metadata.update(vertical_grid_variables)
+    grid_metadata.update(volume_grid_variables)
+    grid_metadata.update(mask_variables)
+    grid_metadata.update(extra_grid_variables)
 
     diag_file = StringIO(diagnostics)
     available_diags = parse_available_diagnostics(diag_file)
     var_metadata = state_variables
     var_metadata.update(package_state_variables)
     var_metadata.update(available_diags)
+
+    # add grid vars
+    for key,val in grid_metadata.items():
+        if 'filename' in val:
+            var_metadata[val['filename']] = val
+        else:
+            var_metadata[key] = val
 
     # even the file names from the LLC data differ from standard MITgcm output
     aliases = {'Eta': 'ETAN', 'PhiBot': 'PHIBOT', 'Salt': 'SALT',
@@ -445,6 +466,7 @@ class BaseLLCModel:
     iter_stop = None
     iter_step = None
     varnames = []
+    grid_varnames = []
     mask_override = {}
 
     def __init__(self, store):
@@ -525,7 +547,7 @@ class BaseLLCModel:
     def _dask_array(self, nfacet, varname, iters, klevels, k_chunksize):
         # return a dask array for a single facet
         facet_shape =  _facet_shape(nfacet, self.nx)
-        time_chunks = (len(iters) * (1,),)
+        time_chunks = (len(iters) * (1,),) if iters is not None else ()
         k_chunks = (tuple([len(c)
                           for c in _chunks(klevels, k_chunksize)]),)
         chunks = time_chunks + k_chunks + tuple([(s,) for s in facet_shape])
@@ -534,10 +556,18 @@ class BaseLLCModel:
         dsk = {}
         token = tokenize(varname, self.store, nfacet)
         name = '-'.join([varname, token])
-        for n_iter, iternum in enumerate(iters):
+        if iters is not None:
+            for n_iter, iternum in enumerate(iters):
+                for n_k, these_klevels in enumerate(_chunks(klevels, k_chunksize)):
+                    key = name, n_iter, n_k, 0, 0, 0
+                    task = (_get_facet_chunk, self.store, varname, iternum,
+                             nfacet, these_klevels, self.nx, self.nz, self.dtype,
+                             self.mask_override)
+                    dsk[key] = task
+        else:
             for n_k, these_klevels in enumerate(_chunks(klevels, k_chunksize)):
-                key = name, n_iter, n_k, 0, 0, 0
-                task = (_get_facet_chunk, self.store, varname, iternum,
+                key = name, n_k, 0, 0, 0
+                task = (_get_facet_chunk, self.store, varname, None,
                          nfacet, these_klevels, self.nx, self.nz, self.dtype,
                          self.mask_override)
                 dsk[key] = task
@@ -565,7 +595,7 @@ class BaseLLCModel:
 
     def get_dataset(self, varnames=None, iter_start=None, iter_stop=None,
                     iter_step=None, k_levels=None, k_chunksize=1,
-                    type='faces'):
+                    type='faces',grid_vars_to_coords=True):
         """
         Create an xarray Dataset object for this model.
 
@@ -625,22 +655,33 @@ class BaseLLCModel:
                        self._get_facet_data(vname, iters, k_levels, k_chunksize)
                        for vname in varnames}
 
+        # get the grid in facet form
+        grid_facets = {vname:
+                       self._get_facet_data(vname, None, k_levels, k_chunksize)
+                       for vname in self.grid_varnames}
+
         # transform it into faces or latlon
         data_transformers = {'faces': _all_facets_to_faces,
                              'latlon': _all_facets_to_latlon}
 
         transformer = data_transformers[type]
         data = transformer(data_facets, _VAR_METADATA)
+        data.update(transformer(grid_facets, _VAR_METADATA))
 
         variables = {}
-        for vname in varnames:
+        for vname in varnames+self.grid_varnames:
             meta = _VAR_METADATA[vname]
             dims = meta['dims']
             if type=='faces':
                 dims = _add_face_to_dims(dims)
-            dims = ['time',] + dims
+            dims = ['time',] + dims if vname not in self.grid_varnames else dims
             attrs = meta['attrs']
+            print('vname: ',vname)
             variables[vname] = xr.Variable(dims, data[vname], attrs)
 
         ds = ds.update(variables)
+        if grid_vars_to_coords:
+            for gname in self.grid_varnames:
+                ds = ds.set_coords(gname)
+
         return ds

@@ -187,7 +187,7 @@ horizontal_grid_variables = OrderedDict(
     rAs=dict(dims=["j_g", "i"], attrs=dict(
         standard_name="cell_area_at_v_location",
         long_name="cell area", units="m2", coordinates="YG XC"),
-        filename='RAZ'),
+        filename='RAS'),
 )
 
 vertical_grid_variables = OrderedDict(
