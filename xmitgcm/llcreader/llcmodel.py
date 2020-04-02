@@ -39,6 +39,7 @@ def _get_var_metadata():
     # add grid vars
     for key,val in grid_metadata.items():
         if 'filename' in val:
+            val.update({'real_name':key})
             var_metadata[val['filename']] = val
         else:
             var_metadata[key] = val
@@ -108,6 +109,7 @@ _facet_strides = ((0,3), (3,6), (6,7), (7,10), (10,13))
 _facet_reshape = (False, False, False, True, True)
 _nfaces = 13
 _nfacets = 5
+_vgridvars = ['DRF','PHrefC','RC','DRF','PHrefF','RF']
 
 def _uncompressed_facet_index(nfacet, nside):
     face_size = nside**2
@@ -420,6 +422,33 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
 
     return np.concatenate(level_data, axis=1)
 
+def _get_1d_chunk(store, varname, klevels, nz, dtype):
+    """for 1D vertical grid variables"""
+
+    fs, path = store.get_fs_and_full_path(varname, None)
+
+    file = fs.open(path)
+
+    # insert singleton axis for k level
+    facet_shape = (1,)
+    level_data = []
+
+    for k in klevels:
+        assert (k >= 0) & (k < nz)
+
+        # with a 1D file, k level gives "where to read" in file
+        read_offset = k * dtype.itemsize # in bytes
+        read_length  = dtype.itemsize # in bytes
+        file.seek(read_offset)
+        buffer = file.read(read_length)
+        data = np.frombuffer(buffer, dtype=dtype)
+        assert len(data) == 1
+
+        # this is the shape this facet is supposed to have
+        data.shape = facet_shape
+        level_data.append(data)
+
+    return np.concatenate(level_data, axis=0)
 
 class BaseLLCModel:
     """Class representing an LLC Model Dataset.
@@ -556,6 +585,8 @@ class BaseLLCModel:
         dsk = {}
         token = tokenize(varname, self.store, nfacet)
         name = '-'.join([varname, token])
+
+        # iters == None for grid variables
         if iters is not None:
             for n_iter, iternum in enumerate(iters):
                 for n_k, these_klevels in enumerate(_chunks(klevels, k_chunksize)):
@@ -574,6 +605,23 @@ class BaseLLCModel:
 
         return dsa.Array(dsk, name, chunks, self.dtype)
 
+    def _dask_array_vgrid(self, varname, klevels, k_chunksize):
+        # return a dask array for a 1D vertical grid var
+        chunks = (tuple([len(c)
+                          for c in _chunks(klevels, k_chunksize)]),)
+
+        # manually build dask graph
+        dsk = {}
+        token = tokenize(varname, self.store)
+        name = '-'.join([varname, token])
+
+        for n_k, these_klevels in enumerate(_chunks(klevels, k_chunksize)):
+            key = name, n_k
+            task = (_get_1d_chunk, self.store, varname,
+                     these_klevels, self.nz, self.dtype)
+            dsk[key] = task
+
+        return dsa.Array(dsk, name, chunks, self.dtype)
 
     def _get_facet_data(self, varname, iters, klevels, k_chunksize):
         mask, index = self._get_mask_and_index_for_variable(varname)
@@ -583,7 +631,10 @@ class BaseLLCModel:
         if len(dims)==2:
             klevels = [0,]
 
-        data_facets = [self._dask_array(nfacet, varname, iters, klevels, k_chunksize)
+        if varname in _vgridvars:
+            data_facets = self._dask_array_vgrid(varname,klevels,k_chunksize)
+        else:
+            data_facets = [self._dask_array(nfacet, varname, iters, klevels, k_chunksize)
                        for nfacet in range(5)]
 
         if len(dims)==2:
@@ -666,9 +717,20 @@ class BaseLLCModel:
 
         transformer = data_transformers[type]
         data = transformer(data_facets, _VAR_METADATA)
-        data.update(transformer(grid_facets, _VAR_METADATA))
+
+        # separate horizontal and vertical grid variables
+        hgrid_names = [x for x in self.grid_varnames if x not in _vgridvars]
+        vgrid_names = [x for x in self.grid_varnames if x in _vgridvars]
+
+        hgrid_facets = {key: grid_facets[key] for key in hgrid_names}
+        vgrid_facets = {key: grid_facets[key] for key in vgrid_names}
+
+        # do not transform vertical grid variables
+        data.update(transformer(hgrid_facets, _VAR_METADATA))
+        data.update(vgrid_facets)
 
         variables = {}
+        gridvar_names = []
         for vname in varnames+self.grid_varnames:
             meta = _VAR_METADATA[vname]
             dims = meta['dims']
@@ -676,12 +738,18 @@ class BaseLLCModel:
                 dims = _add_face_to_dims(dims)
             dims = ['time',] + dims if vname not in self.grid_varnames else dims
             attrs = meta['attrs']
-            print('vname: ',vname)
-            variables[vname] = xr.Variable(dims, data[vname], attrs)
+
+            # Handle grid names different from filenames
+            fname = vname
+            vname = meta['real_name'] if 'real_name' in meta else vname
+            if fname in self.grid_varnames:
+                gridvar_names.append(vname)
+
+            variables[vname] = xr.Variable(dims, data[fname], attrs)
 
         ds = ds.update(variables)
+
         if grid_vars_to_coords:
-            for gname in self.grid_varnames:
-                ds = ds.set_coords(gname)
+            ds = ds.set_coords(gridvar_names)
 
         return ds

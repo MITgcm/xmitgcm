@@ -38,14 +38,13 @@ class LLC2160Model(BaseLLCModel):
     varnames = ['Eta', 'KPPhbl', 'oceFWflx', 'oceQnet', 'oceQsw', 'oceSflux',
                 'oceTAUX', 'oceTAUY', 'PhiBot', 'Salt', 'SIarea', 'SIheff',
                 'SIhsalt', 'SIhsnow', 'SIuice', 'SIvice', 'Theta', 'U', 'V', 'W']
-    grid_varnames = ['AngleCS','AngleSN','Depth','DXC','DXG','DYC','DYG',
-                     'hFacC','hFacS','hFacW','RAC','RAS','RAW',
-                     'rLowC','rLowS','rLowW','rSurfC',
+    grid_varnames = ['AngleCS','AngleSN','Depth',
+                     'DRC','DRF','DXC','DXG','DYC','DYG',
+                     'hFacC','hFacS','hFacW','PHrefC','PHrefF','RAC','RAS','RAW',
+                     'RC','RF','rLowC','rLowS','rLowW','rSurfC',
                      'rSurfS','rSurfW','XC','YC']
     # unrecognized name: 'RhoRef'   
     # corner point problems: 'RAZ','XG','YG'
-    # k_p1 problems: 'DRC', 'PHrefF', 'RF'
-    # k problems: 'DRF', 'PHrefC', 'RC'
     mask_override = {'oceTAUX': 'c', 'oceTAUY': 'c'}
 
 
