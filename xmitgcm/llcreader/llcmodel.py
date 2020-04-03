@@ -683,7 +683,7 @@ class BaseLLCModel:
 
     def get_dataset(self, varnames=None, iter_start=None, iter_stop=None,
                     iter_step=None, k_levels=None, k_chunksize=1,
-                    type='faces',grid_vars_to_coords=True):
+                    type='faces', read_grid=True, grid_vars_to_coords=True):
         """
         Create an xarray Dataset object for this model.
 
@@ -706,6 +706,10 @@ class BaseLLCModel:
             How many vertical levels per Dask chunk.
         type : {'faces', 'latlon'}, optional
             What type of dataset to create
+        read_grid : bool, optional
+            Whether to read the grid info
+        grid_vars_to_coords : bool, optional
+            Whether to promote grid variables to coordinate status
 
         Returns
         -------
@@ -731,6 +735,10 @@ class BaseLLCModel:
 
         varnames = varnames or self.varnames
 
+        # grid stuff
+        grid_vars_to_coords = read_grid and grid_vars_to_coords
+        grid_varnames = self.grid_varnames if read_grid else []
+
         ds = self._make_coords_faces(iters)
         if type=='latlon':
             ds = _faces_coords_to_latlon(ds)
@@ -748,7 +756,7 @@ class BaseLLCModel:
         # get the grid in facet form
         # do separately for vertical coords on kp1_levels
         grid_facets = {}
-        for vname in self.grid_varnames:
+        for vname in grid_varnames:
             my_k_levels = k_levels if vname not in _vgrid_p1_prefixes else kp1_levels
             grid_facets[vname] = self._get_facet_data(vname, None, my_k_levels, k_chunksize)
 
@@ -760,8 +768,8 @@ class BaseLLCModel:
         data = transformer(data_facets, _VAR_METADATA)
 
         # separate horizontal and vertical grid variables
-        hgrid_names = [x for x in self.grid_varnames if x not in _vgrid_prefixes]
-        vgrid_names = [x for x in self.grid_varnames if x in _vgrid_prefixes]
+        hgrid_names = [x for x in grid_varnames if x not in _vgrid_prefixes]
+        vgrid_names = [x for x in grid_varnames if x in _vgrid_prefixes]
 
         hgrid_facets = {key: grid_facets[key] for key in hgrid_names}
         vgrid_facets = {key: grid_facets[key] for key in vgrid_names}
@@ -771,33 +779,34 @@ class BaseLLCModel:
         data.update(vgrid_facets)
 
         variables = {}
-        gridvar_names = ['Zl','Zu']
-        for vname in varnames+self.grid_varnames:
+        gridlist = ['Zl','Zu'] if read_grid else []
+        for vname in varnames+grid_varnames:
             meta = _VAR_METADATA[vname]
             dims = meta['dims']
             if type=='faces':
                 dims = _add_face_to_dims(dims)
-            dims = ['time',] + dims if vname not in self.grid_varnames else dims
+            dims = ['time',] + dims if vname not in grid_varnames else dims
             attrs = meta['attrs']
 
             # Handle grid names different from filenames
             fname = vname
             vname = meta['real_name'] if 'real_name' in meta else vname
-            if fname in self.grid_varnames:
-                gridvar_names.append(vname)
+            if fname in grid_varnames:
+                gridlist.append(vname)
 
             variables[vname] = xr.Variable(dims, data[fname], attrs)
 
-        # handle vertical coordinate after the fact..
-        ki = np.array([list(kp1_levels).index(x) for x in k_levels])
-        for zv,sl in zip(['Zl','Zu'],[ki,ki+1]):
-            variables[zv] = xr.Variable(_VAR_METADATA[zv]['dims'],
-                                        data['RF'][sl],
-                                        _VAR_METADATA[zv]['attrs'])
+        # handle vertical coordinate after the fact...
+        if read_grid:
+            ki = np.array([list(kp1_levels).index(x) for x in k_levels])
+            for zv,sl in zip(['Zl','Zu'],[ki,ki+1]):
+                variables[zv] = xr.Variable(_VAR_METADATA[zv]['dims'],
+                                            data['RF'][sl],
+                                            _VAR_METADATA[zv]['attrs'])
 
         ds = ds.update(variables)
 
         if grid_vars_to_coords:
-            ds = ds.set_coords(gridvar_names)
+            ds = ds.set_coords(gridlist)
 
         return ds
