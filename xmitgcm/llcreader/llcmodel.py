@@ -736,7 +736,8 @@ class BaseLLCModel:
         varnames = varnames or self.varnames
 
         # grid stuff
-        grid_vars_to_coords = read_grid and grid_vars_to_coords
+        read_grid = read_grid and len(self.grid_varnames)!=0
+        grid_vars_to_coords = grid_vars_to_coords and read_grid
         grid_varnames = self.grid_varnames if read_grid else []
 
         ds = self._make_coords_faces(iters)
