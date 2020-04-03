@@ -18,9 +18,9 @@ def _get_grid_metadata():
 
     # get grid info
     # keys are variable names
-    grid_vars = horizontal_coordinates_llc 
-    grid_vars.update(vertical_coordinates)
+    grid_vars = horizontal_coordinates_llc.copy()
     grid_vars.update(horizontal_grid_variables)
+    grid_vars.update(vertical_coordinates)
     grid_vars.update(vertical_grid_variables)
     grid_vars.update(volume_grid_variables)
     grid_vars.update(mask_variables)
@@ -54,7 +54,7 @@ def _get_var_metadata():
 
     diag_file = StringIO(diagnostics)
     available_diags = parse_available_diagnostics(diag_file)
-    var_metadata = state_variables
+    var_metadata = state_variables.copy()
     var_metadata.update(package_state_variables)
     var_metadata.update(available_diags)
 
