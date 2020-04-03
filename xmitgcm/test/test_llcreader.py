@@ -62,10 +62,10 @@ def test_llc90_local_faces_load(local_llc90_store, llc90_kwargs, rettype, k_leve
                            type=rettype, **llc90_kwargs)
     if k_levels is None:
         assert list(ds.k.values) == list(range(50))
-        assert list(ds.k_p1.values) == list(range(50))
+        assert list(ds.k_p1.values) == list(range(51))
     else:
         assert list(ds.k.values) == k_levels
-        assert list(ds.k_p1.values) == k_levels
+        assert list(ds.k_p1.values) == kp1_levels
     assert all([cs==k_chunksize for cs in ds['T'].data.chunks[1]])
 
     ds.load()
