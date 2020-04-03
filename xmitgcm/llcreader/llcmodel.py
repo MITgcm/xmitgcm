@@ -796,8 +796,8 @@ class BaseLLCModel:
 
             variables[vname] = xr.Variable(dims, data[fname], attrs)
 
-        # handle vertical coordinate after the fact...
-        if read_grid:
+        # handle vertical coordinate after the fact
+        if read_grid and 'RF' in grid_varnames:
             ki = np.array([list(kp1_levels).index(x) for x in k_levels])
             for zv,sl in zip(['Zl','Zu'],[ki,ki+1]):
                 variables[zv] = xr.Variable(_VAR_METADATA[zv]['dims'],
