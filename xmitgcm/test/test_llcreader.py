@@ -49,9 +49,10 @@ def test_llc90_local_latlon(local_llc90_store, llc90_kwargs):
                               'j_g': 270, 'j': 270}
 
 @pytest.mark.parametrize('rettype', ['faces', 'latlon'])
-@pytest.mark.parametrize('k_levels,kp1_levels', 
-        [None, [0, 2, 7, 9, 10, 20],
-        [None, [0,1,2,3,7,8,9,10,11,20,21])
+@pytest.mark.parametrize('k_levels, kp1_levels', 
+        [(None,None),
+         ([0, 2, 7, 9, 10, 20],
+          [0,1,2,3,7,8,9,10,11,20,21])])
 @pytest.mark.parametrize('k_chunksize', [1, 2])
 def test_llc90_local_faces_load(local_llc90_store, llc90_kwargs, rettype, k_levels,
                                 kp1_levels, k_chunksize):
