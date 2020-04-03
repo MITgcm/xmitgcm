@@ -49,18 +49,22 @@ def test_llc90_local_latlon(local_llc90_store, llc90_kwargs):
                               'j_g': 270, 'j': 270}
 
 @pytest.mark.parametrize('rettype', ['faces', 'latlon'])
-@pytest.mark.parametrize('k_levels', [None, [0, 2, 7, 9, 10, 20]])
+@pytest.mark.parametrize('k_levels,kp1_levels', 
+        [None, [0, 2, 7, 9, 10, 20],
+        [None, [0,1,2,3,7,8,9,10,11,20,21])
 @pytest.mark.parametrize('k_chunksize', [1, 2])
 def test_llc90_local_faces_load(local_llc90_store, llc90_kwargs, rettype, k_levels,
-                                k_chunksize):
+                                kp1_levels, k_chunksize):
     store = local_llc90_store
     model = llcreader.LLC90Model(store)
     ds = model.get_dataset(k_levels=k_levels, k_chunksize=k_chunksize,
                            type=rettype, **llc90_kwargs)
     if k_levels is None:
         assert list(ds.k.values) == list(range(50))
+        assert list(ds.k_p1.values) == list(range(50))
     else:
         assert list(ds.k.values) == k_levels
+        assert list(ds.k_p1.values) == k_levels
     assert all([cs==k_chunksize for cs in ds['T'].data.chunks[1]])
 
     ds.load()
