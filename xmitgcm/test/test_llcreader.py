@@ -11,11 +11,11 @@ EXPECTED_VARS = ['Eta', 'KPPhbl', 'oceFWflx', 'oceQnet', 'oceQsw', 'oceSflux',
 EXPECTED_COORDS = {2160: ['CS','SN','Depth',
                           'drC','drF','dxC','dxG','dyC','dyG',
                           'hFacC','hFacS','hFacW','PHrefC','PHrefF','rA','rAs','rAw',
-                          'Z','Zp1','rLowC','rLowS','rLowW','rSurfC',
+                          'Z','Zl','rLowC','rLowS','rLowW','rSurfC',
                           'rSurfS','rSurfW','XC','YC'],
                    4320: ['drC','drF','dxC','dxG','dyC','dyG',
                           'hFacC','hFacS','hFacW','PHrefC','PHrefF',
-                          'rA','rAs','rAw','Z','Zp1','XC','YC']}
+                          'rA','rAs','rAw','Z','Zl','XC','YC']}
 
 ########### Generic llcreader tests on local data ##############################
 
