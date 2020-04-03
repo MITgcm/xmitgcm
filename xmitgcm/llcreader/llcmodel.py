@@ -36,6 +36,12 @@ def _get_grid_metadata():
         else:
             grid_metadata[key] = val
 
+    # force RF to point to Zp1, deal with this manually..
+    grid_metadata['RF']=vertical_coordinates['Zp1']
+    grid_metadata['RF']['real_name'] = 'Zp1'
+    for zv in ['Zu','Zl']:
+        grid_metadata[zv] = vertical_coordinates[zv]
+
     return grid_metadata
 
 def _get_var_metadata():
@@ -121,6 +127,7 @@ _facet_reshape = (False, False, False, True, True)
 _nfaces = 13
 _nfacets = 5
 _vgrid_prefixes = ['DRC','DRF','PHrefC','PHrefF','RC','RF']
+_vgrid_p1_prefixes = ['DRC','PHrefF','RF']
 
 def _uncompressed_facet_index(nfacet, nside):
     face_size = nside**2
@@ -519,7 +526,7 @@ class BaseLLCModel:
         ----------
         store : llcreader.BaseStore
         mask_ds : zarr.Group
-            Must contain variables `mask_c`, `masc_w`, `mask_s`
+            Must contain variables `mask_c`, `mask_w`, `mask_s`
         """
         self.store = store
         self.shape = (self.nz, self.nface, self.nx, self.nx)
@@ -540,6 +547,21 @@ class BaseLLCModel:
             masks[point] = _faces_to_facets(mask_faces)
         return masks
 
+    def _get_kp1_levels(self,k_levels):
+        # determine kp1 levels
+        # get borders to all k (center) levels
+        # ki used to get Zu, Zl later
+        ku = np.concatenate([k_levels[1:],[k_levels[-1]+1]])
+        kp1 = []
+        ki=[]
+        for i,(x,y) in enumerate(zip(k_levels,ku)):
+            kp1+= [x] if x not in kp1 else []
+            kp1+= [y] if y-x==1 else [x+1]
+
+
+        kp1=np.array(kp1)
+
+        return kp1
 
     def _make_coords_faces(self, all_iters):
         time = self.delta_t * all_iters
@@ -631,8 +653,9 @@ class BaseLLCModel:
 
         for n_k, these_klevels in enumerate(_chunks(klevels, k_chunksize)):
             key = name, n_k
+            nz=self.nz if varname not in _vgrid_p1_prefixes else self.nz+1
             task = (_get_1d_chunk, self.store, varname,
-                     these_klevels, self.nz, self.dtype)
+                     these_klevels, nz, self.dtype)
             dsk[key] = task
 
         return dsa.Array(dsk, name, chunks, self.dtype)
@@ -713,7 +736,9 @@ class BaseLLCModel:
             ds = _faces_coords_to_latlon(ds)
 
         k_levels = k_levels or np.arange(self.nz)
-        ds = ds.sel(k=k_levels, k_l=k_levels, k_u=k_levels, k_p1=k_levels)
+        kp1_levels = self._get_kp1_levels(k_levels)
+
+        ds = ds.sel(k=k_levels, k_l=k_levels, k_u=k_levels, k_p1=kp1_levels)
 
         # get the data in facet form
         data_facets = {vname:
@@ -721,9 +746,11 @@ class BaseLLCModel:
                        for vname in varnames}
 
         # get the grid in facet form
-        grid_facets = {vname:
-                       self._get_facet_data(vname, None, k_levels, k_chunksize)
-                       for vname in self.grid_varnames}
+        # do separately for vertical coords on kp1_levels
+        grid_facets = {}
+        for vname in self.grid_varnames:
+            my_k_levels = k_levels if vname not in _vgrid_p1_prefixes else kp1_levels
+            grid_facets[vname] = self._get_facet_data(vname, None, my_k_levels, k_chunksize)
 
         # transform it into faces or latlon
         data_transformers = {'faces': _all_facets_to_faces,
@@ -744,7 +771,7 @@ class BaseLLCModel:
         data.update(vgrid_facets)
 
         variables = {}
-        gridvar_names = []
+        gridvar_names = ['Zl','Zu']
         for vname in varnames+self.grid_varnames:
             meta = _VAR_METADATA[vname]
             dims = meta['dims']
@@ -760,6 +787,13 @@ class BaseLLCModel:
                 gridvar_names.append(vname)
 
             variables[vname] = xr.Variable(dims, data[fname], attrs)
+
+        # handle vertical coordinate after the fact..
+        ki = np.array([list(kp1_levels).index(x) for x in k_levels])
+        for zv,sl in zip(['Zl','Zu'],[ki,ki+1]):
+            variables[zv] = xr.Variable(_VAR_METADATA[zv]['dims'],
+                                        data['RF'][sl],
+                                        _VAR_METADATA[zv]['attrs'])
 
         ds = ds.update(variables)
 
