@@ -8,14 +8,14 @@ EXPECTED_VARS = ['Eta', 'KPPhbl', 'oceFWflx', 'oceQnet', 'oceQsw', 'oceSflux',
             'oceTAUX', 'oceTAUY', 'PhiBot', 'Salt', 'SIarea', 'SIheff',
             'SIhsalt', 'SIhsnow', 'SIuice', 'SIvice', 'Theta', 'U', 'V', 'W']
 
-EXPECTED_COORDS = {2160: ['AngleCS','AngleSN','Depth',
-                          'DRC','DRF','DXC','DXG','DYC','DYG',
-                          'hFacC','hFacS','hFacW','PHrefC','PHrefF','RAC','RAS','RAW',
-                          'RC','RF','rLowC','rLowS','rLowW','rSurfC',
+EXPECTED_COORDS = {2160: ['CS','SN','Depth',
+                          'drC','drF','dxC','dxG','dyC','dyG',
+                          'hFacC','hFacS','hFacW','PHrefC','PHrefF','rA','rAs','rAw',
+                          'Z','Zp1','rLowC','rLowS','rLowW','rSurfC',
                           'rSurfS','rSurfW','XC','YC'],
-                   4320: ['DRC','DRF','DXC','DXG','DYC','DYG',
+                   4320: ['drC','drF','dxC','dxG','dyC','dyG',
                           'hFacC','hFacS','hFacW','PHrefC','PHrefF',
-                          'RAC','RAS','RAW','RC','RF','XC','YC']}
+                          'rA','rAs','rAw','Z','Zp1','XC','YC']}
 
 ########### Generic llcreader tests on local data ##############################
 
