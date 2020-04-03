@@ -37,14 +37,14 @@ def test_llc90_local_faces(local_llc90_store, llc90_kwargs):
     ds_faces = model.get_dataset(**llc90_kwargs)
     assert set(llc90_kwargs['varnames']) == set(ds_faces.data_vars)
     assert ds_faces.dims == {'face': 13, 'i': 90, 'i_g': 90, 'j': 90, 'j_g': 90,
-                             'k': 50, 'k_u': 50, 'k_l': 50, 'k_p1': 50, 'time': 2}
+                             'k': 50, 'k_u': 50, 'k_l': 50, 'k_p1': 51, 'time': 2}
 
 def test_llc90_local_latlon(local_llc90_store, llc90_kwargs):
     store = local_llc90_store
     model = llcreader.LLC90Model(store)
     ds_latlon = model.get_dataset(type='latlon', **llc90_kwargs)
     assert set(llc90_kwargs['varnames']) == set(ds_latlon.data_vars)
-    assert ds_latlon.dims == {'i': 360, 'time': 2, 'k_p1': 50, 'face': 13,
+    assert ds_latlon.dims == {'i': 360, 'time': 2, 'k_p1': 51, 'face': 13,
                               'i_g': 360, 'k_u': 50, 'k': 50, 'k_l': 50,
                               'j_g': 270, 'j': 270}
 
@@ -81,7 +81,7 @@ def test_ecco_portal_faces(ecco_portal_model):
     nx = ecco_portal_model.nx
     assert ds_faces.dims == {'face': 13, 'i': nx, 'i_g': nx, 'j': nx,
                               'j_g': nx, 'k': 90, 'k_u': 90, 'k_l': 90,
-                              'k_p1': 90, 'time': 3}
+                              'k_p1': 91, 'time': 3}
     assert set(EXPECTED_VARS) == set(ds_faces.data_vars)
     assert set(EXPECTED_COORDS[nx]).issubset(set(ds_faces.coords))
 
@@ -98,7 +98,7 @@ def test_ecco_portal_latlon(ecco_portal_model):
     ds_ll = ecco_portal_model.get_dataset(iter_stop=iter_stop, type='latlon')
     nx = ecco_portal_model.nx
     assert ds_ll.dims == {'i': 4*nx, 'k_u': 90, 'k_l': 90, 'time': 3,
-                             'k': 90, 'j_g': 3*nx, 'i_g': 4*nx, 'k_p1': 90,
+                             'k': 90, 'j_g': 3*nx, 'i_g': 4*nx, 'k_p1': 91,
                              'j': 3*nx, 'face': 13}
     assert set(EXPECTED_VARS) == set(ds_ll.data_vars)
     assert set(EXPECTED_COORDS[nx]).issubset(set(ds_ll.coords))
