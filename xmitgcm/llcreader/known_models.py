@@ -41,8 +41,8 @@ class LLC2160Model(BaseLLCModel):
     grid_varnames = ['AngleCS','AngleSN','Depth',
                      'DRC','DRF','DXC','DXG','DYC','DYG',
                      'hFacC','hFacS','hFacW','PHrefC','PHrefF','RAC','RAS','RAW',
-                     'RC','RF','rLowC','rLowS','rLowW','rSurfC',
-                     'RhoRef','rSurfS','rSurfW','XC','YC']
+                     'RC','RF','rhoRef','rLowC','rLowS','rLowW',
+                     'rSurfC','rSurfS','rSurfW','XC','YC']
     # corner point problems: 'RAZ','XG','YG'
     mask_override = {'oceTAUX': 'c', 'oceTAUY': 'c'}
 
