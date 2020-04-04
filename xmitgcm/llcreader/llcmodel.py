@@ -126,7 +126,7 @@ _facet_strides = ((0,3), (3,6), (6,7), (7,10), (10,13))
 _facet_reshape = (False, False, False, True, True)
 _nfaces = 13
 _nfacets = 5
-_vgrid_prefixes = ['DRC','DRF','PHrefC','PHrefF','RC','RF']
+_vgrid_prefixes = ['DRC','DRF','PHrefC','PHrefF','RC','RF','RhoRef']
 _vgrid_p1_prefixes = ['DRC','PHrefF','RF']
 
 def _uncompressed_facet_index(nfacet, nside):

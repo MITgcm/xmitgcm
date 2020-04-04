@@ -651,14 +651,14 @@ extra_grid_variables = OrderedDict(
     maskCtrlS=dict(dims=['k', 'j_g', 'i'], attrs=dict(
         standard_name="ctrl_vector_3d_mask_at_v_location",
         long_name='CTRL 3D mask where ctrl vector is active at v location',
-        units=''))
+        units='')),
     # Reference density profile
     rhoRef=dict(dims=['k'],attrs=dict(
         standard_name="reference_density_profile",
         long_name="1D, vertical reference density profile",
         coordinate="Z",
         units='kg m-3'),
-        filename='RhoRef')
+        filename='RhoRef'),
     # Additional grid metrics
     dxF=dict(dims=['j','i'],attrs=dict(
         standard_name="cell_x_size_at_t_location",
