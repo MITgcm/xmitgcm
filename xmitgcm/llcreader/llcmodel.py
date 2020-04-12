@@ -450,26 +450,13 @@ def _get_1d_chunk(store, varname, klevels, nz, dtype):
 
     file = fs.open(path)
 
-    # insert singleton axis for k level
-    facet_shape = (1,)
-    level_data = []
+    # read all levels for 1D variables
+    read_length = nz*dtype.itemsize # all levels in bytes
+    buffer = file.read(read_length)
+    data = np.frombuffer(buffer,dtype=dtype)
 
-    for k in klevels:
-        assert (k >= 0) & (k < nz)
-
-        # with a 1D file, k level gives "where to read" in file
-        read_offset = k * dtype.itemsize # in bytes
-        read_length  = dtype.itemsize # in bytes
-        file.seek(read_offset)
-        buffer = file.read(read_length)
-        data = np.frombuffer(buffer, dtype=dtype)
-        assert len(data) == 1
-
-        # this is the shape this facet is supposed to have
-        data.shape = facet_shape
-        level_data.append(data)
-
-    return np.concatenate(level_data, axis=0)
+    # now subset
+    return data[klevels]
 
 class BaseLLCModel:
     """Class representing an LLC Model Dataset.
@@ -643,20 +630,21 @@ class BaseLLCModel:
 
     def _dask_array_vgrid(self, varname, klevels, k_chunksize):
         # return a dask array for a 1D vertical grid var
-        chunks = (tuple([len(c)
-                          for c in _chunks(klevels, k_chunksize)]),)
+
+        # single chunk for 1D variables
+        chunks = ((len(klevels),),)
 
         # manually build dask graph
         dsk = {}
         token = tokenize(varname, self.store)
         name = '-'.join([varname, token])
 
-        for n_k, these_klevels in enumerate(_chunks(klevels, k_chunksize)):
-            key = name, n_k
-            nz=self.nz if varname not in _vgrid_p1_prefixes else self.nz+1
-            task = (_get_1d_chunk, self.store, varname,
-                     these_klevels, nz, self.dtype)
-            dsk[key] = task
+        nz = self.nz if varname not in _vgrid_p1_prefixes else self.nz+1
+        task = (_get_1d_chunk, self.store, varname,
+                list(klevels), nz, self.dtype)
+
+        key = name, 0
+        dsk[key] = task
 
         return dsa.Array(dsk, name, chunks, self.dtype)
 

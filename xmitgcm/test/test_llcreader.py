@@ -1,4 +1,5 @@
 import pytest
+from dask.array.core import Array as dsa
 
 llcreader = pytest.importorskip("xmitgcm.llcreader")
 
@@ -67,6 +68,12 @@ def test_llc90_local_faces_load(local_llc90_store, llc90_kwargs, rettype, k_leve
         assert list(ds.k.values) == k_levels
         assert list(ds.k_p1.values) == kp1_levels
     assert all([cs==k_chunksize for cs in ds['T'].data.chunks[1]])
+
+    # make sure vertical coordinates are in one single chunk
+    for fld in ds['Z','Zl','Zu','Zp1'].coords:
+        if isinstance(ds[fld].data,dsa):
+            assert len(ds[fld].data.chunks)==1
+            assert (len(ds[fld]),)==ds[fld].data.chunks[0]
 
     ds.load()
 
