@@ -69,12 +69,6 @@ def test_llc90_local_faces_load(local_llc90_store, llc90_kwargs, rettype, k_leve
         assert list(ds.k_p1.values) == kp1_levels
     assert all([cs==k_chunksize for cs in ds['T'].data.chunks[1]])
 
-    # make sure vertical coordinates are in one single chunk
-    for fld in ds['Z','Zl','Zu','Zp1'].coords:
-        if isinstance(ds[fld].data,dsa):
-            assert len(ds[fld].data.chunks)==1
-            assert (len(ds[fld]),)==ds[fld].data.chunks[0]
-
     ds.load()
 
 ########### ECCO Portal Tests ##################################################
@@ -96,6 +90,12 @@ def test_ecco_portal_faces(ecco_portal_model):
                               'k_p1': 91, 'time': 3}
     assert set(EXPECTED_VARS) == set(ds_faces.data_vars)
     assert set(EXPECTED_COORDS[nx]).issubset(set(ds_faces.coords))
+
+    # make sure vertical coordinates are in one single chunk
+    for fld in ds_faces[['Z','Zl','Zu','Zp1']].coords:
+        if isinstance(ds_faces[fld].data,dsa):
+            assert len(ds_faces[fld].data.chunks)==1
+            assert (len(ds_faces[fld]),)==ds_faces[fld].data.chunks[0]
 
 def test_ecco_portal_load(ecco_portal_model):
     # an expensive test because it actually loads data
