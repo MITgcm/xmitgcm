@@ -114,3 +114,9 @@ def test_ecco_portal_latlon(ecco_portal_model):
                              'j': 3*nx, 'face': 13}
     assert set(EXPECTED_VARS) == set(ds_ll.data_vars)
     assert set(EXPECTED_COORDS[nx]).issubset(set(ds_ll.coords))
+
+    # make sure vertical coordinates are in one single chunk
+    for fld in ds_faces[['Z','Zl','Zu','Zp1']].coords:
+        if isinstance(ds_faces[fld].data,dsa):
+            assert len(ds_faces[fld].data.chunks)==1
+            assert (len(ds_faces[fld]),)==ds_faces[fld].data.chunks[0]
