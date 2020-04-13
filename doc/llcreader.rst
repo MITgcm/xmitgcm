@@ -254,7 +254,7 @@ Get a few vertical levels from some 3D variables::
 
 Note that when vertical levels are subset like this, any vertical coordinate
 associated with dimension `k_p1` will have levels above and below the selected
-`k_levls`, which are at cell center.
+`k_levels`, which are at cell center.
 
 A list of all available variables can be seen as follows::
 
