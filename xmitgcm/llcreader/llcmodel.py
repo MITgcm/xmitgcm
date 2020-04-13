@@ -126,8 +126,6 @@ _facet_strides = ((0,3), (3,6), (6,7), (7,10), (10,13))
 _facet_reshape = (False, False, False, True, True)
 _nfaces = 13
 _nfacets = 5
-_vgrid_prefixes = ['DRC','DRF','PHrefC','PHrefF','RC','RF','RhoRef']
-_vgrid_p1_prefixes = ['DRC','PHrefF','RF']
 
 def _uncompressed_facet_index(nfacet, nside):
     face_size = nside**2
@@ -639,7 +637,7 @@ class BaseLLCModel:
         token = tokenize(varname, self.store)
         name = '-'.join([varname, token])
 
-        nz = self.nz if varname not in _vgrid_p1_prefixes else self.nz+1
+        nz = self.nz if _VAR_METADATA[varname]['dims'] != ['k_p1'] else self.nz+1
         task = (_get_1d_chunk, self.store, varname,
                 list(klevels), nz, self.dtype)
 
@@ -656,7 +654,7 @@ class BaseLLCModel:
         if len(dims)==2:
             klevels = [0,]
 
-        if varname in _vgrid_prefixes:
+        if len(dims)==1:
             data_facets = self._dask_array_vgrid(varname,klevels,k_chunksize)
         else:
             data_facets = [self._dask_array(nfacet, varname, iters, klevels, k_chunksize)
@@ -746,7 +744,7 @@ class BaseLLCModel:
         # do separately for vertical coords on kp1_levels
         grid_facets = {}
         for vname in grid_varnames:
-            my_k_levels = k_levels if vname not in _vgrid_p1_prefixes else kp1_levels
+            my_k_levels = k_levels if _VAR_METADATA[vname]['dims'] !=['k_p1'] else kp1_levels
             grid_facets[vname] = self._get_facet_data(vname, None, my_k_levels, k_chunksize)
 
         # transform it into faces or latlon
@@ -757,8 +755,8 @@ class BaseLLCModel:
         data = transformer(data_facets, _VAR_METADATA)
 
         # separate horizontal and vertical grid variables
-        hgrid_names = [x for x in grid_varnames if x not in _vgrid_prefixes]
-        vgrid_names = [x for x in grid_varnames if x in _vgrid_prefixes]
+        hgrid_names = [x for x in grid_varnames if len(_VAR_METADATA[x]['dims'])!=1]
+        vgrid_names = [x for x in grid_varnames if len(_VAR_METADATA[x]['dims'])==1]
 
         hgrid_facets = {key: grid_facets[key] for key in hgrid_names}
         vgrid_facets = {key: grid_facets[key] for key in vgrid_names}
