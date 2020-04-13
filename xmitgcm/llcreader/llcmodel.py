@@ -71,6 +71,11 @@ def _get_var_metadata():
 
 _VAR_METADATA = _get_var_metadata()
 
+def _is_vgrid(vname):
+    # check for 1d, vertical grid variables
+    dims = _VAR_METADATA[vname]['dims']
+    return len(dims)==1 and dims[0][0]=='k'
+
 def _get_variable_point(vname, mask_override):
     # fix for https://github.com/MITgcm/xmitgcm/issues/191
     if vname in mask_override:
@@ -654,7 +659,7 @@ class BaseLLCModel:
         if len(dims)==2:
             klevels = [0,]
 
-        if len(dims)==1:
+        if _is_vgrid(varname):
             data_facets = self._dask_array_vgrid(varname,klevels,k_chunksize)
         else:
             data_facets = [self._dask_array(nfacet, varname, iters, klevels, k_chunksize)
@@ -755,11 +760,10 @@ class BaseLLCModel:
         data = transformer(data_facets, _VAR_METADATA)
 
         # separate horizontal and vertical grid variables
-        hgrid_names = [x for x in grid_varnames if len(_VAR_METADATA[x]['dims'])!=1]
-        vgrid_names = [x for x in grid_varnames if len(_VAR_METADATA[x]['dims'])==1]
-
-        hgrid_facets = {key: grid_facets[key] for key in hgrid_names}
-        vgrid_facets = {key: grid_facets[key] for key in vgrid_names}
+        hgrid_facets = {key: grid_facets[key]
+                for key in grid_varnames if not _is_vgrid(key)}
+        vgrid_facets = {key: grid_facets[key]
+                for key in grid_varnames if _is_vgrid(key)}
 
         # do not transform vertical grid variables
         data.update(transformer(hgrid_facets, _VAR_METADATA))
