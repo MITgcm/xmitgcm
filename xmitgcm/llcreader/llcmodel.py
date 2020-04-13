@@ -11,19 +11,11 @@ from .shrunk_index import all_index_data
 def _get_grid_metadata():
     # keep this separate from get_var_metadata
     # because grid stuff is weird
-    from ..variables import (horizontal_coordinates_llc,
-            vertical_coordinates, vertical_grid_variables,
-            horizontal_grid_variables, volume_grid_variables,
-            mask_variables, extra_grid_variables)
+    from ..mds_store import _get_all_grid_variables
+    from ..variables import extra_grid_variables, vertical_coordinates
 
     # get grid info
-    # keys are variable names
-    grid_vars = horizontal_coordinates_llc.copy()
-    grid_vars.update(horizontal_grid_variables)
-    grid_vars.update(vertical_coordinates)
-    grid_vars.update(vertical_grid_variables)
-    grid_vars.update(volume_grid_variables)
-    grid_vars.update(mask_variables)
+    grid_vars = _get_all_grid_variables('llc')
     grid_vars.update(extra_grid_variables)
 
     # make dictionary with keys as filenames
