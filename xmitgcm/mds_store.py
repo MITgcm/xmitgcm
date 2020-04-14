@@ -235,8 +235,11 @@ def open_mdsdataset(data_dir, grid_dir=None,
                 # apply chunking
                 if sys.version_info[0] < 3:
                     ds = xr.auto_combine(datasets)
-                else:
+                elif xr.__version__ < '0.15.2':
                     ds = xr.combine_by_coords(datasets)
+                else:
+                    ds = xr.combine_by_coords(datasets,combine_attrs='drop')
+
                 if swap_dims:
                     ds = _swap_dimensions(ds, geometry)
                 if grid_vars_to_coords:
