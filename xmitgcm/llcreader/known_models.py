@@ -46,7 +46,7 @@ class LLC4320Model(BaseLLCModel):
     nz = 90
     delta_t = 25
     iter_start = 10368
-    iter_stop = 1310544 + 1
+    iter_stop = 1495152 + 1
     iter_step = 144
     time_units='seconds since 2011-09-10'
     calendar = 'gregorian'
