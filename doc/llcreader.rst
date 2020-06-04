@@ -98,7 +98,7 @@ By default, all variables and all timesteps are loaded::
   >>> ds = model.get_dataset(k_chunksize=90)
   >>> print(ds)
   <xarray.Dataset>
-  Dimensions:   (face: 13, i: 4320, i_g: 4320, j: 4320, j_g: 4320, k: 90, k_l: 90, k_p1: 90, k_u: 90, time: 9030)
+  Dimensions:   (face: 13, i: 4320, i_g: 4320, j: 4320, j_g: 4320, k: 90, k_l: 90, k_p1: 91, k_u: 90, time: 9030)
   Coordinates:
     * face      (face) int64 0 1 2 3 4 5 6 7 8 9 10 11 12
     * i         (i) int64 0 1 2 3 4 5 6 7 ... 4313 4314 4315 4316 4317 4318 4319
@@ -108,30 +108,54 @@ By default, all variables and all timesteps are loaded::
     * k         (k) int64 0 1 2 3 4 5 6 7 8 9 10 ... 80 81 82 83 84 85 86 87 88 89
     * k_u       (k_u) int64 0 1 2 3 4 5 6 7 8 9 ... 80 81 82 83 84 85 86 87 88 89
     * k_l       (k_l) int64 0 1 2 3 4 5 6 7 8 9 ... 80 81 82 83 84 85 86 87 88 89
-    * k_p1      (k_p1) int64 0 1 2 3 4 5 6 7 8 9 ... 80 81 82 83 84 85 86 87 88 89
+    * k_p1      (k_p1) int64 0 1 2 3 4 5 6 7 8 9 ... 81 82 83 84 85 86 87 88 89 90
       niter     (time) int64 ...
     * time      (time) datetime64[ns] 2011-09-13 ... 2012-09-23T05:00:00
+      drC       (k_p1) >f4 dask.array<chunksize=(91,), meta=np.ndarray>
+      drF       (k) >f4 dask.array<chunksize=(90,), meta=np.ndarray>
+      dxC       (face, j, i_g) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      dxF       (face, j, i) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      dxG       (face, j_g, i) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      dyC       (face, j_g, i) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      dyF       (face, j, i) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      dyG       (face, j, i_g) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      hFacC     (k, face, j, i) float32 dask.array<chunksize=(90, 3, 4320, 4320), meta=np.ndarray>
+      hFacS     (k, face, j_g, i) float32 dask.array<chunksize=(90, 3, 4320, 4320), meta=np.ndarray>
+      hFacW     (k, face, j, i_g) float32 dask.array<chunksize=(90, 3, 4320, 4320), meta=np.ndarray>
+      PHrefC    (k) >f4 dask.array<chunksize=(90,), meta=np.ndarray>
+      PHrefF    (k_p1) >f4 dask.array<chunksize=(91,), meta=np.ndarray>
+      rA        (face, j, i) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      rAs       (face, j_g, i) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      rAw       (face, j, i_g) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      Z         (k) >f4 dask.array<chunksize=(90,), meta=np.ndarray>
+      Zp1       (k_p1) >f4 dask.array<chunksize=(91,), meta=np.ndarray>
+      rhoRef    (k) >f4 dask.array<chunksize=(90,), meta=np.ndarray>
+      XC        (face, j, i) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      YC        (face, j, i) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      Zl        (k_l) >f4 dask.array<chunksize=(90,), meta=np.ndarray>
+      Zu        (k_u) >f4 dask.array<chunksize=(90,), meta=np.ndarray>
   Data variables:
-      Eta       (time, face, j, i) >f4 dask.array<shape=(9030, 13, 4320, 4320), chunksize=(1, 3, 4320, 4320)>
-      KPPhbl    (time, face, j, i) >f4 dask.array<shape=(9030, 13, 4320, 4320), chunksize=(1, 3, 4320, 4320)>
-      oceFWflx  (time, face, j, i) >f4 dask.array<shape=(9030, 13, 4320, 4320), chunksize=(1, 3, 4320, 4320)>
-      oceQnet   (time, face, j, i) >f4 dask.array<shape=(9030, 13, 4320, 4320), chunksize=(1, 3, 4320, 4320)>
-      oceQsw    (time, face, j, i) >f4 dask.array<shape=(9030, 13, 4320, 4320), chunksize=(1, 3, 4320, 4320)>
-      oceSflux  (time, face, j, i) >f4 dask.array<shape=(9030, 13, 4320, 4320), chunksize=(1, 3, 4320, 4320)>
-      oceTAUX   (time, face, j, i_g) >f4 dask.array<shape=(9030, 13, 4320, 4320), chunksize=(1, 3, 4320, 4320)>
-      oceTAUY   (time, face, j_g, i) >f4 dask.array<shape=(9030, 13, 4320, 4320), chunksize=(1, 3, 4320, 4320)>
-      PhiBot    (time, face, j, i) >f4 dask.array<shape=(9030, 13, 4320, 4320), chunksize=(1, 3, 4320, 4320)>
-      Salt      (time, k, face, j, i) >f4 dask.array<shape=(9030, 90, 13, 4320, 4320), chunksize=(1, 90, 3, 4320, 4320)>
-      SIarea    (time, face, j, i) >f4 dask.array<shape=(9030, 13, 4320, 4320), chunksize=(1, 3, 4320, 4320)>
-      SIheff    (time, face, j, i) >f4 dask.array<shape=(9030, 13, 4320, 4320), chunksize=(1, 3, 4320, 4320)>
-      SIhsalt   (time, face, j, i) >f4 dask.array<shape=(9030, 13, 4320, 4320), chunksize=(1, 3, 4320, 4320)>
-      SIhsnow   (time, face, j, i) >f4 dask.array<shape=(9030, 13, 4320, 4320), chunksize=(1, 3, 4320, 4320)>
-      SIuice    (time, face, j, i_g) >f4 dask.array<shape=(9030, 13, 4320, 4320), chunksize=(1, 3, 4320, 4320)>
-      SIvice    (time, face, j_g, i) >f4 dask.array<shape=(9030, 13, 4320, 4320), chunksize=(1, 3, 4320, 4320)>
-      Theta     (time, k, face, j, i) >f4 dask.array<shape=(9030, 90, 13, 4320, 4320), chunksize=(1, 90, 3, 4320, 4320)>
-      U         (time, k, face, j, i_g) >f4 dask.array<shape=(9030, 90, 13, 4320, 4320), chunksize=(1, 90, 3, 4320, 4320)>
-      V         (time, k, face, j_g, i) >f4 dask.array<shape=(9030, 90, 13, 4320, 4320), chunksize=(1, 90, 3, 4320, 4320)>
-      W         (time, k_l, face, j, i) >f4 dask.array<shape=(9030, 90, 13, 4320, 4320), chunksize=(1, 90, 3, 4320, 4320)>
+      Eta       (time, face, j, i) float32 dask.array<chunksize=(1, 3, 4320, 4320), meta=np.ndarray>
+      KPPhbl    (time, face, j, i) float32 dask.array<chunksize=(1, 3, 4320, 4320), meta=np.ndarray>
+      oceFWflx  (time, face, j, i) float32 dask.array<chunksize=(1, 3, 4320, 4320), meta=np.ndarray>
+      oceQnet   (time, face, j, i) float32 dask.array<chunksize=(1, 3, 4320, 4320), meta=np.ndarray>
+      oceQsw    (time, face, j, i) float32 dask.array<chunksize=(1, 3, 4320, 4320), meta=np.ndarray>
+      oceSflux  (time, face, j, i) float32 dask.array<chunksize=(1, 3, 4320, 4320), meta=np.ndarray>
+      oceTAUX   (time, face, j, i_g) float32 dask.array<chunksize=(1, 3, 4320, 4320), meta=np.ndarray>
+      oceTAUY   (time, face, j_g, i) float32 dask.array<chunksize=(1, 3, 4320, 4320), meta=np.ndarray>
+      PhiBot    (time, face, j, i) float32 dask.array<chunksize=(1, 3, 4320, 4320), meta=np.ndarray>
+      Salt      (time, k, face, j, i) float32 dask.array<chunksize=(1, 90, 3, 4320, 4320), meta=np.ndarray>
+      SIarea    (time, face, j, i) float32 dask.array<chunksize=(1, 3, 4320, 4320), meta=np.ndarray>
+      SIheff    (time, face, j, i) float32 dask.array<chunksize=(1, 3, 4320, 4320), meta=np.ndarray>
+      SIhsalt   (time, face, j, i) float32 dask.array<chunksize=(1, 3, 4320, 4320), meta=np.ndarray>
+      SIhsnow   (time, face, j, i) float32 dask.array<chunksize=(1, 3, 4320, 4320), meta=np.ndarray>
+      SIuice    (time, face, j, i_g) float32 dask.array<chunksize=(1, 3, 4320, 4320), meta=np.ndarray>
+      SIvice    (time, face, j_g, i) float32 dask.array<chunksize=(1, 3, 4320, 4320), meta=np.ndarray>
+      Theta     (time, k, face, j, i) float32 dask.array<chunksize=(1, 90, 3, 4320, 4320), meta=np.ndarray>
+      U         (time, k, face, j, i_g) float32 dask.array<chunksize=(1, 90, 3, 4320, 4320), meta=np.ndarray>
+      V         (time, k, face, j_g, i) float32 dask.array<chunksize=(1, 90, 3, 4320, 4320), meta=np.ndarray>
+      W         (time, k_l, face, j, i) float32 dask.array<chunksize=(1, 90, 3, 4320, 4320), meta=np.ndarray>
+
 
 This dataset is useless for computations on a laptop, because the individual
 chunks require nearly 20 GB of memory.
@@ -141,8 +165,9 @@ Get a single 2D variable::
 
   >>> ds = model.get_dataset(varnames=['Eta'])
   >>> print(ds)
+
   <xarray.Dataset>
-  Dimensions:  (face: 13, i: 4320, i_g: 4320, j: 4320, j_g: 4320, k: 90, k_l: 90, k_p1: 90, k_u: 90, time: 9030)
+  Dimensions:  (face: 13, i: 4320, i_g: 4320, j: 4320, j_g: 4320, k: 90, k_l: 90, k_p1: 91, k_u: 90, time: 9030)
   Coordinates:
     * face     (face) int64 0 1 2 3 4 5 6 7 8 9 10 11 12
     * i        (i) int64 0 1 2 3 4 5 6 7 ... 4313 4314 4315 4316 4317 4318 4319
@@ -152,18 +177,42 @@ Get a single 2D variable::
     * k        (k) int64 0 1 2 3 4 5 6 7 8 9 10 ... 80 81 82 83 84 85 86 87 88 89
     * k_u      (k_u) int64 0 1 2 3 4 5 6 7 8 9 ... 80 81 82 83 84 85 86 87 88 89
     * k_l      (k_l) int64 0 1 2 3 4 5 6 7 8 9 ... 80 81 82 83 84 85 86 87 88 89
-    * k_p1     (k_p1) int64 0 1 2 3 4 5 6 7 8 9 ... 80 81 82 83 84 85 86 87 88 89
+    * k_p1     (k_p1) int64 0 1 2 3 4 5 6 7 8 9 ... 81 82 83 84 85 86 87 88 89 90
       niter    (time) int64 ...
     * time     (time) datetime64[ns] 2011-09-13 ... 2012-09-23T05:00:00
+      drC      (k_p1) >f4 dask.array<chunksize=(91,), meta=np.ndarray>
+      drF      (k) >f4 dask.array<chunksize=(90,), meta=np.ndarray>
+      dxC      (face, j, i_g) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      dxF      (face, j, i) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      dxG      (face, j_g, i) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      dyC      (face, j_g, i) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      dyF      (face, j, i) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      dyG      (face, j, i_g) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      hFacC    (k, face, j, i) float32 dask.array<chunksize=(1, 3, 4320, 4320), meta=np.ndarray>
+      hFacS    (k, face, j_g, i) float32 dask.array<chunksize=(1, 3, 4320, 4320), meta=np.ndarray>
+      hFacW    (k, face, j, i_g) float32 dask.array<chunksize=(1, 3, 4320, 4320), meta=np.ndarray>
+      PHrefC   (k) >f4 dask.array<chunksize=(90,), meta=np.ndarray>
+      PHrefF   (k_p1) >f4 dask.array<chunksize=(91,), meta=np.ndarray>
+      rA       (face, j, i) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      rAs      (face, j_g, i) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      rAw      (face, j, i_g) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      Z        (k) >f4 dask.array<chunksize=(90,), meta=np.ndarray>
+      Zp1      (k_p1) >f4 dask.array<chunksize=(91,), meta=np.ndarray>
+      rhoRef   (k) >f4 dask.array<chunksize=(90,), meta=np.ndarray>
+      XC       (face, j, i) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      YC       (face, j, i) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      Zl       (k_l) >f4 dask.array<chunksize=(90,), meta=np.ndarray>
+      Zu       (k_u) >f4 dask.array<chunksize=(90,), meta=np.ndarray>
   Data variables:
-      Eta      (time, face, j, i) >f4 dask.array<shape=(9030, 13, 4320, 4320), chunksize=(1, 3, 4320, 4320)>
+      Eta      (time, face, j, i) float32 dask.array<chunksize=(1, 3, 4320, 4320), meta=np.ndarray>
+
 
 Get a few vertical levels from some 3D variables::
 
   >>> ds = model.get_dataset(varnames=['Salt', 'Theta'], k_levels=[1, 10, 40])
   >>> print(ds)
   <xarray.Dataset>
-  Dimensions:  (face: 13, i: 4320, i_g: 4320, j: 4320, j_g: 4320, k: 3, k_l: 3, k_p1: 3, k_u: 3, time: 9030)
+  Dimensions:  (face: 13, i: 4320, i_g: 4320, j: 4320, j_g: 4320, k: 3, k_l: 3, k_p1: 6, k_u: 3, time: 9030)
   Coordinates:
     * face     (face) int64 0 1 2 3 4 5 6 7 8 9 10 11 12
     * i        (i) int64 0 1 2 3 4 5 6 7 ... 4313 4314 4315 4316 4317 4318 4319
@@ -173,13 +222,39 @@ Get a few vertical levels from some 3D variables::
     * k        (k) int64 1 10 40
     * k_u      (k_u) int64 1 10 40
     * k_l      (k_l) int64 1 10 40
-    * k_p1     (k_p1) int64 1 10 40
+    * k_p1     (k_p1) int64 1 2 10 11 40 41
       niter    (time) int64 ...
     * time     (time) datetime64[ns] 2011-09-13 ... 2012-09-23T05:00:00
+      drC      (k_p1) >f4 dask.array<chunksize=(6,), meta=np.ndarray>
+      drF      (k) >f4 dask.array<chunksize=(3,), meta=np.ndarray>
+      dxC      (face, j, i_g) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      dxF      (face, j, i) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      dxG      (face, j_g, i) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      dyC      (face, j_g, i) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      dyF      (face, j, i) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      dyG      (face, j, i_g) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      hFacC    (k, face, j, i) float32 dask.array<chunksize=(1, 3, 4320, 4320), meta=np.ndarray>
+      hFacS    (k, face, j_g, i) float32 dask.array<chunksize=(1, 3, 4320, 4320), meta=np.ndarray>
+      hFacW    (k, face, j, i_g) float32 dask.array<chunksize=(1, 3, 4320, 4320), meta=np.ndarray>
+      PHrefC   (k) >f4 dask.array<chunksize=(3,), meta=np.ndarray>
+      PHrefF   (k_p1) >f4 dask.array<chunksize=(6,), meta=np.ndarray>
+      rA       (face, j, i) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      rAs      (face, j_g, i) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      rAw      (face, j, i_g) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      Z        (k) >f4 dask.array<chunksize=(3,), meta=np.ndarray>
+      Zp1      (k_p1) >f4 dask.array<chunksize=(6,), meta=np.ndarray>
+      rhoRef   (k) >f4 dask.array<chunksize=(3,), meta=np.ndarray>
+      XC       (face, j, i) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      YC       (face, j, i) float32 dask.array<chunksize=(3, 4320, 4320), meta=np.ndarray>
+      Zl       (k_l) >f4 dask.array<chunksize=(3,), meta=np.ndarray>
+      Zu       (k_u) >f4 dask.array<chunksize=(3,), meta=np.ndarray>
   Data variables:
-      Salt     (time, k, face, j, i) >f4 dask.array<shape=(9030, 3, 13, 4320, 4320), chunksize=(1, 1, 3, 4320, 4320)>
-      Theta    (time, k, face, j, i) >f4 dask.array<shape=(9030, 3, 13, 4320, 4320), chunksize=(1, 1, 3, 4320, 4320)>
+      Salt     (time, k, face, j, i) float32 dask.array<chunksize=(1, 1, 3, 4320, 4320), meta=np.ndarray>
+      Theta    (time, k, face, j, i) float32 dask.array<chunksize=(1, 1, 3, 4320, 4320), meta=np.ndarray>
 
+Note that when vertical levels are subset like this, any vertical coordinate
+associated with dimension `k_p1` will have levels above and below the selected
+`k_levels`, which are at cell center.
 
 A list of all available variables can be seen as follows::
 
