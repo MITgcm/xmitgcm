@@ -39,11 +39,14 @@ class LLC2160Model(BaseLLCModel):
                 'oceTAUX', 'oceTAUY', 'PhiBot', 'Salt', 'SIarea', 'SIheff',
                 'SIhsalt', 'SIhsnow', 'SIuice', 'SIvice', 'Theta', 'U', 'V', 'W']
     grid_varnames = ['AngleCS','AngleSN','Depth',
-                     'DRC','DRF','DXC','DXG','DYC','DYG',
-                     'hFacC','hFacS','hFacW','PHrefC','PHrefF','RAC','RAS','RAW',
+                     'DRC','DRF',
+                     'DXC','DXF','DXG',
+                     'DYC','DYF','DYG',
+                     'hFacC','hFacS','hFacW','PHrefC','PHrefF',
+                     'RAC','RAS','RAW',
                      'RC','RF','RhoRef','rLowC','rLowS','rLowW',
                      'rSurfC','rSurfS','rSurfW','XC','YC']
-    # corner point problems: 'RAZ','XG','YG'
+    # corner point problems: 'RAZ','XG','YG','DXV','DYU'
     mask_override = {'oceTAUX': 'c', 'oceTAUY': 'c'}
 
 
@@ -59,7 +62,10 @@ class LLC4320Model(BaseLLCModel):
     varnames = ['Eta', 'KPPhbl', 'oceFWflx', 'oceQnet', 'oceQsw', 'oceSflux',
                 'oceTAUX', 'oceTAUY', 'PhiBot', 'Salt', 'SIarea', 'SIheff',
                 'SIhsalt', 'SIhsnow', 'SIuice', 'SIvice', 'Theta', 'U', 'V', 'W']
-    grid_varnames = ['DRC','DRF','DXC','DXF','DXG','DYC','DYF','DYG',
+    grid_varnames = ['AngleCS','AngleSN','Depth',
+                     'DRC','DRF',
+                     'DXC','DXF','DXG',
+                     'DYC','DYF','DYG',
                      'hFacC','hFacS','hFacW','PHrefC','PHrefF',
                      'RAC','RAS','RAW','RC','RF',
                      'RhoRef','XC','YC']

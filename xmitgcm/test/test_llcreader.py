@@ -10,11 +10,12 @@ EXPECTED_VARS = ['Eta', 'KPPhbl', 'oceFWflx', 'oceQnet', 'oceQsw', 'oceSflux',
             'SIhsalt', 'SIhsnow', 'SIuice', 'SIvice', 'Theta', 'U', 'V', 'W']
 
 EXPECTED_COORDS = {2160: ['CS','SN','Depth',
-                          'drC','drF','dxC','dxG','dyC','dyG',
+                          'drC','drF','dxC','dxF','dxG','dyC','dyF','dyG',
                           'hFacC','hFacS','hFacW','PHrefC','PHrefF','rA','rAs','rAw',
                           'Z','Zp1','Zl','Zu','rhoRef','rLowC','rLowS','rLowW',
                           'rSurfC','rSurfS','rSurfW','XC','YC'],
-                   4320: ['drC','drF','dxC','dxF','dxG','dyC','dyF','dyG',
+                   4320: ['CS','SN','Depth',
+                          'drC','drF','dxC','dxF','dxG','dyC','dyF','dyG',
                           'hFacC','hFacS','hFacW','PHrefC','PHrefF',
                           'rA','rAs','rAw','rhoRef','Z','Zp1','Zl','Zu','XC','YC']}
 
