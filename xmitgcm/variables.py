@@ -187,7 +187,7 @@ horizontal_grid_variables = OrderedDict(
     rAs=dict(dims=["j_g", "i"], attrs=dict(
         standard_name="cell_area_at_v_location",
         long_name="cell area", units="m2", coordinates="YG XC"),
-        filename='RAZ'),
+        filename='RAS'),
 )
 
 vertical_grid_variables = OrderedDict(
@@ -651,7 +651,31 @@ extra_grid_variables = OrderedDict(
     maskCtrlS=dict(dims=['k', 'j_g', 'i'], attrs=dict(
         standard_name="ctrl_vector_3d_mask_at_v_location",
         long_name='CTRL 3D mask where ctrl vector is active at v location',
-        units=''))
+        units='')),
+    # Reference density profile
+    rhoRef=dict(dims=['k'],attrs=dict(
+        standard_name="reference_density_profile",
+        long_name="1D, vertical reference density profile",
+        coordinate="Z",
+        units='kg m-3'),
+        filename='RhoRef'),
+    # Additional grid metrics
+    dxF=dict(dims=['j','i'],attrs=dict(
+        standard_name="cell_x_size_at_t_location",
+        long_name="cell x size", units="m", coordinate="YC XC"),
+        filename='DXF'),
+    dyF=dict(dims=['j','i'],attrs=dict(
+        standard_name="cell_y_size_at_t_location",
+        long_name="cell y size", units="m", coordinate="YC XC"),
+        filename='DYF'),
+    dxV=dict(dims=['j_g','i_g'],attrs=dict(
+        standard_name="cell_x_size_at_f_location",
+        long_name="cell x size", units="m", coordinate="YG XG"),
+        filename='DXV'),
+    dyU=dict(dims=['j_g','i_g'],attrs=dict(
+        standard_name="cell_y_size_at_f_location",
+        long_name="cell y size", units="m", coordinate="YG XG"),
+        filename='DYU')
     # Printed from write_grid when sigma coordinates are used
     # AHybSigmF, BHybSigF, ...
     # Unclear where on the grid these variables exist,

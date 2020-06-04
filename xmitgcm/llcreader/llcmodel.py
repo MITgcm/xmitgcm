@@ -8,6 +8,34 @@ import warnings
 from .duck_array_ops import concatenate
 from .shrunk_index import all_index_data
 
+def _get_grid_metadata():
+    # keep this separate from get_var_metadata
+    # because grid stuff is weird
+    from ..mds_store import _get_all_grid_variables
+    from ..variables import extra_grid_variables, vertical_coordinates
+
+    # get grid info
+    grid_vars = _get_all_grid_variables('llc')
+    grid_vars.update(extra_grid_variables)
+
+    # make dictionary with keys as filenames
+    grid_metadata = {}
+    for key,val in grid_vars.items():
+        # masks use hFac filename to be computed in mds_store
+        if 'filename' in val and key[:4]!='mask':
+            val.update({'real_name':key})
+            grid_metadata[val['filename']] = val
+        else:
+            grid_metadata[key] = val
+
+    # force RF to point to Zp1, deal with this manually..
+    grid_metadata['RF']=vertical_coordinates['Zp1']
+    grid_metadata['RF']['real_name'] = 'Zp1'
+    for zv in ['Zu','Zl']:
+        grid_metadata[zv] = vertical_coordinates[zv]
+
+    return grid_metadata
+
 def _get_var_metadata():
     # The LLC run data comes with zero metadata. So we import metadata from
     # the xmitgcm package.
@@ -18,7 +46,7 @@ def _get_var_metadata():
 
     diag_file = StringIO(diagnostics)
     available_diags = parse_available_diagnostics(diag_file)
-    var_metadata = state_variables
+    var_metadata = state_variables.copy()
     var_metadata.update(package_state_variables)
     var_metadata.update(available_diags)
 
@@ -28,9 +56,17 @@ def _get_var_metadata():
     for a, b in aliases.items():
         var_metadata[a] = var_metadata[b]
 
+    # add grid metadata
+    var_metadata.update(_get_grid_metadata())
+
     return var_metadata
 
 _VAR_METADATA = _get_var_metadata()
+
+def _is_vgrid(vname):
+    # check for 1d, vertical grid variables
+    dims = _VAR_METADATA[vname]['dims']
+    return len(dims)==1 and dims[0][0]=='k'
 
 def _get_variable_point(vname, mask_override):
     # fix for https://github.com/MITgcm/xmitgcm/issues/191
@@ -350,14 +386,17 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
 
     file = fs.open(path)
 
-    # insert singleton axis for time and k level
-    facet_shape = (1, 1,) + _facet_shape(nfacet, nx)
+    # insert singleton axis for time (if not grid var) and k level
+    facet_shape = (1,) + _facet_shape(nfacet, nx)
+    facet_shape = (1,) + facet_shape if iternum is not None else facet_shape
 
     level_data = []
 
     # the store tells us whether we need a mask or not
     point = _get_variable_point(varname, mask_override)
-    if store.shrunk:
+
+    if (store.shrunk and iternum is not None) or \
+       (store.shrunk_grid and iternum is None):
         index = all_index_data[nx][point]
         zgroup = store.open_mask_group()
         mask = zgroup['mask_' + point].astype('bool')
@@ -399,6 +438,20 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
 
     return np.concatenate(level_data, axis=1)
 
+def _get_1d_chunk(store, varname, klevels, nz, dtype):
+    """for 1D vertical grid variables"""
+
+    fs, path = store.get_fs_and_full_path(varname, None)
+
+    file = fs.open(path)
+
+    # read all levels for 1D variables
+    read_length = nz*dtype.itemsize # all levels in bytes
+    buffer = file.read(read_length)
+    data = np.frombuffer(buffer,dtype=dtype)
+
+    # now subset
+    return data[klevels]
 
 class BaseLLCModel:
     """Class representing an LLC Model Dataset.
@@ -428,8 +481,8 @@ class BaseLLCModel:
         Final model iteration number (exclusive; follows python range conventions)
     iter_step : int
         Spacing between iterations
-    varnames : list
-        List of variable names contained in the dataset
+    varnames, grid_varnames : list
+        List of data variable and grid variable names contained in the dataset
     mask_override : dict
         Override inference of masking variable, e.g. ``{'oceTAUX': 'c'}``
     """
@@ -445,6 +498,7 @@ class BaseLLCModel:
     iter_stop = None
     iter_step = None
     varnames = []
+    grid_varnames = []
     mask_override = {}
 
     def __init__(self, store):
@@ -454,7 +508,7 @@ class BaseLLCModel:
         ----------
         store : llcreader.BaseStore
         mask_ds : zarr.Group
-            Must contain variables `mask_c`, `masc_w`, `mask_s`
+            Must contain variables `mask_c`, `mask_w`, `mask_s`
         """
         self.store = store
         self.shape = (self.nz, self.nface, self.nx, self.nx)
@@ -475,6 +529,21 @@ class BaseLLCModel:
             masks[point] = _faces_to_facets(mask_faces)
         return masks
 
+    def _get_kp1_levels(self,k_levels):
+        # determine kp1 levels
+        # get borders to all k (center) levels
+        # ki used to get Zu, Zl later
+        ku = np.concatenate([k_levels[1:],[k_levels[-1]+1]])
+        kp1 = []
+        ki=[]
+        for i,(x,y) in enumerate(zip(k_levels,ku)):
+            kp1+= [x] if x not in kp1 else []
+            kp1+= [y] if y-x==1 else [x+1]
+
+
+        kp1=np.array(kp1)
+
+        return kp1
 
     def _make_coords_faces(self, all_iters):
         time = self.delta_t * all_iters
@@ -525,7 +594,7 @@ class BaseLLCModel:
     def _dask_array(self, nfacet, varname, iters, klevels, k_chunksize):
         # return a dask array for a single facet
         facet_shape =  _facet_shape(nfacet, self.nx)
-        time_chunks = (len(iters) * (1,),)
+        time_chunks = (len(iters) * (1,),) if iters is not None else ()
         k_chunks = (tuple([len(c)
                           for c in _chunks(klevels, k_chunksize)]),)
         chunks = time_chunks + k_chunks + tuple([(s,) for s in facet_shape])
@@ -534,16 +603,45 @@ class BaseLLCModel:
         dsk = {}
         token = tokenize(varname, self.store, nfacet)
         name = '-'.join([varname, token])
-        for n_iter, iternum in enumerate(iters):
+
+        # iters == None for grid variables
+        if iters is not None:
+            for n_iter, iternum in enumerate(iters):
+                for n_k, these_klevels in enumerate(_chunks(klevels, k_chunksize)):
+                    key = name, n_iter, n_k, 0, 0, 0
+                    task = (_get_facet_chunk, self.store, varname, iternum,
+                             nfacet, these_klevels, self.nx, self.nz, self.dtype,
+                             self.mask_override)
+                    dsk[key] = task
+        else:
             for n_k, these_klevels in enumerate(_chunks(klevels, k_chunksize)):
-                key = name, n_iter, n_k, 0, 0, 0
-                task = (_get_facet_chunk, self.store, varname, iternum,
+                key = name, n_k, 0, 0, 0
+                task = (_get_facet_chunk, self.store, varname, None,
                          nfacet, these_klevels, self.nx, self.nz, self.dtype,
                          self.mask_override)
                 dsk[key] = task
 
         return dsa.Array(dsk, name, chunks, self.dtype)
 
+    def _dask_array_vgrid(self, varname, klevels, k_chunksize):
+        # return a dask array for a 1D vertical grid var
+
+        # single chunk for 1D variables
+        chunks = ((len(klevels),),)
+
+        # manually build dask graph
+        dsk = {}
+        token = tokenize(varname, self.store)
+        name = '-'.join([varname, token])
+
+        nz = self.nz if _VAR_METADATA[varname]['dims'] != ['k_p1'] else self.nz+1
+        task = (_get_1d_chunk, self.store, varname,
+                list(klevels), nz, self.dtype)
+
+        key = name, 0
+        dsk[key] = task
+
+        return dsa.Array(dsk, name, chunks, self.dtype)
 
     def _get_facet_data(self, varname, iters, klevels, k_chunksize):
         mask, index = self._get_mask_and_index_for_variable(varname)
@@ -553,7 +651,10 @@ class BaseLLCModel:
         if len(dims)==2:
             klevels = [0,]
 
-        data_facets = [self._dask_array(nfacet, varname, iters, klevels, k_chunksize)
+        if _is_vgrid(varname):
+            data_facets = self._dask_array_vgrid(varname,klevels,k_chunksize)
+        else:
+            data_facets = [self._dask_array(nfacet, varname, iters, klevels, k_chunksize)
                        for nfacet in range(5)]
 
         if len(dims)==2:
@@ -565,7 +666,7 @@ class BaseLLCModel:
 
     def get_dataset(self, varnames=None, iter_start=None, iter_stop=None,
                     iter_step=None, k_levels=None, k_chunksize=1,
-                    type='faces'):
+                    type='faces', read_grid=True, grid_vars_to_coords=True):
         """
         Create an xarray Dataset object for this model.
 
@@ -588,6 +689,10 @@ class BaseLLCModel:
             How many vertical levels per Dask chunk.
         type : {'faces', 'latlon'}, optional
             What type of dataset to create
+        read_grid : bool, optional
+            Whether to read the grid info
+        grid_vars_to_coords : bool, optional
+            Whether to promote grid variables to coordinate status
 
         Returns
         -------
@@ -613,17 +718,31 @@ class BaseLLCModel:
 
         varnames = varnames or self.varnames
 
+        # grid stuff
+        read_grid = read_grid and len(self.grid_varnames)!=0
+        grid_vars_to_coords = grid_vars_to_coords and read_grid
+        grid_varnames = self.grid_varnames if read_grid else []
+
         ds = self._make_coords_faces(iters)
         if type=='latlon':
             ds = _faces_coords_to_latlon(ds)
 
         k_levels = k_levels or np.arange(self.nz)
-        ds = ds.sel(k=k_levels, k_l=k_levels, k_u=k_levels, k_p1=k_levels)
+        kp1_levels = self._get_kp1_levels(k_levels)
+
+        ds = ds.sel(k=k_levels, k_l=k_levels, k_u=k_levels, k_p1=kp1_levels)
 
         # get the data in facet form
         data_facets = {vname:
                        self._get_facet_data(vname, iters, k_levels, k_chunksize)
                        for vname in varnames}
+
+        # get the grid in facet form
+        # do separately for vertical coords on kp1_levels
+        grid_facets = {}
+        for vname in grid_varnames:
+            my_k_levels = k_levels if _VAR_METADATA[vname]['dims'] !=['k_p1'] else kp1_levels
+            grid_facets[vname] = self._get_facet_data(vname, None, my_k_levels, k_chunksize)
 
         # transform it into faces or latlon
         data_transformers = {'faces': _all_facets_to_faces,
@@ -632,15 +751,45 @@ class BaseLLCModel:
         transformer = data_transformers[type]
         data = transformer(data_facets, _VAR_METADATA)
 
+        # separate horizontal and vertical grid variables
+        hgrid_facets = {key: grid_facets[key]
+                for key in grid_varnames if not _is_vgrid(key)}
+        vgrid_facets = {key: grid_facets[key]
+                for key in grid_varnames if _is_vgrid(key)}
+
+        # do not transform vertical grid variables
+        data.update(transformer(hgrid_facets, _VAR_METADATA))
+        data.update(vgrid_facets)
+
         variables = {}
-        for vname in varnames:
+        gridlist = ['Zl','Zu'] if read_grid else []
+        for vname in varnames+grid_varnames:
             meta = _VAR_METADATA[vname]
             dims = meta['dims']
             if type=='faces':
                 dims = _add_face_to_dims(dims)
-            dims = ['time',] + dims
+            dims = ['time',] + dims if vname not in grid_varnames else dims
             attrs = meta['attrs']
-            variables[vname] = xr.Variable(dims, data[vname], attrs)
+
+            # Handle grid names different from filenames
+            fname = vname
+            vname = meta['real_name'] if 'real_name' in meta else vname
+            if fname in grid_varnames:
+                gridlist.append(vname)
+
+            variables[vname] = xr.Variable(dims, data[fname], attrs)
+
+        # handle vertical coordinate after the fact
+        if read_grid and 'RF' in grid_varnames:
+            ki = np.array([list(kp1_levels).index(x) for x in k_levels])
+            for zv,sl in zip(['Zl','Zu'],[ki,ki+1]):
+                variables[zv] = xr.Variable(_VAR_METADATA[zv]['dims'],
+                                            data['RF'][sl],
+                                            _VAR_METADATA[zv]['attrs'])
 
         ds = ds.update(variables)
+
+        if grid_vars_to_coords:
+            ds = ds.set_coords(gridlist)
+
         return ds
