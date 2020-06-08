@@ -851,7 +851,8 @@ def _get_all_data_variables(data_dir, grid_dir, layers, extra_variables):
     """"Put all the relevant data metadata into one big dictionary."""
     allvars = [state_variables]
     allvars.append(package_state_variables)
-    allvars.append(extra_variables)
+    if extra_variables is not None:
+        allvars.append(extra_variables)
     # add others from available_diagnostics.log
     # search in the data dir
     fnameD = os.path.join(data_dir, 'available_diagnostics.log')
