@@ -13,11 +13,11 @@ EXPECTED_COORDS = {2160: ['CS','SN','Depth',
                           'drC','drF','dxC','dxF','dxG','dyC','dyF','dyG',
                           'hFacC','hFacS','hFacW','PHrefC','PHrefF','rA','rAs','rAw',
                           'Z','Zp1','Zl','Zu','rhoRef','rLowC','rLowS','rLowW',
-                          'rSurfC','rSurfS','rSurfW','XC','YC'],
+                          'rSurfC','rSurfS','rSurfW','XC','YC','XG','YG'],
                    4320: ['CS','SN','Depth',
                           'drC','drF','dxC','dxF','dxG','dyC','dyF','dyG',
                           'hFacC','hFacS','hFacW','PHrefC','PHrefF',
-                          'rA','rAs','rAw','rhoRef','Z','Zp1','Zl','Zu','XC','YC']}
+                          'rA','rAs','rAw','rhoRef','Z','Zp1','Zl','Zu','XC','YC','XG','YG']}
 
 ########### Generic llcreader tests on local data ##############################
 
@@ -51,7 +51,7 @@ def test_llc90_local_latlon(local_llc90_store, llc90_kwargs):
                               'j_g': 270, 'j': 270}
 
 @pytest.mark.parametrize('rettype', ['faces', 'latlon'])
-@pytest.mark.parametrize('k_levels, kp1_levels', 
+@pytest.mark.parametrize('k_levels, kp1_levels',
         [(None,None),
          ([0, 2, 7, 9, 10, 20],
           [0,1,2,3,7,8,9,10,11,20,21])])
@@ -98,6 +98,7 @@ def test_ecco_portal_faces(ecco_portal_model):
             assert len(ds_faces[fld].data.chunks)==1
             assert (len(ds_faces[fld]),)==ds_faces[fld].data.chunks[0]
 
+@pytest.mark.slow
 def test_ecco_portal_load(ecco_portal_model):
     # an expensive test because it actually loads data
     iter_stop = ecco_portal_model.iter_start + 2 * ecco_portal_model.iter_step + 1

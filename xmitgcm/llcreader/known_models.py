@@ -45,7 +45,7 @@ class LLC2160Model(BaseLLCModel):
                      'hFacC','hFacS','hFacW','PHrefC','PHrefF',
                      'RAC','RAS','RAW',
                      'RC','RF','RhoRef','rLowC','rLowS','rLowW',
-                     'rSurfC','rSurfS','rSurfW','XC','YC']
+                     'rSurfC','rSurfS','rSurfW','XC','YC','XG','YG']
     # corner point problems: 'RAZ','XG','YG','DXV','DYU'
     mask_override = {'oceTAUX': 'c', 'oceTAUY': 'c'}
 
@@ -68,7 +68,7 @@ class LLC4320Model(BaseLLCModel):
                      'DYC','DYF','DYG',
                      'hFacC','hFacS','hFacW','PHrefC','PHrefF',
                      'RAC','RAS','RAW','RC','RF',
-                     'RhoRef','XC','YC']
+                     'RhoRef','XC','YC','XG','YG']
     # corner point problems: 'RAZ','XG','YG','DXV','DYU'
     mask_override = {'oceTAUX': 'c', 'oceTAUY': 'c'}
 
