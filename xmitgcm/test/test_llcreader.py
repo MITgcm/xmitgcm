@@ -13,11 +13,13 @@ EXPECTED_COORDS = {2160: ['CS','SN','Depth',
                           'drC','drF','dxC','dxF','dxG','dyC','dyF','dyG',
                           'hFacC','hFacS','hFacW','PHrefC','PHrefF','rA','rAs','rAw',
                           'Z','Zp1','Zl','Zu','rhoRef','rLowC','rLowS','rLowW',
-                          'rSurfC','rSurfS','rSurfW','XC','YC','XG','YG'],
+                          'rSurfC','rSurfS','rSurfW','XC','YC','rAz','XG','YG',
+                          'dxV','dyU'],
                    4320: ['CS','SN','Depth',
                           'drC','drF','dxC','dxF','dxG','dyC','dyF','dyG',
                           'hFacC','hFacS','hFacW','PHrefC','PHrefF',
-                          'rA','rAs','rAw','rhoRef','Z','Zp1','Zl','Zu','XC','YC','XG','YG']}
+                          'rA','rAs','rAw','rhoRef','Z','Zp1','Zl','Zu','XC','YC',
+                          'rAz','XG','YG','dxV','dyU']}
 
 ########### Generic llcreader tests on local data ##############################
 
