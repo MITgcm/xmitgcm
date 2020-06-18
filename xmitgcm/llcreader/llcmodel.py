@@ -392,11 +392,11 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
 
     level_data = []
 
-    # the store tells us whether we need a mask or not
-    point = _get_variable_point(varname, mask_override)
 
     if (store.shrunk and iternum is not None) or \
        (store.shrunk_grid and iternum is None):
+        # the store tells us whether we need a mask or not
+        point = _get_variable_point(varname, mask_override)
         index = all_index_data[nx][point]
         zgroup = store.open_mask_group()
         mask = zgroup['mask_' + point].astype('bool')
@@ -569,28 +569,6 @@ class BaseLLCModel:
         return _faces_coords_to_latlon(ds)
 
 
-    def _get_mask_and_index_for_variable(self, vname):
-        if self.masks is None:
-            return None, None
-
-        dims = _VAR_METADATA[vname]['dims']
-        if 'i' in dims and 'j' in dims:
-            point = 'c'
-        elif 'i_g' in dims and 'j' in dims:
-            point = 'w'
-        elif 'i' in dims and 'j_g' in dims:
-            point = 's'
-        elif 'i_g' in dims and 'j_g' in dims:
-            raise ValueError("Don't have masks for corner points!")
-        else:
-            # this is not a 2D variable
-            return None, None
-
-        mask = self.masks[point]
-        index = self.indexes[point]
-        return mask, index
-
-
     def _dask_array(self, nfacet, varname, iters, klevels, k_chunksize):
         # return a dask array for a single facet
         facet_shape =  _facet_shape(nfacet, self.nx)
@@ -644,7 +622,6 @@ class BaseLLCModel:
         return dsa.Array(dsk, name, chunks, self.dtype)
 
     def _get_facet_data(self, varname, iters, klevels, k_chunksize):
-        mask, index = self._get_mask_and_index_for_variable(varname)
         # needs facets to be outer index of nested lists
         dims = _VAR_METADATA[varname]['dims']
 
