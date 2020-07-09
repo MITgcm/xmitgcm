@@ -282,7 +282,7 @@ def _arct_crown(ds, varName, metrics=['dxC', 'dyC', 'dxG', 'dyG']):
                 dims = Dims(DIMS[::-1])
                 dtr = list(dims)[::-1]
                 dtr[-1], dtr[-2] = dtr[-2], dtr[-1]
-                mask7 = xr.ones_like(ds[_varName].isel(facedim.X=arc_cap))
+                mask7 = xr.ones_like(ds[_varName].isel(face=arc_cap))
                 mask7 = mask7.where(np.logical_and(ds[dims.X] > ds[dims.Y],
                                     ds[dims.X] > len(ds[dims.Y]) - ds[dims.Y]))
             da_arg = {'face': arc_cap, dims.X: xslice, dims.Y: yslice}
