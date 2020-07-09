@@ -440,13 +440,13 @@ def faces_dataset_to_latlon(ds, metric_vector_pairs=[('dxC', 'dyC'), ('dyG', 'dx
     vector_pairs = []
     scalars = []
     vnames = list(ds.reset_coords().variables)
-    # for vname in vnames:
-    #     try:
-    #         mate = ds[vname].attrs['mate']
-    #         vector_pairs.append((vname, mate))
-    #         vnames.remove(mate)
-    #     except KeyError:
-    #         pass
+    for vname in vnames:
+        try:
+            mate = ds[vname].attrs['mate']
+            vector_pairs.append((vname, mate))
+            # vnames.remove(mate)
+        except KeyError:
+            pass
 
     all_vector_components = [inner for outer in (vector_pairs + metric_vector_pairs)
                              for inner in outer]
