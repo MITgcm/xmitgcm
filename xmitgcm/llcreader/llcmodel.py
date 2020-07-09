@@ -197,6 +197,10 @@ def _arct_crown(ds, varName, metrics=['dxC', 'dyC', 'dxG', 'dyG']):
         arct_facet: New arctic cap data into a new facet, associated with
                     varName
     '''
+    if 'tile' in ds.dims:
+        face = 'tile'
+    else:
+        face = 'face'
     arc_cap = 6
     ARCT = []
     afaces = [2, 5, 7, 10]  # order of faces with which artic cap connects
@@ -204,7 +208,7 @@ def _arct_crown(ds, varName, metrics=['dxC', 'dyC', 'dxG', 'dyG']):
         if k == 2:
             fac = 1
             _varName = varName  # copy, b/c varName may change
-            DIMS = [dim for dim in ds[_varName].dims if dim != 'face']
+            DIMS = [dim for dim in ds[_varName].dims if dim != face]
             dims = Dims(DIMS[::-1])
             dtr = list(dims)[::-1]
             dtr[-1], dtr[-2] = dtr[-2], dtr[-1]
@@ -215,7 +219,7 @@ def _arct_crown(ds, varName, metrics=['dxC', 'dyC', 'dxG', 'dyG']):
             y0, yf = 0, int(len(ds[dims.X]))
             xslice = slice(x0, xf)
             yslice = slice(y0, yf)
-            da_arg = {'face': arc_cap, dims.X: xslice, dims.Y: yslice}
+            da_arg = {face: arc_cap, dims.X: xslice, dims.Y: yslice}
             sort_arg = {'variables': dims.Y, 'ascending': False}
             mask_arg = {dims.X: xslice, dims.Y: yslice}
             if len(dims.X) + len(dims.Y) == 4:  # vector field or metric
@@ -223,14 +227,14 @@ def _arct_crown(ds, varName, metrics=['dxC', 'dyC', 'dxG', 'dyG']):
                     fac = - 1
                 if 'mate' in list(ds[_varName].attrs):
                     _varName = ds[_varName].attrs['mate']
-                _DIMS = [dim for dim in ds[_varName].dims if dim != 'face']
+                _DIMS = [dim for dim in ds[_varName].dims if dim != face]
                 dims = Dims(_DIMS[::-1])
                 dtr = list(dims)[::-1]
                 dtr[-1], dtr[-2] = dtr[-2], dtr[-1]
                 mask2 = xr.ones_like(ds[_varName].isel(face=arc_cap))
                 mask2 = mask2.where(np.logical_and(ds[dims.X] < ds[dims.Y],
                                     ds[dims.X] < len(ds[dims.Y]) - ds[dims.Y]))
-                da_arg = {'face': arc_cap, dims.X: xslice, dims.Y: yslice}
+                da_arg = {face: arc_cap, dims.X: xslice, dims.Y: yslice}
                 sort_arg = {'variables': dims.Y, 'ascending': False}
                 mask_arg = {dims.X: xslice, dims.Y: yslice}
             arct = fac * data.isel(**da_arg)
@@ -243,7 +247,7 @@ def _arct_crown(ds, varName, metrics=['dxC', 'dyC', 'dxG', 'dyG']):
         elif k == 5:
             fac = 1
             _varName = varName
-            DIMS = [dim for dim in ds[_varName].dims if dim != 'face']
+            DIMS = [dim for dim in ds[_varName].dims if dim != face]
             dims = Dims(DIMS[::-1])
             mask5 = xr.ones_like(ds[_varName].isel(face=arc_cap))
             mask5 = mask5.where(np.logical_and(ds[dims.X] > ds[dims.Y],
@@ -252,7 +256,7 @@ def _arct_crown(ds, varName, metrics=['dxC', 'dyC', 'dxG', 'dyG']):
             y0, yf = 0, int(len(ds[dims.Y]) / 2)
             xslice = slice(x0, xf)
             yslice = slice(y0, yf)
-            da_arg = {'face': arc_cap, dims.X: xslice, dims.Y: yslice}
+            da_arg = {face: arc_cap, dims.X: xslice, dims.Y: yslice}
             mask_arg = {dims.X: xslice, dims.Y: yslice}
             arct = data.isel(**da_arg)
             Mask = mask5.isel(**mask_arg)
@@ -262,7 +266,7 @@ def _arct_crown(ds, varName, metrics=['dxC', 'dyC', 'dxG', 'dyG']):
         elif k == 7:
             fac = 1
             _varName = varName
-            DIMS = [dim for dim in ds[_varName].dims if dim != 'face']
+            DIMS = [dim for dim in ds[_varName].dims if dim != face]
             dims = Dims(DIMS[::-1])
             dtr = list(dims)[::-1]
             dtr[-1], dtr[-2] = dtr[-2], dtr[-1]
@@ -278,14 +282,14 @@ def _arct_crown(ds, varName, metrics=['dxC', 'dyC', 'dxG', 'dyG']):
                     fac = - 1
                 if 'mate' in list(ds[_varName].attrs):
                     _varName = ds[_varName].attrs['mate']
-                DIMS = [dim for dim in ds[_varName].dims if dim != 'face']
+                DIMS = [dim for dim in ds[_varName].dims if dim != face]
                 dims = Dims(DIMS[::-1])
                 dtr = list(dims)[::-1]
                 dtr[-1], dtr[-2] = dtr[-2], dtr[-1]
                 mask7 = xr.ones_like(ds[_varName].isel(face=arc_cap))
                 mask7 = mask7.where(np.logical_and(ds[dims.X] > ds[dims.Y],
                                     ds[dims.X] > len(ds[dims.Y]) - ds[dims.Y]))
-            da_arg = {'face': arc_cap, dims.X: xslice, dims.Y: yslice}
+            da_arg = {face: arc_cap, dims.X: xslice, dims.Y: yslice}
             mask_arg = {dims.X: xslice, dims.Y: yslice}
             arct = fac * ds[_varName].isel(**da_arg)
             Mask = mask7.isel(**mask_arg)
@@ -295,7 +299,7 @@ def _arct_crown(ds, varName, metrics=['dxC', 'dyC', 'dxG', 'dyG']):
         elif k == 10:
             fac = 1
             _varName = varName
-            DIMS = [dim for dim in ds[_varName].dims if dim != 'face']
+            DIMS = [dim for dim in ds[_varName].dims if dim != face]
             dims = Dims(DIMS[::-1])
             mask10 = xr.ones_like(ds[_varName].isel(face=arc_cap))
             mask10 = mask10.where(np.logical_and(ds[dims.X] < ds[dims.Y],
@@ -307,7 +311,7 @@ def _arct_crown(ds, varName, metrics=['dxC', 'dyC', 'dxG', 'dyG']):
             if len(dims.X) + len(dims.Y) == 4:
                 if _varName not in metrics:
                     fac = -1
-            da_arg = {'face': arc_cap, dims.X: xslice, dims.Y: yslice}
+            da_arg = {face: arc_cap, dims.X: xslice, dims.Y: yslice}
             sort_arg = {'variables': [dims.X], 'ascending': False}
             mask_arg = {dims.X: xslice, dims.Y: yslice}
             arct = fac * ds[_varName].isel(**da_arg)
