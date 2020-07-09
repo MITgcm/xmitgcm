@@ -2,6 +2,7 @@ import numpy as np
 import dask
 import dask.array as dsa
 from dask.base import tokenize, normalize_token
+import reprlib
 import xarray as xr
 import warnings
 
@@ -183,6 +184,146 @@ def _rotate_scalar_facet(facet):
     return facet_rotated
 
 
+def _arct_crown(ds, varName, metrics=['dxC', 'dyC', 'dxG', 'dyG']):
+    '''Rearranges the arctic cap facet, transforming it from a single data
+    array, into four data arrays that each connects with the other four
+    facets. Data is only defined within triangular regions. works for both
+    vector fields and scalar fields. Makes use of the class Dims.
+
+    input:
+        ds: xr.Dataset.
+        varName = Name of variable (scalar, metric or vector field)
+    output:
+        arct_facet: New arctic cap data into a new facet, associated with
+                    varName
+    '''
+    ARCT = []
+    afaces = [2, 5, 7, 10]  # order of faces with which artic cap connects
+    for k in afaces:
+        if k == 2:
+            fac = 1
+            _varName = varName  # copy, b/c varName may change
+            DIMS = [dim for dim in ds[_varName].dims if dim != 'face']
+            dims = Dims(DIMS[::-1])
+            dtr = list(dims)[::-1]
+            dtr[-1], dtr[-2] = dtr[-2], dtr[-1]
+            mask2 = _xr.ones_like(ds[_varName].isel(face=arc_cap))
+            # TODO: Eval where, define argument outside
+            mask2 = mask2.where(_np.logical_and(ds[dims.X] < ds[dims.Y],
+                                ds[dims.X] < len(ds[dims.Y]) - ds[dims.Y]))
+            x0, xf = 0, int(len(ds[dims.Y]) / 2)
+            y0, yf = 0, int(len(ds[dims.X]))
+            xslice = slice(x0, xf)
+            yslice = slice(y0, yf)
+            da_arg = {'face': arc_cap, dims.X: xslice, dims.Y: yslice}
+            sort_arg = {'variables': dims.Y, 'ascending': False}
+            mask_arg = {dims.X: xslice, dims.Y: yslice}
+            if len(dims.X) + len(dims.Y) == 4:  # vector field or metric
+                if len(dims.Y) == 1 and _varName not in metrics:
+                    fac = - 1
+                if 'mates' in list(ds[_varName].attrs):
+                    _varName = ds[_varName].attrs['mates']
+                _DIMS = [dim for dim in ds[_varName].dims if dim != 'face']
+                dims = Dims(_DIMS[::-1])
+                dtr = list(dims)[::-1]
+                dtr[-1], dtr[-2] = dtr[-2], dtr[-1]
+                mask2 = _xr.ones_like(ds[_varName].isel(face=arc_cap))
+                mask2 = mask2.where(_np.logical_and(ds[dims.X] < ds[dims.Y],
+                                    ds[dims.X] < len(ds[dims.Y]) - ds[dims.Y]))
+                da_arg = {'face': arc_cap, dims.X: xslice, dims.Y: yslice}
+                sort_arg = {'variables': dims.Y, 'ascending': False}
+                mask_arg = {dims.X: xslice, dims.Y: yslice}
+            arct = fac * data.isel(**da_arg)
+            arct = arct.sortby(**sort_arg)
+            Mask = mask2.isel(**mask_arg)
+            Mask = Mask.sortby(**sort_arg)
+            arct = (arct * Mask).transpose(*dtr)
+            ARCT.append(arct)
+
+        elif k == 5:
+            fac = 1
+            _varName = varName
+            DIMS = [dim for dim in ds[_varName].dims if dim != 'face']
+            dims = Dims(DIMS[::-1])
+            mask5 = _xr.ones_like(ds[_varName].isel(face=arc_cap))
+            mask5 = mask5.where(_np.logical_and(ds[dims.X] > ds[dims.Y],
+                                ds[dims.X] < len(ds[dims.Y]) - ds[dims.Y]))
+            x0, xf = 0, int(len(ds[dims.X]))
+            y0, yf = 0, int(len(ds[dims.Y]) / 2)
+            xslice = slice(x0, xf)
+            yslice = slice(y0, yf)
+            da_arg = {'face': arc_cap, dims.X: xslice, dims.Y: yslice}
+            mask_arg = {dims.X: xslice, dims.Y: yslice}
+            arct = data.isel(**da_arg)
+            Mask = mask5.isel(**mask_arg)
+            arct = (arct * Mask)
+            ARCT.append(arct)
+
+        elif k == 7:
+            fac = 1
+            _varName = varName
+            DIMS = [dim for dim in ds[_varName].dims if dim != 'face']
+            dims = Dims(DIMS[::-1])
+            dtr = list(dims)[::-1]
+            dtr[-1], dtr[-2] = dtr[-2], dtr[-1]
+            mask7 = _xr.ones_like(ds[_varName].isel(face=arc_cap))
+            mask7 = mask7.where(_np.logical_and(ds[dims.X] > ds[dims.Y],
+                                ds[dims.X] > len(ds[dims.Y]) - ds[dims.Y]))
+            x0, xf = int(len(ds[dims.Y]) / 2), int(len(ds[dims.Y]))
+            y0, yf = 0, int(len(ds[dims.X]))
+            xslice = slice(x0, xf)
+            yslice = slice(y0, yf)
+            Nx_ac_rot.append(len(ds[dims.Y][x0:xf]))
+            Ny_ac_rot.append(0)
+            if len(dims.X) + len(dims.Y) == 4:  # vector field
+                if len(dims.X) == 1 and _varName not in metrics:
+                    fac = - 1
+                if 'mates' in list(ds[_varName].attrs):
+                    _varName = ds[_varName].attrs['mates']
+                DIMS = [dim for dim in ds[_varName].dims if dim != 'face']
+                dims = Dims(DIMS[::-1])
+                dtr = list(dims)[::-1]
+                dtr[-1], dtr[-2] = dtr[-2], dtr[-1]
+                mask7 = _xr.ones_like(ds[_varName].isel(face=arc_cap))
+                mask7 = mask7.where(_np.logical_and(ds[dims.X] > ds[dims.Y],
+                                    ds[dims.X] > len(ds[dims.Y]) - ds[dims.Y]))
+            da_arg = {'face': arc_cap, dims.X: xslice, dims.Y: yslice}
+            mask_arg = {dims.X: xslice, dims.Y: yslice}
+            arct = fac * ds[_varName].isel(**da_arg)
+            Mask = mask7.isel(**mask_arg)
+            arct = (arct * Mask).transpose(*dtr)
+            ARCT.append(arct)
+
+        elif k == 10:
+            fac = 1
+            _varName = varName
+            DIMS = [dim for dim in ds[_varName].dims if dim != 'face']
+            dims = Dims(DIMS[::-1])
+            mask10 = _xr.ones_like(ds[_varName].isel(face=arc_cap))
+            mask10 = mask10.where(_np.logical_and(ds[dims.X] < ds[dims.Y],
+                                  ds[dims.X] > len(ds[dims.Y]) - ds[dims.Y]))
+            x0, xf = 0, int(len(ds[dims.X]))
+            y0, yf = int(len(ds[dims.Y]) / 2), int(len(ds[dims.Y]))
+            xslice = slice(x0, xf)
+            yslice = slice(y0, yf)
+            if len(dims.X) + len(dims.Y) == 4:
+                if _varName not in metrics:
+                    fac = -1
+            da_arg = {'face': arc_cap, dims.X: xslice, dims.Y: yslice}
+            sort_arg = {'variables': [dims.X], 'ascending': False}
+            mask_arg = {dims.X: xslice, dims.Y: yslice}
+            arct = fac * ds[_varName].isel(**da_arg)
+            arct = arct.sortby(**sort_arg)
+            Mask = mask10.isel(**mask_arg)
+            Mask = Mask.sortby(**sort_arg)
+            arct = (arct * Mask)
+            ARCT.append(arct)
+
+    arct_rotated = (ARCT[:2] + [np.flip(arct, -2) for arct in ARCT[2:]])
+    arct_facet = concatenate(arct_rotated, axis=-1)
+    return arct_facet
+
+
 def _facets_to_latlon_scalar(all_facets):
     rotated = (all_facets[:2]
                + [_rotate_scalar_facet(facet) for facet in all_facets[-2:]])
@@ -204,8 +345,10 @@ def shift_and_pad(a):
     pad_array = dsa.zeros_like(a[..., -2:-1])
     return concatenate([a_shifted, pad_array], axis=-1)
 
+
 def transform_v_to_u(facet):
     return _rotate_scalar_facet(facet)
+
 
 def transform_u_to_v(facet, metric=False):
     # "shift" u component by 1 pixel
@@ -217,6 +360,7 @@ def transform_u_to_v(facet, metric=False):
     if not metric:
         facet_rotated = -facet_rotated
     return facet_rotated
+
 
 def _facets_to_latlon_vector(facets_u, facets_v, metric=False):
     # need to pad the rotated v values
@@ -261,13 +405,13 @@ def _add_face_to_dims(dims):
 def _faces_coords_to_latlon(ds):
     coords = ds.reset_coords().coords.to_dataset()
     ifac = 4
-    jfac = 3
+    jfac = 3.5  # before 3, now incorporates arctic cap as triangles
     dim_coords = {}
     for vname in coords.coords:
         if vname[0] == 'i':
-            data = np.arange(ifac * coords.dims[vname])
+            data = np.arange(int(ifac * coords.dims[vname]))
         elif vname[0] == 'j':
-            data = np.arange(jfac * coords.dims[vname])
+            data = np.arange(int(jfac * coords.dims[vname]))
         else:
             data = coords[vname].data
         var = xr.Variable(ds[vname].dims, data, ds[vname].attrs)
@@ -298,13 +442,13 @@ def faces_dataset_to_latlon(ds, metric_vector_pairs=[('dxC', 'dyC'), ('dyG', 'dx
     vector_pairs = []
     scalars = []
     vnames = list(ds.reset_coords().variables)
-    for vname in vnames:
-        try:
-            mate = ds[vname].attrs['mate']
-            vector_pairs.append((vname, mate))
-            vnames.remove(mate)
-        except KeyError:
-            pass
+    # for vname in vnames:
+    #     try:
+    #         mate = ds[vname].attrs['mate']
+    #         vector_pairs.append((vname, mate))
+    #         vnames.remove(mate)
+    #     except KeyError:
+    #         pass
 
     all_vector_components = [inner for outer in (vector_pairs + metric_vector_pairs)
                              for inner in outer]
@@ -312,10 +456,12 @@ def faces_dataset_to_latlon(ds, metric_vector_pairs=[('dxC', 'dyC'), ('dyG', 'dx
     data_vars = {}
 
     for vname in scalars:
-        if vname=='face' or vname in ds_new:
+        if vname == 'face' or vname in ds_new:
             continue
         if 'face' in ds[vname].dims:
             data = _faces_to_latlon_scalar(ds[vname].data)
+            adata = _arct_crown(ds, vname)
+            data = concatenate([data, adata], axis=-2)
             dims = _drop_facedim(ds[vname].dims)
         else:
             data = ds[vname].data
@@ -324,13 +470,20 @@ def faces_dataset_to_latlon(ds, metric_vector_pairs=[('dxC', 'dyC'), ('dyG', 'dx
 
     for vname_u, vname_v in vector_pairs:
         data_u, data_v = _faces_to_latlon_vector(ds[vname_u].data, ds[vname_v].data)
+        adata_u = _arct_crown(ds, vname_u)
+        data_u = concatenate([data_u, adata_u], axis=-2)
+        adata_v = _arct_crown(ds, vname_v)
+        data_v = concatenate([data_v, adata_v], axis=-2)
         data_vars[vname_u] = xr.Variable(_drop_facedim(ds[vname_u].dims), data_u, ds[vname_u].attrs)
         data_vars[vname_v] = xr.Variable(_drop_facedim(ds[vname_v].dims), data_v, ds[vname_v].attrs)
     for vname_u, vname_v in metric_vector_pairs:
         data_u, data_v = _faces_to_latlon_vector(ds[vname_u].data, ds[vname_v].data, metric=True)
+        adata_u = _arct_crown(ds, vname_u)
+        data_u = concatenate([data_u, adata_u], axis=-2)
         data_vars[vname_u] = xr.Variable(_drop_facedim(ds[vname_u].dims), data_u, ds[vname_u].attrs)
+        adata_v = _arct_crown(ds, vname_v)
+        data_v = concatenate([data_v, adata_v], axis=-2)
         data_vars[vname_v] = xr.Variable(_drop_facedim(ds[vname_v].dims), data_v, ds[vname_v].attrs)
-
 
     ds_new = ds_new.update(data_vars)
     ds_new = ds_new.set_coords([c for c in coord_vars if c in ds_new])
@@ -452,6 +605,44 @@ def _get_1d_chunk(store, varname, klevels, nz, dtype):
 
     # now subset
     return data[klevels]
+
+
+class Dims:
+    """Class that provides an easy shortcut to referencing data.dims, and thus
+    allowing manipulation of dataarrays (e.g. transpose, isel). This is used
+    in _arct_crown extensively.
+    """
+    axes = 'XYZT'  # shortcut axis names by order of appearance
+
+    def __init__(self, vars):
+        self._vars = tuple(vars)
+
+    def __iter__(self):
+        return iter(self._vars)
+
+    def __repr__(self):
+        vars = reprlib.repr(self._vars)
+        return '{}'.format(vars)
+
+    def __str__(self):
+        return str(tuple(self))
+
+    def __eq__(self, other):
+        return tuple(self) == tuple(other)
+
+    def __len__(self):
+        return len(self._vars)
+
+    def __getattr__(self, name):
+        cls = type(self)
+        if len(name) == 1:
+            pos = cls.axes.find(name)
+            if 0 <= pos < len(self._vars):
+                return self._vars[pos]
+        msg = '{.__name__!r} object has not attribute {!r}'
+        raise AttributeError(msg.format(cls, name))
+
+
 
 class BaseLLCModel:
     """Class representing an LLC Model Dataset.
