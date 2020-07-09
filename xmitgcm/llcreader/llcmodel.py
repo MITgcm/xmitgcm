@@ -197,6 +197,7 @@ def _arct_crown(ds, varName, metrics=['dxC', 'dyC', 'dxG', 'dyG']):
         arct_facet: New arctic cap data into a new facet, associated with
                     varName
     '''
+    arc_cap = 6
     ARCT = []
     afaces = [2, 5, 7, 10]  # order of faces with which artic cap connects
     for k in afaces:
