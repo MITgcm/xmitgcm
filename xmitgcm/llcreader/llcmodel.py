@@ -221,8 +221,8 @@ def _arct_crown(ds, varName, metrics=['dxC', 'dyC', 'dxG', 'dyG']):
             if len(dims.X) + len(dims.Y) == 4:  # vector field or metric
                 if len(dims.Y) == 1 and _varName not in metrics:
                     fac = - 1
-                if 'mates' in list(ds[_varName].attrs):
-                    _varName = ds[_varName].attrs['mates']
+                if 'mate' in list(ds[_varName].attrs):
+                    _varName = ds[_varName].attrs['mate']
                 _DIMS = [dim for dim in ds[_varName].dims if dim != 'face']
                 dims = Dims(_DIMS[::-1])
                 dtr = list(dims)[::-1]
@@ -278,8 +278,8 @@ def _arct_crown(ds, varName, metrics=['dxC', 'dyC', 'dxG', 'dyG']):
             if len(dims.X) + len(dims.Y) == 4:  # vector field
                 if len(dims.X) == 1 and _varName not in metrics:
                     fac = - 1
-                if 'mates' in list(ds[_varName].attrs):
-                    _varName = ds[_varName].attrs['mates']
+                if 'mate' in list(ds[_varName].attrs):
+                    _varName = ds[_varName].attrs['mate']
                 DIMS = [dim for dim in ds[_varName].dims if dim != 'face']
                 dims = Dims(DIMS[::-1])
                 dtr = list(dims)[::-1]
