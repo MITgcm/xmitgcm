@@ -188,7 +188,10 @@ def _arct_crown(ds, varName, metrics=['dxC', 'dyC', 'dxG', 'dyG']):
     '''Rearranges the arctic cap facet, transforming it from a single data
     array, into four data arrays that each connects with the other four
     facets. Data is only defined within triangular regions. works for both
-    vector fields and scalar fields. Makes use of the class Dims.
+    vector fields and scalar fields. Makes use of the class Dims to refer to a
+    variable`s i-dimension (whether it is `i` or `i_g`), or a variable`s
+    j-dimension (whether it is `j` of `j_g`) with easy. This allows the code
+    to work for both vector fields or scalar fields.
 
     input:
         ds: xr.Dataset.
@@ -444,7 +447,7 @@ def faces_dataset_to_latlon(ds, metric_vector_pairs=[('dxC', 'dyC'), ('dyG', 'dx
         try:
             mate = ds[vname].attrs['mate']
             vector_pairs.append((vname, mate))
-            # vnames.remove(mate)
+            vnames.remove(mate)
         except KeyError:
             pass
 
@@ -468,18 +471,18 @@ def faces_dataset_to_latlon(ds, metric_vector_pairs=[('dxC', 'dyC'), ('dyG', 'dx
 
     for vname_u, vname_v in vector_pairs:
         data_u, data_v = _faces_to_latlon_vector(ds[vname_u].data, ds[vname_v].data)
-        adata_u = _arct_crown(ds, vname_u)
+        adata_u = np.nan * _arct_crown(ds, vname_u)  # test with scalars first
         data_u = concatenate([data_u, adata_u], axis=-2)
-        adata_v = _arct_crown(ds, vname_v)
+        adata_v = np.nan * _arct_crown(ds, vname_v)  # test with scalars first
         data_v = concatenate([data_v, adata_v], axis=-2)
         data_vars[vname_u] = xr.Variable(_drop_facedim(ds[vname_u].dims), data_u, ds[vname_u].attrs)
         data_vars[vname_v] = xr.Variable(_drop_facedim(ds[vname_v].dims), data_v, ds[vname_v].attrs)
     for vname_u, vname_v in metric_vector_pairs:
         data_u, data_v = _faces_to_latlon_vector(ds[vname_u].data, ds[vname_v].data, metric=True)
-        adata_u = _arct_crown(ds, vname_u)
+        adata_u = np.nan * _arct_crown(ds, vname_u)  # not yet vector fields
         data_u = concatenate([data_u, adata_u], axis=-2)
         data_vars[vname_u] = xr.Variable(_drop_facedim(ds[vname_u].dims), data_u, ds[vname_u].attrs)
-        adata_v = _arct_crown(ds, vname_v)
+        adata_v = np.nan * _arct_crown(ds, vname_v)  # not yet vector fields
         data_v = concatenate([data_v, adata_v], axis=-2)
         data_vars[vname_v] = xr.Variable(_drop_facedim(ds[vname_v].dims), data_v, ds[vname_v].attrs)
 
@@ -608,7 +611,9 @@ def _get_1d_chunk(store, varname, klevels, nz, dtype):
 class Dims:
     """Class that provides an easy shortcut to referencing data.dims, and thus
     allowing manipulation of dataarrays (e.g. transpose, isel). This is used
-    in _arct_crown extensively.
+    in _arct_crown extensively. For example, given a variable with name var,
+    this class allows to create the object dims where dims.X is the i-dim of
+    var, whether var is a vector field or a scalar.
     """
     axes = 'XYZT'  # shortcut axis names by order of appearance
 
