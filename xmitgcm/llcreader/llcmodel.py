@@ -471,18 +471,18 @@ def faces_dataset_to_latlon(ds, metric_vector_pairs=[('dxC', 'dyC'), ('dyG', 'dx
 
     for vname_u, vname_v in vector_pairs:
         data_u, data_v = _faces_to_latlon_vector(ds[vname_u].data, ds[vname_v].data)
-        adata_u = np.nan * _arct_crown(ds, vname_u)  # test with scalars first
+        adata_u = _arct_crown(ds, vname_u)  # test with scalars first
         data_u = concatenate([data_u, adata_u], axis=-2)
-        adata_v = np.nan * _arct_crown(ds, vname_v)  # test with scalars first
+        adata_v = _arct_crown(ds, vname_v)  # test with scalars first
         data_v = concatenate([data_v, adata_v], axis=-2)
         data_vars[vname_u] = xr.Variable(_drop_facedim(ds[vname_u].dims), data_u, ds[vname_u].attrs)
         data_vars[vname_v] = xr.Variable(_drop_facedim(ds[vname_v].dims), data_v, ds[vname_v].attrs)
     for vname_u, vname_v in metric_vector_pairs:
         data_u, data_v = _faces_to_latlon_vector(ds[vname_u].data, ds[vname_v].data, metric=True)
-        adata_u = np.nan * _arct_crown(ds, vname_u)  # not yet vector fields
+        adata_u = _arct_crown(ds, vname_u)  # not yet vector fields
         data_u = concatenate([data_u, adata_u], axis=-2)
         data_vars[vname_u] = xr.Variable(_drop_facedim(ds[vname_u].dims), data_u, ds[vname_u].attrs)
-        adata_v = np.nan * _arct_crown(ds, vname_v)  # not yet vector fields
+        adata_v = _arct_crown(ds, vname_v)  # not yet vector fields
         data_v = concatenate([data_v, adata_v], axis=-2)
         data_vars[vname_v] = xr.Variable(_drop_facedim(ds[vname_v].dims), data_v, ds[vname_v].attrs)
 
