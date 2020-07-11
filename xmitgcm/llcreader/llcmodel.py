@@ -240,7 +240,7 @@ def _arct_crown(ds, varName, metrics=['dxC', 'dyC', 'dxG', 'dyG']):
             arct = arct.sortby(**sort_arg)
             Mask = mask2.isel(**mask_arg)
             Mask = Mask.sortby(**sort_arg)
-            arct = (arct * Mask).transpose(*dtr)
+            arct = (arct * Mask).transpose(*dtr, transpose_coords=False)
             ARCT.append(arct)
 
         elif k == 5:
@@ -292,7 +292,7 @@ def _arct_crown(ds, varName, metrics=['dxC', 'dyC', 'dxG', 'dyG']):
             mask_arg = {dims.X: xslice, dims.Y: yslice}
             arct = fac * ds[_varName].isel(**da_arg)
             Mask = mask7.isel(**mask_arg)
-            arct = (arct * Mask).transpose(*dtr)
+            arct = (arct * Mask).transpose(*dtr, transpose_coords=False)
             ARCT.append(arct)
 
         elif k == 10:
