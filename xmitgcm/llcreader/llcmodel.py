@@ -7,6 +7,7 @@ import warnings
 
 from .duck_array_ops import concatenate
 from .shrunk_index import all_index_data
+from ..utils import _pad_array
 
 def _get_grid_metadata():
     # keep this separate from get_var_metadata
@@ -118,10 +119,22 @@ def _decompress(data, mask, dtype):
 
 
 
-_facet_strides = ((0,3), (3,6), (6,7), (7,10), (10,13))
+#_facet_strides = ((0,3), (3,6), (6,7), (7,10), (10,13))
+_facet_strides = ((0,2), (2,2), (2,3), (3,4), (4,6))
+_extramd = {'has_faces':True,
+            'ny': 1350,
+            'nx': 270,
+            'ny_facets': [450, 0, 270, 180, 450],
+            'pad_before_y': [90, 0, 0, 0, 0],
+            'pad_after_y': [0, 0, 0, 90, 90],
+            'face_facets': [0, 0, 2, 3, 4, 4],
+            'facet_orders': ['C', 'C', 'C', 'F', 'F'],
+            'face_offsets': [0, 1, 0, 0, 0, 1],
+            'transpose_face': [False, False, False, True, True, True]}
+
 # whether to reshape each face
 _facet_reshape = (False, False, False, True, True)
-_nfaces = 13
+_nfaces = 6
 _nfacets = 5
 
 def _uncompressed_facet_index(nfacet, nside):
@@ -144,21 +157,29 @@ def _facet_to_faces(data, nfacet):
     nf, ny, nx = shape[-3:]
     other_dims = shape[:-3]
     assert nf == 1
+    print('data shape: ',shape)
+    print('nf: ',nf)
+    print('ny: ',ny)
+    print('nx: ',nx)
     facet_length = _facet_strides[nfacet][1] - _facet_strides[nfacet][0]
+    print('facet_length: ',facet_length)
+    print('reshape: ',_facet_reshape[nfacet])
     if _facet_reshape[nfacet]:
-        new_shape = other_dims +  (ny, facet_length, nx / facet_length)
+        new_shape = other_dims +  (ny, facet_length, nx / facet_length) if facet_length > 0 else 0
         data_rs = data.reshape(new_shape)
         data_rs = np.moveaxis(data_rs, -2, -3) # dask-safe
     else:
-        new_shape = other_dims + (facet_length, ny / facet_length, nx)
-        data_rs = data.reshape(new_shape)
+        new_shape = other_dims + (facet_length, ny / facet_length, nx) if facet_length > 0 else 0
+        data_rs = data.reshape(new_shape) if facet_length>0 else None
+    print('new_shape: ',new_shape)
     return data_rs
 
 def _facets_to_faces(facets):
     all_faces = []
     for nfacet, data_facet in enumerate(facets):
         data_rs = _facet_to_faces(data_facet, nfacet)
-        all_faces.append(data_rs)
+        if data_rs is not None:
+            all_faces.append(data_rs)
     return concatenate(all_faces, axis=-3)
 
 def _faces_to_facets(data, facedim=-3):
@@ -380,7 +401,10 @@ def _chunks(l, n):
 
 def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
                      mask_override):
-    fs, path = store.get_fs_and_full_path(varname, iternum)
+    prefix = varname
+    if varname == 'THETA':
+        varname='state_3d_set1'
+    fs, path = store.get_fs_and_full_path(prefix, iternum)
 
     assert (nfacet >= 0) & (nfacet < _nfacets)
 
@@ -389,6 +413,7 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
     # insert singleton axis for time (if not grid var) and k level
     facet_shape = (1,) + _facet_shape(nfacet, nx)
     facet_shape = (1,) + facet_shape if iternum is not None else facet_shape
+    print('facet_shape: ',facet_shape)
 
     level_data = []
 
@@ -404,6 +429,8 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
         index = None
         mask = None
 
+    # Need to offset all facets after any "pad_before_y"
+    pre_pad = np.cumsum(_extramd['pad_before_y'])
     for k in klevels:
         assert (k >= 0) & (k < nz)
 
@@ -417,14 +444,30 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
             level_start = k * nx**2 * _nfaces
             facet_start, facet_end = _uncompressed_facet_index(nfacet, nx)
             start = level_start + facet_start
-            end = level_start + facet_end
+            end = level_start + facet_end - nx*_extramd['pad_after_y'][nfacet]
+
+            start,end = [x - (1+k*_nfaces)*nx*pre_pad[nfacet] if k+nfacet!=0 else x for x in [start,end]]
+            end = end - nx*_extramd['pad_before_y'][nfacet] if k*nfacet==0 else end
 
         read_offset = start * dtype.itemsize # in bytes
         read_length  = (end - start) * dtype.itemsize # in bytes
         file.seek(read_offset)
         buffer = file.read(read_length)
         data = np.frombuffer(buffer, dtype=dtype)
+        padbefore = np.zeros(nx*_extramd['pad_before_y'][nfacet])
+        padafter = np.zeros(_extramd['pad_after_y'][nfacet])
+
+        print('len data: ',len(data))
+        print('end-start: ',end-start)
+
         assert len(data) == (end - start)
+        data = np.concatenate([padbefore,data])
+        # TODO: need to insert zeros in appropriate spaces
+        #ny = nx-_extramd['pad_after_y'][nfacet]
+        #data_padded = [np.concatenate([data[s:e],padafter]) for s,e in zip(np.arange(0,nx**2-ny,ny),np.arange(ny+1,nx**2+1,ny))]
+        #data = np.array(data_padded)
+
+
 
         if mask:
             mask_level = mask[k]
@@ -519,7 +562,6 @@ class BaseLLCModel:
         else:
             self.masks = None
             self.indexes = None
-
 
     def _get_masks(self):
         masks = {}

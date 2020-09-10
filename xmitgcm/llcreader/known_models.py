@@ -1,4 +1,5 @@
 import os
+import numpy as np
 
 from .llcmodel import BaseLLCModel
 from . import stores
@@ -71,6 +72,26 @@ class LLC4320Model(BaseLLCModel):
                      'RhoRef','XC','YC','RAZ','XG','YG','DXV','DYU']
     mask_override = {'oceTAUX': 'c', 'oceTAUY': 'c'}
 
+class ASTE270Model(BaseLLCModel):
+    nface = 6
+    nx = 270
+    nz = 50
+    delta_t = 1200
+    iter_start = 2232
+    iter_stop = 4248 + 1
+    iter_step = 2016
+    time_units='seconds since 2002-01-01'
+    dtype=np.dtype('>f8')
+    calendar = 'gregorian'
+    varnames = ['THETA', 'SALT']
+    grid_varnames = ['AngleCS','AngleSN','Depth',
+                     'DRC','DRF',
+                     'DXC','DXG',
+                     'DYC','DYG',
+                     'hFacC','hFacS','hFacW','PHrefC','PHrefF',
+                     'RAC','RAS','RAW','RC','RF',
+                     'RhoRef','XC','YC','RAZ','XG','YG','DXV','DYU']
+    #mask_override = {'oceTAUX': 'c', 'oceTAUY': 'c'}
 
 class ECCOPortalLLC2160Model(LLC2160Model):
 
@@ -120,3 +141,15 @@ class PleiadesLLC4320Model(LLC4320Model):
         store = stores.NestedStore(fs, base_path=base_path, mask_path=mask_path,
                                    shrunk=True)
         super(PleiadesLLC4320Model, self).__init__(store)
+
+class CRIOSPortalASTE270Model(ASTE270Model):
+
+    def __init__(self):
+        fs = _make_http_filesystem()
+        base_path = 'http://users.oden.utexas.edu/~tsmith/aste_data/'
+        grid_path = 'http://users.oden.utexas.edu/~tsmith/aste_grid/'
+        store = stores.BaseStore(fs, base_path=base_path, grid_path=grid_path,
+                                   shrunk=False, join_char='/')
+
+        super(CRIOSPortalASTE270Model, self).__init__(store)
+
