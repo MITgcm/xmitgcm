@@ -157,13 +157,7 @@ def _facet_to_faces(data, nfacet):
     nf, ny, nx = shape[-3:]
     other_dims = shape[:-3]
     assert nf == 1
-    print('data shape: ',shape)
-    print('nf: ',nf)
-    print('ny: ',ny)
-    print('nx: ',nx)
     facet_length = _facet_strides[nfacet][1] - _facet_strides[nfacet][0]
-    print('facet_length: ',facet_length)
-    print('reshape: ',_facet_reshape[nfacet])
     if _facet_reshape[nfacet]:
         new_shape = other_dims +  (ny, facet_length, nx / facet_length) if facet_length > 0 else 0
         data_rs = data.reshape(new_shape)
@@ -171,7 +165,6 @@ def _facet_to_faces(data, nfacet):
     else:
         new_shape = other_dims + (facet_length, ny / facet_length, nx) if facet_length > 0 else 0
         data_rs = data.reshape(new_shape) if facet_length>0 else None
-    print('new_shape: ',new_shape)
     return data_rs
 
 def _facets_to_faces(facets):
@@ -413,7 +406,6 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
     # insert singleton axis for time (if not grid var) and k level
     facet_shape = (1,) + _facet_shape(nfacet, nx)
     facet_shape = (1,) + facet_shape if iternum is not None else facet_shape
-    print('facet_shape: ',facet_shape)
 
     level_data = []
 
@@ -431,6 +423,11 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
 
     # Need to offset all facets after any "pad_before_y"
     pre_pad = np.cumsum(_extramd['pad_before_y'])
+    post_pad =list(np.cumsum(_extramd['pad_after_y']))
+    post_pad.insert(0,0)
+    post_pad.pop()
+    post_pad = np.array(post_pad)
+    
     for k in klevels:
         assert (k >= 0) & (k < nz)
 
@@ -446,8 +443,8 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
             start = level_start + facet_start
             end = level_start + facet_end - nx*_extramd['pad_after_y'][nfacet]
 
-            start,end = [x - (1+k*_nfaces)*nx*pre_pad[nfacet] if k+nfacet!=0 else x for x in [start,end]]
-            end = end - nx*_extramd['pad_before_y'][nfacet] if k*nfacet==0 else end
+            start,end = [x - (1+k*_nfaces)*nx*(pre_pad[nfacet]+post_pad[nfacet]) if k+nfacet!=0 else x for x in [start,end]]
+            end = end - nx*(_extramd['pad_before_y'][nfacet]) if k*nfacet==0 else end
 
         read_offset = start * dtype.itemsize # in bytes
         read_length  = (end - start) * dtype.itemsize # in bytes
@@ -455,12 +452,6 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
         buffer = file.read(read_length)
         data = np.frombuffer(buffer, dtype=dtype)
         padbefore = np.zeros(nx*_extramd['pad_before_y'][nfacet])
-
-
-        print('len data: ',len(data))
-        print('end-start: ',end-start)
-        print('start: ',start)
-        print('end: ',end)
 
         assert len(data) == (end - start)
         data = np.concatenate([padbefore,data])
@@ -473,12 +464,6 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
             i1 = np.arange(0,nx*(nx2-len(padafter)),nfill)
             i2 = np.arange(nfill,nx*(nx2-len(padafter))+1,nfill)
             data_padded = [np.concatenate([data[s:e],padafter]) for s,e in zip(i1,i2)]
-            print('concat: ', np.concatenate([data[0:180],padafter]).shape)
-            print('nfill: ',nfill)
-            print('data padded shape: ',np.concatenate(data_padded).shape)
-            print(f'len i1,i2: ({len(i1)},{len(i2)})')
-            print('i1: ',i1)
-            print('i2: ',i2)
             data = np.concatenate(data_padded)
 
 
