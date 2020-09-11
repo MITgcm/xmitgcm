@@ -396,7 +396,7 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
                      mask_override):
     prefix = varname
     if varname == 'THETA':
-        varname='state_3d_set1'
+        prefix='state_3d_set1'
     fs, path = store.get_fs_and_full_path(prefix, iternum)
 
     assert (nfacet >= 0) & (nfacet < _nfacets)
