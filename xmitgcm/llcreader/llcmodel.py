@@ -455,17 +455,31 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
         buffer = file.read(read_length)
         data = np.frombuffer(buffer, dtype=dtype)
         padbefore = np.zeros(nx*_extramd['pad_before_y'][nfacet])
-        padafter = np.zeros(_extramd['pad_after_y'][nfacet])
+
 
         print('len data: ',len(data))
         print('end-start: ',end-start)
+        print('start: ',start)
+        print('end: ',end)
 
         assert len(data) == (end - start)
         data = np.concatenate([padbefore,data])
         # TODO: need to insert zeros in appropriate spaces
-        #ny = nx-_extramd['pad_after_y'][nfacet]
-        #data_padded = [np.concatenate([data[s:e],padafter]) for s,e in zip(np.arange(0,nx**2-ny,ny),np.arange(ny+1,nx**2+1,ny))]
-        #data = np.array(data_padded)
+        facet_length = _facet_strides[nfacet][1] - _facet_strides[nfacet][0]
+        if _extramd['pad_after_y'][nfacet] !=0:
+            padafter = np.zeros(_extramd['pad_after_y'][nfacet])
+            nx2 = facet_length*nx
+            nfill = nx2-len(padafter)
+            i1 = np.arange(0,nx*(nx2-len(padafter)),nfill)
+            i2 = np.arange(nfill,nx*(nx2-len(padafter))+1,nfill)
+            data_padded = [np.concatenate([data[s:e],padafter]) for s,e in zip(i1,i2)]
+            print('concat: ', np.concatenate([data[0:180],padafter]).shape)
+            print('nfill: ',nfill)
+            print('data padded shape: ',np.concatenate(data_padded).shape)
+            print(f'len i1,i2: ({len(i1)},{len(i2)})')
+            print('i1: ',i1)
+            print('i2: ',i2)
+            data = np.concatenate(data_padded)
 
 
 
