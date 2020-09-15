@@ -397,7 +397,8 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
     prefix = varname
     if varname == 'THETA':
         prefix='state_3d_set1'
-    fs, path = store.get_fs_and_full_path(prefix, iternum)
+    fs, path, meta_dtype = store.get_fs_and_full_path(prefix, iternum)
+    dtype = meta_dtype if meta_dtype is not None else dtype
 
     assert (nfacet >= 0) & (nfacet < _nfacets)
 
@@ -424,6 +425,7 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
     # Need to offset all facets after any "pad_before_y"
     pre_pad = np.cumsum(_extramd['pad_before_y'])
     post_pad =list(np.cumsum(_extramd['pad_after_y']))
+    # shift by 1 ...
     post_pad.insert(0,0)
     post_pad.pop()
     post_pad = np.array(post_pad)
@@ -455,7 +457,10 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
 
         assert len(data) == (end - start)
         data = np.concatenate([padbefore,data])
-        # TODO: need to insert zeros in appropriate spaces
+
+        # TODO: this pad after assumes the flipped shape, and pad_before assumes
+        # "regular" shape ... generalize...
+        # Extra care for pad after with rotated fields
         facet_length = _facet_strides[nfacet][1] - _facet_strides[nfacet][0]
         if _extramd['pad_after_y'][nfacet] !=0:
             padafter = np.zeros(_extramd['pad_after_y'][nfacet])
@@ -484,7 +489,8 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
 def _get_1d_chunk(store, varname, klevels, nz, dtype):
     """for 1D vertical grid variables"""
 
-    fs, path = store.get_fs_and_full_path(varname, None)
+    fs, path, meta_dtype = store.get_fs_and_full_path(prefix, None)
+    dtype = meta_dtype if meta_dtype is not None else dtype
 
     file = fs.open(path)
 

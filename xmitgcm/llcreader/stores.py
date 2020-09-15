@@ -2,6 +2,7 @@ import fsspec
 import os
 import zarr
 
+from ..utils import _get_meta_dict
 
 class BaseStore:
     """Basic storage class for LLC data.
@@ -27,7 +28,8 @@ class BaseStore:
     def __init__(self, fs, base_path='/', shrunk=False,
                  mask_fs=None, mask_path=None, 
                  grid_fs=None, grid_path=None,
-                 shrunk_grid=False, join_char=None):
+                 shrunk_grid=False, join_char=None,
+                 endian=">"):
         self.base_path = base_path
         self.fs = fs
         self.shrunk = shrunk
@@ -37,6 +39,7 @@ class BaseStore:
         self.grid_path = grid_path
         self.shrunk_grid = shrunk_grid
         self.join_char = join_char
+        self.endian = endian
         if shrunk and (mask_path is None):
             raise ValueError("`mask_path` can't be None if `shrunk` is True")
 
@@ -70,6 +73,31 @@ class BaseStore:
         return self._join(self._directory(varname, iternum),
                             self._fname(varname, iternum))
 
+    def _mname(self, varname, iternum):
+        mname = varname if iternum is None else varname+'.%010d' % iternum
+        return mname+'.meta'
+
+    def _meta_path(self,varname,iternum):
+        return self._join(self._directory(varname,iternum),
+                            self._mname(varname,iternum))
+
+    def _get_dtype(self, varname, iternum):
+        """look for meta file to get datatype"""
+
+        try:
+            file = self.fs.open(self._meta_path(varname,iternum))
+        except FileNotFoundError:
+            if iternum is not None:
+                return self._get_dtype(self._meta_path(varname,None))
+            else:
+                return None
+        except:
+            raise
+
+        text= file.read().decode('UTF-8')
+        meta = _get_meta_dict(text)
+        return meta['dataprec'].newbyteorder(self.endian)
+
     def get_fs_and_full_path(self, varname, iternum):
         """Return references to a filesystem and path within it for a specific
         variable and iteration number.
@@ -86,7 +114,7 @@ class BaseStore:
         path : str
             The path to open
         """
-        return self.fs, self._full_path(varname, iternum)
+        return self.fs, self._full_path(varname, iternum), self._get_dtype(varname,iternum)
 
     def open_data_file(self, varname, iternum):
         """Open the file for a specific variable and iteration number.
@@ -100,7 +128,7 @@ class BaseStore:
         -------
         fobj : file-like object
         """
-        fs, path = self.get_fs_and_full_path(varname, iternum)
+        fs, path, _ = self.get_fs_and_full_path(varname, iternum)
         return fs.open(path)
 
     def open_mask_group(self):
