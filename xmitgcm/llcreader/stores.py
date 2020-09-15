@@ -1,6 +1,7 @@
 import fsspec
 import os
 import zarr
+from requests import HTTPError
 
 from ..utils import _get_meta_dict
 
@@ -77,26 +78,28 @@ class BaseStore:
         mname = varname if iternum is None else varname+'.%010d' % iternum
         return mname+'.meta'
 
-    def _meta_path(self,varname,iternum):
-        return self._join(self._directory(varname,iternum),
-                            self._mname(varname,iternum))
+    def _read_meta(self,varname,iternum,mydir=None):
+        mydir = self._directory(varname,iternum) if mydir is None else mydir
+        meta_path = self._join(mydir,self._mname(varname,iternum))
+
+        file = self.fs.open(meta_path)
+        try:
+            return file.read().decode('UTF-8')
+        except HTTPError:
+            return None
 
     def _get_dtype(self, varname, iternum):
         """look for meta file to get datatype"""
 
-        try:
-            file = self.fs.open(self._meta_path(varname,iternum))
-        except FileNotFoundError:
-            if iternum is not None:
-                return self._get_dtype(self._meta_path(varname,None))
-            else:
-                return None
-        except:
-            raise
+        text = self._read_meta(varname,iternum)
+        if text is None and iternum is not None:
+            text = self._read_meta(varname,None,mydir=self.base_path)
 
-        text= file.read().decode('UTF-8')
-        meta = _get_meta_dict(text)
-        return meta['dataprec'].newbyteorder(self.endian)
+        if text is not None:
+            meta = _get_meta_dict(text)
+            return meta['dataprec'].newbyteorder(self.endian)
+        else:
+            return None
 
     def get_fs_and_full_path(self, varname, iternum):
         """Return references to a filesystem and path within it for a specific
