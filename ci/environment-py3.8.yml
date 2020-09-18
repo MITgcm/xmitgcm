@@ -10,6 +10,7 @@ dependencies:
   - future
   - zarr
   - cftime
+  - aiohttp
   - pip:
     - cachetools
     - fsspec
