@@ -8,15 +8,15 @@ matrix:
   fast_finish: true
   include:
   - python: 2.7
-    env: CONDA_ENV=py27
+    env: CONDA_ENV=py2.7
   - python: 3.6
-    env: CONDA_ENV=py36
+    env: CONDA_ENV=py3.6
   - python: 3.6
     env: CONDA_ENV=py36-xarraymaster
   - python: 3.7
-    env: CONDA_ENV=py37
+    env: CONDA_ENV=py3.7
   - python: 3.8
-    env: CONDA_ENV=py38
+    env: CONDA_ENV=py3.8
 
 before_install:
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then

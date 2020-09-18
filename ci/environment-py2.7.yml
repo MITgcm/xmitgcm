@@ -8,7 +8,6 @@ dependencies:
   - future
   - cftime
   - zarr
-  - aiohttp
   - pip:
     - cachetools
     - codecov
