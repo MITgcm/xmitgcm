@@ -489,7 +489,7 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
 def _get_1d_chunk(store, varname, klevels, nz, dtype):
     """for 1D vertical grid variables"""
 
-    fs, path, meta_dtype = store.get_fs_and_full_path(prefix, None)
+    fs, path, meta_dtype = store.get_fs_and_full_path(varname, None)
     dtype = meta_dtype if meta_dtype is not None else dtype
 
     file = fs.open(path)
