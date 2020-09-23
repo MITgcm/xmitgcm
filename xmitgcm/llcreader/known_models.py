@@ -146,8 +146,8 @@ class CRIOSPortalASTE270Model(ASTE270Model):
 
     def __init__(self):
         fs = _make_http_filesystem()
-        base_path = 'http://users.oden.utexas.edu/~tsmith/aste_data/'
-        grid_path = 'http://users.oden.utexas.edu/~tsmith/aste_grid/'
+        base_path = 'https://aste-test.s3.us-east-2.amazonaws.com/state'
+        grid_path = 'https://aste-test.s3.us-east-2.amazonaws.com/grid'
         store = stores.BaseStore(fs, base_path=base_path, grid_path=grid_path,
                                    shrunk=False, join_char='/')
 
