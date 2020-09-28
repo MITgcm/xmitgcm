@@ -450,7 +450,7 @@ def _get_1d_chunk(store, varname, klevels, nz, dtype):
     buffer = file.read(read_length)
     data = np.frombuffer(buffer,dtype=dtype)
 
-    # now subset
+    # now subset: is this line broken?
     return data[klevels]
 
 class BaseLLCModel:
