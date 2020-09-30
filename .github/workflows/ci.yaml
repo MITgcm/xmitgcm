@@ -1,0 +1,98 @@
+# This uses actios:
+#  checkout: https://github.com/actions/checkout
+#  cache: https://github.com/actions/cache
+#  codecov-action: https://github.com/codecov/codecov-action
+
+name: CI
+on:
+  push:
+    branches:
+      - "*"
+  pull_request:
+    branches:
+      - "*"
+        # Nothing scheduled, just PRs and pushes
+        #  schedule:
+        #    - cron: "0 0 * * *" # Daily at midnight
+
+jobs:
+  build:
+    name: Build (${{ matrix.python-version }} | ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest"]
+        python-version: ["2.7","3.6", "3.7", "3.8"]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Cache conda
+        uses: actions/cache@v2
+        env:
+          # Increase this value to reset cache if ci/environment.yml has not changed
+          CACHE_NUMBER: 0
+        with:
+          path: ~/conda_pkgs_dir
+          key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('ci/environment.yml') }}
+      - uses: conda-incubator/setup-miniconda@v1
+        with:
+          activate-environment: test_env # Defined in ci/environment*.yml
+          auto-update-conda: false
+          python-version: ${{ matrix.python-version }}
+          environment-file: ci/environment-py${{ matrix.python-version }}.yml
+          use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
+      - name: Set up conda environment
+        shell: bash -l {0}
+        run: |
+          python -m pip install -e .
+          conda list
+      - name: Run Tests
+        shell: bash -l {0}
+        run: |
+          py.test --cov=./ --cov-report=xml
+      - name: Upload code coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          env_vars: OS,PYTHON
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+  xarray-master:
+    name: Build xarray-master
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Cache conda
+      uses: actions/cache@v2
+      env:
+        # Increase this value to reset cache if ci/environment-upstream-dev.yml has not changed
+        CACHE_NUMBER: 0
+      with:
+        path: ~/conda_pkgs_dir
+        key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('ci/environment-upstream-dev.yml') }}
+    - uses: conda-incubator/setup-miniconda@v1
+      with:
+        activate-environment: test_env # Defined in ci/environment-*.yml
+        auto-update-conda: false
+        python-version: 3.6
+        environment-file: ci/environment-py36-xarraymaster.yml
+        use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
+    - name: Set up conda environment
+      shell: bash -l {0}
+      run: |
+        python -m pip install -e .
+        conda list
+    - name: Run Tests
+      shell: bash -l {0}
+      run: |
+        py.test --cov=./ --cov-report=xml
+    - name: Upload code coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        env_vars: OS,PYTHON
+        name: codecov-umbrella
+        fail_ci_if_error: false
