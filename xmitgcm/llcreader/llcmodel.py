@@ -8,6 +8,7 @@ import warnings
 from .duck_array_ops import concatenate
 from .shrunk_index import all_index_data
 from ..utils import _pad_array
+from ..variables import dimensions
 
 def _get_grid_metadata():
     # keep this separate from get_var_metadata
@@ -394,10 +395,8 @@ def _chunks(l, n):
 
 def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
                      mask_override):
-    prefix = varname
-    if varname == 'THETA':
-        prefix='state_3d_set1'
-    fs, path, meta_dtype = store.get_fs_and_full_path(prefix, iternum)
+
+    fs, path, meta_dtype = store.get_fs_and_full_path(varname, iternum)
     dtype = meta_dtype if meta_dtype is not None else dtype
 
     assert (nfacet >= 0) & (nfacet < _nfacets)
@@ -429,7 +428,7 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
     post_pad.insert(0,0)
     post_pad.pop()
     post_pad = np.array(post_pad)
-    
+
     for k in klevels:
         assert (k >= 0) & (k < nz)
 
@@ -616,7 +615,6 @@ class BaseLLCModel:
             if d in ds:
                 ds[d].attrs.update(dimensions[d]['attrs'])
         return ds
-
 
     def _make_coords_latlon():
         ds = self._make_coords_faces(self)
