@@ -30,8 +30,6 @@ CLASSIFIERS = [
 INSTALL_REQUIRES = ['xarray >= 0.10.1', 'dask >= 1.0', 'cachetools']
 SETUP_REQUIRES = ['pytest-runner']
 TESTS_REQUIRE = ['pytest >= 4.0', 'coverage']
-if sys.version_info < (2,7):
-    TESTS_REQUIRE+=['zarr<=2.3.2']
 
 DESCRIPTION = "Read MITgcm mds binary files into xarray"
 def readme():

@@ -7,7 +7,7 @@ dependencies:
   - pytest
   - future
   - cftime
-  - zarr
+  - zarr<=2.3.2
   - pip:
     - cachetools
     - codecov
