@@ -76,10 +76,10 @@ class ASTE270Model(BaseLLCModel):
     nface = 6
     nx = 270
     nz = 50
-    delta_t = 1200
-    iter_start = 2232
-    iter_stop = 4248 + 1
-    iter_step = 2016
+    delta_t = 600
+    iter_start = 4464
+    iter_stop = 4464 + 1
+    iter_step = 4032
     time_units='seconds since 2002-01-01'
     dtype=np.dtype('>f8')
     calendar = 'gregorian'
@@ -146,7 +146,7 @@ class CRIOSPortalASTE270Model(ASTE270Model):
 
     def __init__(self):
         fs = _make_http_filesystem()
-        base_path = 'https://aste-test.s3.us-east-2.amazonaws.com/state'
+        base_path = 'https://aste-release1.s3.us-east-2.amazonaws.com/diags'
         grid_path = 'https://aste-test.s3.us-east-2.amazonaws.com/grid'
         store = stores.BaseStore(fs, base_path=base_path, grid_path=grid_path,
                                    shrunk=False, join_char='/')
