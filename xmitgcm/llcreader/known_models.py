@@ -95,6 +95,20 @@ class ASTE270Model(BaseLLCModel):
     dtype=np.dtype('>f8')
     calendar = 'gregorian'
     varnames = ['THETA', 'SALT']
+    varnames = ['ADVr_SLT', 'ADVr_TH',  'ADVxHEFF', 'ADVxSNOW', 'ADVx_SLT',
+                'ADVx_TH',  'ADVyHEFF', 'ADVySNOW', 'ADVy_SLT', 'ADVy_TH',
+                'DETADT2',  'DFrE_SLT', 'DFrE_TH',  'DFrI_SLT', 'DFrI_TH',
+                'DFxEHEFF', 'DFxESNOW', 'DFxE_SLT', 'DFxE_TH',  'DFyEHEFF',
+                'DFyESNOW', 'DFyE_SLT', 'DFyE_TH',  'ETAN',     'ETANSQ',
+                'GM_PsiX',  'GM_PsiY',  'KPPg_SLT', 'KPPg_TH',  'MXLDEPTH',
+                'PHIBOT',   'SALT',     'SFLUX',    'SIaaflux', 'SIacSubl',
+                'SIarea',   'SIatmFW',  'SIatmQnt', 'SIheff',   'SIhsnow',
+                'SIsnPrcp', 'SItflux',  'SIuice',   'SIvice',   'SRELAX',
+                'TFLUX',    'THETA',    'TRELAX',   'UVELMASS', 'VVELMASS',
+                'WSLTMASS', 'WTHMASS',  'WVELMASS', 'oceFWflx', 'oceQnet',
+                'oceQsw',   'oceSPDep', 'oceSPflx', 'oceSPtnd', 'oceSflux',
+                'oceTAUX',  'oceTAUY',  'sIceLoad']
+
     grid_varnames = ['AngleCS','AngleSN','Depth',
                      'DRC','DRF',
                      'DXC','DXG',
@@ -102,7 +116,6 @@ class ASTE270Model(BaseLLCModel):
                      'hFacC','hFacS','hFacW','PHrefC','PHrefF',
                      'RAC','RAS','RAW','RC','RF',
                      'RhoRef','XC','YC','RAZ','XG','YG','DXV','DYU']
-    #mask_override = {'oceTAUX': 'c', 'oceTAUY': 'c'}
 
 class ECCOPortalLLC2160Model(LLC2160Model):
 
