@@ -7,7 +7,6 @@ import warnings
 
 from .duck_array_ops import concatenate
 from .shrunk_index import all_index_data
-from ..utils import _pad_array
 from ..variables import dimensions
 
 def _get_grid_metadata():
@@ -118,47 +117,44 @@ def _decompress(data, mask, dtype):
     data_blank.shape = mask.shape
     return data_blank
 
+#def _decompress_full_facet(data, shape, dtype):
+#    data_blank = np.full(shape, np.nan, dtype=dtype)
+#    data_blank[
 
 
-#_facet_strides = ((0,3), (3,6), (6,7), (7,10), (10,13))
-_facet_strides = ((0,2), (2,2), (2,3), (3,4), (4,6))
-_extramd = {'has_faces':True,
-            'ny': 1350,
-            'nx': 270,
-            'ny_facets': [450, 0, 270, 180, 450],
-            'pad_before_y': [90, 0, 0, 0, 0],
-            'pad_after_y': [0, 0, 0, 90, 90],
-            'face_facets': [0, 0, 2, 3, 4, 4],
-            'facet_orders': ['C', 'C', 'C', 'F', 'F'],
-            'face_offsets': [0, 1, 0, 0, 0, 1],
-            'transpose_face': [False, False, False, True, True, True]}
+def _facet_strides(nfaces):
+    if nfaces == 13:
+        return ((0,3), (3,6), (6,7), (7,10), (10,13))
+    elif nfaces == 6:
+        return ((0,2), (2,2), (2,3), (3,4), (4,6))
+    else:
+        raise TypeError(f'Unexpected nfaces {nfaces} for _facet_strides')
 
 # whether to reshape each face
 _facet_reshape = (False, False, False, True, True)
-_nfaces = 6
 _nfacets = 5
 
-def _uncompressed_facet_index(nfacet, nside):
+def _uncompressed_facet_index(nfacet, nside, nfaces):
     face_size = nside**2
-    start = _facet_strides[nfacet][0] * face_size
-    end = _facet_strides[nfacet][1] * face_size
+    start = _facet_strides(nfaces)[nfacet][0] * face_size
+    end = _facet_strides(nfaces)[nfacet][1] * face_size
     return start, end
 
-def _facet_shape(nfacet, nside):
-    facet_length = _facet_strides[nfacet][1] - _facet_strides[nfacet][0]
+def _facet_shape(nfacet, nside, nfaces):
+    facet_length = _facet_strides(nfaces)[nfacet][1] - _facet_strides(nfaces)[nfacet][0]
     if _facet_reshape[nfacet]:
         facet_shape = (1, nside, facet_length*nside)
     else:
         facet_shape = (1, facet_length*nside, nside)
     return facet_shape
 
-def _facet_to_faces(data, nfacet):
+def _facet_to_faces(data, nfacet, nfaces):
     shape = data.shape
     # facet dimension
     nf, ny, nx = shape[-3:]
     other_dims = shape[:-3]
     assert nf == 1
-    facet_length = _facet_strides[nfacet][1] - _facet_strides[nfacet][0]
+    facet_length = _facet_strides(nfaces)[nfacet][1] - _facet_strides(nfaces)[nfacet][0]
     if _facet_reshape[nfacet]:
         new_shape = other_dims +  (ny, facet_length, nx / facet_length) if facet_length > 0 else 0
         data_rs = data.reshape(new_shape)
@@ -168,18 +164,18 @@ def _facet_to_faces(data, nfacet):
         data_rs = data.reshape(new_shape) if facet_length>0 else None
     return data_rs
 
-def _facets_to_faces(facets):
+def _facets_to_faces(facets, nfaces):
     all_faces = []
     for nfacet, data_facet in enumerate(facets):
-        data_rs = _facet_to_faces(data_facet, nfacet)
+        data_rs = _facet_to_faces(data_facet, nfacet, nfaces)
         if data_rs is not None:
             all_faces.append(data_rs)
     return concatenate(all_faces, axis=-3)
 
-def _faces_to_facets(data, facedim=-3):
-    assert data.shape[facedim] == _nfaces
+def _faces_to_facets(data, nfaces, facedim=-3):
+    assert data.shape[facedim] == nfaces
     facets = []
-    for nfacet, (strides, reshape) in enumerate(zip(_facet_strides, _facet_reshape)):
+    for nfacet, (strides, reshape) in enumerate(zip(_facet_strides(nfaces), _facet_reshape)):
         face_data = [data[(...,) + (slice(nface, nface+1), slice(None), slice(None))]
                      for nface in range(*strides)]
         if reshape:
@@ -187,7 +183,7 @@ def _faces_to_facets(data, facedim=-3):
         else:
             concat_axis = facedim + 1
         # todo: use duck typing for concat
-        facet_data = concatenate(face_data, axis=concat_axis)
+        facet_data = concatenate(face_data, axis=concat_axis) if len(face_data)!=0 else np.array([])
         facets.append(facet_data)
     return facets
 
@@ -206,8 +202,8 @@ def _facets_to_latlon_scalar(all_facets):
     return concatenate(rotated, axis=-1)
 
 
-def _faces_to_latlon_scalar(data):
-    data_facets = _faces_to_facets(data)
+def _faces_to_latlon_scalar(data, nfaces):
+    data_facets = _faces_to_facets(data, nfaces)
     return _facets_to_latlon_scalar(data_facets)
 
 
@@ -252,9 +248,9 @@ def _facets_to_latlon_vector(facets_u, facets_v, metric=False):
     v = concatenate(v_rot, axis=-1)
     return u, v
 
-def _faces_to_latlon_vector(u_faces, v_faces, metric=False):
-    u_facets = _faces_to_facets(u_faces)
-    v_facets = _faces_to_facets(v_faces)
+def _faces_to_latlon_vector(u_faces, v_faces, nfaces, metric=False):
+    u_facets = _faces_to_facets(u_faces, nfaces)
+    v_facets = _faces_to_facets(v_faces, nfaces)
     u, v = _facets_to_latlon_vector(u_facets, v_facets, metric=metric)
     return u, v
 
@@ -330,7 +326,7 @@ def faces_dataset_to_latlon(ds, metric_vector_pairs=[('dxC', 'dyC'), ('dyG', 'dx
         if vname=='face' or vname in ds_new:
             continue
         if 'face' in ds[vname].dims:
-            data = _faces_to_latlon_scalar(ds[vname].data)
+            data = _faces_to_latlon_scalar(ds[vname].data,nfaces=len(ds['face']))
             dims = _drop_facedim(ds[vname].dims)
         else:
             data = ds[vname].data
@@ -338,11 +334,12 @@ def faces_dataset_to_latlon(ds, metric_vector_pairs=[('dxC', 'dyC'), ('dyG', 'dx
         data_vars[vname] = xr.Variable(dims, data, ds[vname].attrs)
 
     for vname_u, vname_v in vector_pairs:
-        data_u, data_v = _faces_to_latlon_vector(ds[vname_u].data, ds[vname_v].data)
+        data_u, data_v = _faces_to_latlon_vector(ds[vname_u].data, ds[vname_v].data,
+                                                 nfaces=len(ds['face']))
         data_vars[vname_u] = xr.Variable(_drop_facedim(ds[vname_u].dims), data_u, ds[vname_u].attrs)
         data_vars[vname_v] = xr.Variable(_drop_facedim(ds[vname_v].dims), data_v, ds[vname_v].attrs)
     for vname_u, vname_v in metric_vector_pairs:
-        data_u, data_v = _faces_to_latlon_vector(ds[vname_u].data, ds[vname_v].data, metric=True)
+        data_u, data_v = _faces_to_latlon_vector(ds[vname_u].data, ds[vname_v].data, nfaces=len(ds['face']), metric=True)
         data_vars[vname_u] = xr.Variable(_drop_facedim(ds[vname_u].dims), data_u, ds[vname_u].attrs)
         data_vars[vname_v] = xr.Variable(_drop_facedim(ds[vname_v].dims), data_v, ds[vname_v].attrs)
 
@@ -354,12 +351,12 @@ def faces_dataset_to_latlon(ds, metric_vector_pairs=[('dxC', 'dyC'), ('dyG', 'dx
 
 # below are data transformers
 
-def _all_facets_to_faces(data_facets, meta):
-    return {vname: _facets_to_faces(data)
+def _all_facets_to_faces(data_facets, meta, nfaces):
+    return {vname: _facets_to_faces(data, nfaces)
             for vname, data in data_facets.items()}
 
 
-def _all_facets_to_latlon(data_facets, meta):
+def _all_facets_to_latlon(data_facets, meta, nfaces=None):
 
     vector_pairs = []
     scalars = []
@@ -393,8 +390,8 @@ def _chunks(l, n):
         yield l[i:i + n]
 
 
-def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
-                     mask_override):
+def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, nfaces,
+                     dtype, mask_override, pad_before, pad_after):
 
     fs, path, meta_dtype = store.get_fs_and_full_path(varname, iternum)
     dtype = meta_dtype if meta_dtype is not None else dtype
@@ -404,7 +401,7 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
     file = fs.open(path)
 
     # insert singleton axis for time (if not grid var) and k level
-    facet_shape = (1,) + _facet_shape(nfacet, nx)
+    facet_shape = (1,) + _facet_shape(nfacet, nx, nfaces)
     facet_shape = (1,) + facet_shape if iternum is not None else facet_shape
 
     level_data = []
@@ -414,7 +411,8 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
        (store.shrunk_grid and iternum is None):
         # the store tells us whether we need a mask or not
         point = _get_variable_point(varname, mask_override)
-        index = all_index_data[nx][point]
+        mykey = nx if nx != 270 else 'aste270'
+        index = all_index_data[mykey][point]
         zgroup = store.open_mask_group()
         mask = zgroup['mask_' + point].astype('bool')
     else:
@@ -422,9 +420,8 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
         mask = None
 
     # Need to offset all facets after any "pad_before_y"
-    pre_pad = np.cumsum(_extramd['pad_before_y'])
-    post_pad =list(np.cumsum(_extramd['pad_after_y']))
-    # shift by 1 ...
+    pre_pad = np.cumsum(pad_before)
+    post_pad =list(np.cumsum(pad_after))
     post_pad.insert(0,0)
     post_pad.pop()
     post_pad = np.array(post_pad)
@@ -439,44 +436,48 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
             start = index[i]
             end = index[i+1]
         else:
-            level_start = k * nx**2 * _nfaces
-            facet_start, facet_end = _uncompressed_facet_index(nfacet, nx)
+            level_start = k * nx**2 * nfaces
+            facet_start, facet_end = _uncompressed_facet_index(nfacet, nx, nfaces)
             start = level_start + facet_start
-            end = level_start + facet_end - nx*_extramd['pad_after_y'][nfacet]
+            end = level_start + facet_end - nx*pad_after[nfacet]
 
-            start,end = [x - (1+k*_nfaces)*nx*(pre_pad[nfacet]+post_pad[nfacet]) if k+nfacet!=0 else x for x in [start,end]]
-            end = end - nx*(_extramd['pad_before_y'][nfacet]) if k*nfacet==0 else end
+            start,end = [x - (1+k*nfaces)*nx*(pre_pad[nfacet]+post_pad[nfacet]) if k+nfacet!=0 else x for x in [start,end]]
+            end = end - nx*(pad_before[nfacet]) if k*nfacet==0 else end
 
         read_offset = start * dtype.itemsize # in bytes
         read_length  = (end - start) * dtype.itemsize # in bytes
         file.seek(read_offset)
         buffer = file.read(read_length)
         data = np.frombuffer(buffer, dtype=dtype)
-        padbefore = np.zeros(nx*_extramd['pad_before_y'][nfacet])
 
         assert len(data) == (end - start)
-        data = np.concatenate([padbefore,data])
-
-        # TODO: this pad after assumes the flipped shape, and pad_before assumes
-        # "regular" shape ... generalize...
-        # Extra care for pad after with rotated fields
-        facet_length = _facet_strides[nfacet][1] - _facet_strides[nfacet][0]
-        if _extramd['pad_after_y'][nfacet] !=0:
-            padafter = np.zeros(_extramd['pad_after_y'][nfacet])
-            nx2 = facet_length*nx
-            nfill = nx2-len(padafter)
-            i1 = np.arange(0,nx*(nx2-len(padafter)),nfill)
-            i2 = np.arange(nfill,nx*(nx2-len(padafter))+1,nfill)
-            data_padded = [np.concatenate([data[s:e],padafter]) for s,e in zip(i1,i2)]
-            data = np.concatenate(data_padded)
-
-
 
         if mask:
             mask_level = mask[k]
-            mask_facets = _faces_to_facets(mask_level)
+            mask_facets = _faces_to_facets(mask_level,nfaces)
             this_mask = mask_facets[nfacet]
             data = _decompress(data, this_mask, dtype)
+
+        elif np.nansum(pad_before+pad_after)>0:
+
+            # Extra care for pad after with rotated fields
+            pre_shape=list(facet_shape)
+            pad_shape=list(facet_shape)
+            if _facet_reshape[nfacet]:
+                concat_axis = -1
+                pad_shape[concat_axis] = pad_after[nfacet]
+                pre_shape[concat_axis] -= pad_after[nfacet]
+                padme = np.full(pad_shape,np.nan,dtype=dtype)
+                padded = [data,padme]
+            else:
+                concat_axis = -2
+                pad_shape[concat_axis] = pad_before[nfacet]
+                pre_shape[concat_axis] -= pad_before[nfacet]
+                padme = np.full(pad_shape,np.nan,dtype=dtype)
+                padded = [padme,data]
+
+            data.shape = pre_shape
+            data = concatenate(padded,axis=concat_axis)
 
         # this is the shape this facet is supposed to have
         data.shape = facet_shape
@@ -547,6 +548,8 @@ class BaseLLCModel:
     varnames = []
     grid_varnames = []
     mask_override = {}
+    pad_before = [0]*nface
+    pad_after  = [0]*nface
 
     def __init__(self, store):
         """Initialize model
@@ -562,7 +565,8 @@ class BaseLLCModel:
         if self.store.shrunk:
             self.masks = self._get_masks()
             from .shrunk_index import all_index_data
-            self.indexes = all_index_data[self.nx]
+            mykey = self.nx if self.nface != 6 else f'aste{self.nx}'
+            self.indexes = all_index_data[mykey]
         else:
             self.masks = None
             self.indexes = None
@@ -572,7 +576,7 @@ class BaseLLCModel:
         zgroup = self.store.open_mask_group()
         for point in ['c', 'w', 's']:
             mask_faces = dsa.from_zarr(zgroup['mask_' + point]).astype('bool')
-            masks[point] = _faces_to_facets(mask_faces)
+            masks[point] = _faces_to_facets(mask_faces,self.nface)
         return masks
 
     def _get_kp1_levels(self,k_levels):
@@ -623,7 +627,7 @@ class BaseLLCModel:
 
     def _dask_array(self, nfacet, varname, iters, klevels, k_chunksize):
         # return a dask array for a single facet
-        facet_shape =  _facet_shape(nfacet, self.nx)
+        facet_shape =  _facet_shape(nfacet, self.nx, self.nface)
         time_chunks = (len(iters) * (1,),) if iters is not None else ()
         k_chunks = (tuple([len(c)
                           for c in _chunks(klevels, k_chunksize)]),)
@@ -782,7 +786,7 @@ class BaseLLCModel:
                              'latlon': _all_facets_to_latlon}
 
         transformer = data_transformers[type]
-        data = transformer(data_facets, _VAR_METADATA)
+        data = transformer(data_facets, _VAR_METADATA, self.nface)
 
         # separate horizontal and vertical grid variables
         hgrid_facets = {key: grid_facets[key]
@@ -791,7 +795,7 @@ class BaseLLCModel:
                 for key in grid_varnames if _is_vgrid(key)}
 
         # do not transform vertical grid variables
-        data.update(transformer(hgrid_facets, _VAR_METADATA))
+        data.update(transformer(hgrid_facets, _VAR_METADATA, self.nface))
         data.update(vgrid_facets)
 
         variables = {}

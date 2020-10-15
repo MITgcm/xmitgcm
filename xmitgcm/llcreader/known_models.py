@@ -14,6 +14,15 @@ def _requires_pleiades(func):
         func(*args, **kwargs)
     return wrapper
 
+def _requires_sverdrup(func):
+    def wrapper(*args,**kwargs):
+        test_path = '/scratch2/heimbach'
+        if not os.path.exists(test_path):
+            raise OSError("Can't find %s. We must not be on Sverdrup." % test_path)
+        func(*args, **kwargs)
+    return wrapper
+
+
 def _make_http_filesystem():
     import fsspec
     from fsspec.implementations.http import HTTPFileSystem
@@ -76,9 +85,11 @@ class ASTE270Model(BaseLLCModel):
     nface = 6
     nx = 270
     nz = 50
+    pad_before = [90, 0, 0, 0, 0]
+    pad_after = [0, 0, 0, 90, 90]
     delta_t = 600
     iter_start = 4464
-    iter_stop = 4464 + 1
+    iter_stop = 8496 + 1
     iter_step = 4032
     time_units='seconds since 2002-01-01'
     dtype=np.dtype('>f8')
@@ -147,9 +158,25 @@ class CRIOSPortalASTE270Model(ASTE270Model):
     def __init__(self):
         fs = _make_http_filesystem()
         base_path = 'https://aste-release1.s3.us-east-2.amazonaws.com/diags'
-        grid_path = 'https://aste-test.s3.us-east-2.amazonaws.com/grid'
+        grid_path = 'https://aste-release1.s3.us-east-2.amazonaws.com/grid'
+        mask_path = 'https://aste-release1.s3.us-east-2.amazonaws.com/masks.zarr'
         store = stores.BaseStore(fs, base_path=base_path, grid_path=grid_path,
-                                   shrunk=False, join_char='/')
+                                 mask_path=mask_path,
+                                 shrunk=True, join_char='/')
 
         super(CRIOSPortalASTE270Model, self).__init__(store)
 
+class SverdrupASTE270Model(ASTE270Model):
+
+    @_requires_sverdrup
+    def __init__(self):
+        from fsspec.implementations.local import LocalFileSystem
+        fs = LocalFileSystem()
+        base_path = '/scratch2/tsmith/aste-release1-test/diags'
+        grid_path = '/scratch2/tsmith/aste-release1-test/grid'
+        mask_path = '/scratch2/tsmith/aste-release1-test/masks.zarr'
+        store = stores.BaseStore(fs, base_path=base_path, grid_path=grid_path,
+                                 mask_path=mask_path,
+                                 shrunk=True, join_char='/')
+
+        super(SverdrupASTE270Model, self).__init__(store)

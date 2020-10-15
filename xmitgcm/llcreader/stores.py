@@ -27,7 +27,7 @@ class BaseStore:
     """
 
     def __init__(self, fs, base_path='/', shrunk=False,
-                 mask_fs=None, mask_path=None, 
+                 mask_fs=None, mask_path=None,
                  grid_fs=None, grid_path=None,
                  shrunk_grid=False, join_char=None,
                  endian=">"):
@@ -82,7 +82,10 @@ class BaseStore:
         mydir = self._directory(varname,iternum) if mydir is None else mydir
         meta_path = self._join(mydir,self._mname(varname,iternum))
 
-        file = self.fs.open(meta_path)
+        try:
+            file = self.fs.open(meta_path)
+        except FileNotFoundError:
+            return None
         try:
             return file.read().decode('UTF-8')
         except HTTPError:
