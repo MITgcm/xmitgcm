@@ -78,8 +78,8 @@ class BaseStore:
         mname = varname if iternum is None else varname+'.%010d' % iternum
         return mname+'.meta'
 
-    def _read_meta(self,varname,iternum,mydir=None):
-        mydir = self._directory(varname,iternum) if mydir is None else mydir
+    def _read_meta(self,varname,iternum):
+        mydir = self._directory(varname,iternum)
         meta_path = self._join(mydir,self._mname(varname,iternum))
 
         try:
@@ -96,7 +96,7 @@ class BaseStore:
 
         text = self._read_meta(varname,iternum)
         if text is None and iternum is not None:
-            text = self._read_meta(varname,None,mydir=self.base_path)
+            text = self._read_meta(varname,None)
 
         if text is not None:
             meta = _get_meta_dict(text)
@@ -120,7 +120,7 @@ class BaseStore:
         path : str
             The path to open
         """
-        return self.fs, self._full_path(varname, iternum), self._get_dtype(varname,iternum)
+        return self.fs, self._full_path(varname, iternum)
 
     def open_data_file(self, varname, iternum):
         """Open the file for a specific variable and iteration number.

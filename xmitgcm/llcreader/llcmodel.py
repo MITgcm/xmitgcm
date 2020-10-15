@@ -410,8 +410,7 @@ def _chunks(l, n):
 def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, nfaces,
                      dtype, mask_override, pad_before, pad_after):
 
-    fs, path, meta_dtype = store.get_fs_and_full_path(varname, iternum)
-    dtype = meta_dtype if meta_dtype is not None else dtype
+    fs, path = store.get_fs_and_full_path(varname, iternum)
 
     assert (nfacet >= 0) & (nfacet < _nfacets)
 
@@ -489,8 +488,7 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, nfaces,
 def _get_1d_chunk(store, varname, klevels, nz, dtype):
     """for 1D vertical grid variables"""
 
-    fs, path, meta_dtype = store.get_fs_and_full_path(varname, None)
-    dtype = meta_dtype if meta_dtype is not None else dtype
+    fs, path = store.get_fs_and_full_path(varname, None)
 
     file = fs.open(path)
 
@@ -639,27 +637,31 @@ class BaseLLCModel:
         name = '-'.join([varname, token])
 
         # iters == None for grid variables
-        def _key_and_task(n_k, these_klevels, n_iter=None, iternum=None):
+        def _key_and_task(n_k, these_klevels, n_iter=None, iternum=None, dtype=None):
             if n_iter is None:
                 key = name, n_k, 0, 0, 0
             else:
                 key = name, n_iter, n_k, 0, 0, 0
             task = (_get_facet_chunk, self.store, varname, iternum,
-                     nfacet, these_klevels, self.nx, self.nz, self.dtype,
+                     nfacet, these_klevels, self.nx, self.nz, dtype,
                      self.mask_override)
             return key, task
 
         if iters is not None:
             for n_iter, iternum in enumerate(iters):
+
+                # look for meta file for default dtype override
+                dtype = self.store._get_dtype(varname,n_iter)
+                dtype = dtype if dtype is not None else self.dtype
                 for n_k, these_klevels in enumerate(_chunks(klevels, k_chunksize)):
-                    key, task = _key_and_task(n_k, these_klevels, n_iter, iternum)
+                    key, task = _key_and_task(n_k, these_klevels, n_iter, iternum, dtype)
                     dsk[key] = task
         else:
             for n_k, these_klevels in enumerate(_chunks(klevels, k_chunksize)):
-                key, task = _key_and_task(n_k, these_klevels)
+                key, task = _key_and_task(n_k, these_klevels, dtype=dtype)
                 dsk[key] = task
 
-        return dsa.Array(dsk, name, chunks, self.dtype)
+        return dsa.Array(dsk, name, chunks, dtype)
 
     def _dask_array_vgrid(self, varname, klevels, k_chunksize):
         # return a dask array for a 1D vertical grid var
@@ -672,14 +674,19 @@ class BaseLLCModel:
         token = tokenize(varname, self.store)
         name = '-'.join([varname, token])
 
+        # look for meta file for default dtype override
+        dtype = self.store._get_dtype(varname,None)
+        dtype = dtype if dtype is not None else self.dtype
+        print(f'{varname}: {dtype}')
+
         nz = self.nz if _VAR_METADATA[varname]['dims'] != ['k_p1'] else self.nz+1
         task = (_get_1d_chunk, self.store, varname,
-                list(klevels), nz, self.dtype)
+                list(klevels), nz, dtype)
 
         key = name, 0
         dsk[key] = task
 
-        return dsa.Array(dsk, name, chunks, self.dtype)
+        return dsa.Array(dsk, name, chunks, dtype)
 
     def _get_facet_data(self, varname, iters, klevels, k_chunksize):
         # needs facets to be outer index of nested lists
