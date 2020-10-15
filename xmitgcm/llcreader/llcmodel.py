@@ -546,8 +546,8 @@ class BaseLLCModel:
     varnames = []
     grid_varnames = []
     mask_override = {}
-    pad_before = [0]*nface
-    pad_after  = [0]*nface
+    pad_before = [0]*_nfacets
+    pad_after  = [0]*_nfacets
 
     def __init__(self, store):
         """Initialize model
@@ -651,7 +651,7 @@ class BaseLLCModel:
             for n_iter, iternum in enumerate(iters):
 
                 # look for meta file for default dtype override
-                dtype = self.store._get_dtype(varname,n_iter)
+                dtype = self.store._get_dtype(varname,iternum)
                 dtype = dtype if dtype is not None else self.dtype
                 for n_k, these_klevels in enumerate(_chunks(klevels, k_chunksize)):
                     key, task = _key_and_task(n_k, these_klevels, n_iter, iternum, dtype)
@@ -677,7 +677,6 @@ class BaseLLCModel:
         # look for meta file for default dtype override
         dtype = self.store._get_dtype(varname,None)
         dtype = dtype if dtype is not None else self.dtype
-        print(f'{varname}: {dtype}')
 
         nz = self.nz if _VAR_METADATA[varname]['dims'] != ['k_p1'] else self.nz+1
         task = (_get_1d_chunk, self.store, varname,

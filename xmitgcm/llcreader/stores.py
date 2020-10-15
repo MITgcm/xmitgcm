@@ -134,7 +134,7 @@ class BaseStore:
         -------
         fobj : file-like object
         """
-        fs, path, _ = self.get_fs_and_full_path(varname, iternum)
+        fs, path = self.get_fs_and_full_path(varname, iternum)
         return fs.open(path)
 
     def open_mask_group(self):
