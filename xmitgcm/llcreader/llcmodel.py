@@ -117,10 +117,22 @@ def _decompress(data, mask, dtype):
     data_blank.shape = mask.shape
     return data_blank
 
-#def _decompress_full_facet(data, shape, dtype):
-#    data_blank = np.full(shape, np.nan, dtype=dtype)
-#    data_blank[
+def _pad_facet(data,facet_shape,reshape,pad_before,pad_after,dtype):
+    pre_shape=list(facet_shape)
+    pad_shape=list(facet_shape)
+    if reshape:
+        concat_axis = -1
+        pad_shape[concat_axis] = pad_after
+        pre_shape[concat_axis] -= pad_after
+        padded= [data,np.full(pad_shape,np.nan,dtype=dtype)]
+    else:
+        concat_axis = -2
+        pad_shape[concat_axis] = pad_before
+        pre_shape[concat_axis] -= pad_before
+        padded = [np.full(pad_shape,np.nan,dtype=dtype),data]
 
+    data.shape = pre_shape
+    return concatenate(padded,axis=concat_axis)
 
 def _facet_strides(nfaces):
     if nfaces == 13:
@@ -210,10 +222,15 @@ def _faces_to_latlon_scalar(data, nfaces):
 # dask's pad function doesn't work
 # it does weird things to non-pad dimensions
 # need to roll our own
-def shift_and_pad(a):
-    a_shifted = a[..., 1:]
-    pad_array = dsa.zeros_like(a[..., -2:-1])
-    return concatenate([a_shifted, pad_array], axis=-1)
+def shift_and_pad(a,left=True):
+    if left:
+        a_shifted = a[..., 1:]
+        pad_array = dsa.zeros_like(a[..., -2:-1])
+        return concatenate([a_shifted, pad_array], axis=-1)
+    else:
+        a_shifted = a[..., :-1]
+        pad_array = dsa.zeros_like(a[..., 0:1])
+        return concatenate([pad_array, a_shifted], axis=-1)
 
 def transform_v_to_u(facet):
     return _rotate_scalar_facet(facet)
@@ -421,10 +438,7 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, nfaces,
 
     # Need to offset all facets after any "pad_before_y"
     pre_pad = np.cumsum(pad_before)
-    post_pad =list(np.cumsum(pad_after))
-    post_pad.insert(0,0)
-    post_pad.pop()
-    post_pad = np.array(post_pad)
+    post_pad = shift_and_pad(np.cumsum(pad_after),left=False).compute()
 
     for k in klevels:
         assert (k >= 0) & (k < nz)
@@ -458,26 +472,12 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, nfaces,
             this_mask = mask_facets[nfacet]
             data = _decompress(data, this_mask, dtype)
 
-        elif np.nansum(pad_before+pad_after)>0:
+        elif pad_before[nfacet]+pad_after[nfacet]>0:
 
             # Extra care for pad after with rotated fields
-            pre_shape=list(facet_shape)
-            pad_shape=list(facet_shape)
-            if _facet_reshape[nfacet]:
-                concat_axis = -1
-                pad_shape[concat_axis] = pad_after[nfacet]
-                pre_shape[concat_axis] -= pad_after[nfacet]
-                padme = np.full(pad_shape,np.nan,dtype=dtype)
-                padded = [data,padme]
-            else:
-                concat_axis = -2
-                pad_shape[concat_axis] = pad_before[nfacet]
-                pre_shape[concat_axis] -= pad_before[nfacet]
-                padme = np.full(pad_shape,np.nan,dtype=dtype)
-                padded = [padme,data]
+            data = _pad_facet(data,facet_shape,_facet_reshape[nfacet],
+                              pad_before[nfacet],pad_after[nfacet],dtype)
 
-            data.shape = pre_shape
-            data = concatenate(padded,axis=concat_axis)
 
         # this is the shape this facet is supposed to have
         data.shape = facet_shape
