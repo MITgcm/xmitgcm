@@ -28,21 +28,13 @@ def parse_meta_file(fname):
     flds : dict
         Metadata in dictionary form.
     """
+    flds = {}
     basename = re.match('(^.+?)\..+', os.path.basename(fname)).groups()[0]
-
+    flds['basename'] = basename
     with open(fname) as f:
         text = f.read()
-    flds = _get_meta_dict(text)
-    flds['basename'] = basename
-    return flds
-
-
-def _get_meta_dict(metatext):
-    """parse the meta text and organize to useful dict"""
-
     # split into items
-    flds = {}
-    for item in re.split(';', metatext):
+    for item in re.split(';', text):
         # remove whitespace at beginning
         item = re.sub('^\s+', '', item)
         match = re.match('(\w+) = (\[|\{)(.*)(\]|\})', item, re.DOTALL)

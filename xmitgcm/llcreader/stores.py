@@ -1,9 +1,7 @@
 import fsspec
 import os
 import zarr
-from requests import HTTPError
 
-from ..utils import _get_meta_dict
 
 class BaseStore:
     """Basic storage class for LLC data.
@@ -27,10 +25,9 @@ class BaseStore:
     """
 
     def __init__(self, fs, base_path='/', shrunk=False,
-                 mask_fs=None, mask_path=None,
+                 mask_fs=None, mask_path=None, 
                  grid_fs=None, grid_path=None,
-                 shrunk_grid=False, join_char=None,
-                 endian=">"):
+                 shrunk_grid=False, join_char=None):
         self.base_path = base_path
         self.fs = fs
         self.shrunk = shrunk
@@ -40,7 +37,6 @@ class BaseStore:
         self.grid_path = grid_path
         self.shrunk_grid = shrunk_grid
         self.join_char = join_char
-        self.endian = endian
         if shrunk and (mask_path is None):
             raise ValueError("`mask_path` can't be None if `shrunk` is True")
 
@@ -73,36 +69,6 @@ class BaseStore:
     def _full_path(self, varname, iternum):
         return self._join(self._directory(varname, iternum),
                             self._fname(varname, iternum))
-
-    def _mname(self, varname, iternum):
-        mname = varname if iternum is None else varname+'.%010d' % iternum
-        return mname+'.meta'
-
-    def _read_meta(self,varname,iternum):
-        mydir = self._directory(varname,iternum)
-        meta_path = self._join(mydir,self._mname(varname,iternum))
-
-        try:
-            file = self.fs.open(meta_path)
-        except FileNotFoundError:
-            return None
-        try:
-            return file.read().decode('UTF-8')
-        except HTTPError:
-            return None
-
-    def _get_dtype(self, varname, iternum):
-        """look for meta file to get datatype"""
-
-        text = self._read_meta(varname,iternum)
-        if text is None and iternum is not None:
-            text = self._read_meta(varname,None)
-
-        if text is not None:
-            meta = _get_meta_dict(text)
-            return meta['dataprec'].newbyteorder(self.endian)
-        else:
-            return None
 
     def get_fs_and_full_path(self, varname, iternum):
         """Return references to a filesystem and path within it for a specific

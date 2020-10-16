@@ -1,5 +1,4 @@
 import os
-import numpy as np
 
 from .llcmodel import BaseLLCModel
 from . import stores
@@ -92,9 +91,7 @@ class ASTE270Model(BaseLLCModel):
     iter_stop = 8496 + 1
     iter_step = 4032
     time_units='seconds since 2002-01-01'
-    dtype=np.dtype('>f8')
     calendar = 'gregorian'
-    varnames = ['THETA', 'SALT']
     varnames = ['ADVr_SLT', 'ADVr_TH',  'ADVxHEFF', 'ADVxSNOW', 'ADVx_SLT',
                 'ADVx_TH',  'ADVyHEFF', 'ADVySNOW', 'ADVy_SLT', 'ADVy_TH',
                 'DETADT2',  'DFrE_SLT', 'DFrE_TH',  'DFrI_SLT', 'DFrI_TH',
@@ -109,13 +106,47 @@ class ASTE270Model(BaseLLCModel):
                 'oceQsw',   'oceSPDep', 'oceSPflx', 'oceSPtnd', 'oceSflux',
                 'oceTAUX',  'oceTAUY',  'sIceLoad']
 
-    grid_varnames = ['AngleCS','AngleSN','Depth',
-                     'DRC','DRF',
-                     'DXC','DXG',
-                     'DYC','DYG',
-                     'hFacC','hFacS','hFacW','PHrefC','PHrefF',
-                     'RAC','RAS','RAW','RC','RF',
-                     'RhoRef','XC','YC','RAZ','XG','YG','DXV','DYU']
+    grid_varnames = ['AngleCS', 'AngleSN',   'DRC',       'DRF',       'DXC',
+                     'DXG',     'DYC',       'DYG',       'Depth',     'PHrefC',
+                     'PHrefF',  'RAC',       'RAS',       'RAW',       'RAZ',
+                     'RC',      'RF',        'RhoRef',    'XC',        'XG',
+                     'YC',      'YG',        'hFacC',     'hFacS',     'hFacW',
+                     'maskC',   'maskCtrlC', 'maskCtrlS', 'maskCtrlW', 'maskInC',
+                     'maskInS', 'maskInW',   'maskS',     'maskW']
+
+    dtype={"ADVr_SLT":">f8", "ADVr_TH":">f8", "ADVxHEFF":">f8",
+           "ADVxSNOW":">f8", "ADVx_SLT":">f8", "ADVx_TH":">f8",
+           "ADVyHEFF":">f8", "ADVySNOW":">f8", "ADVy_SLT":">f8",
+           "ADVy_TH":">f8", "AngleCS":">f8", "AngleSN":">f8",
+           "DETADT2":">f4", "DFrE_SLT":">f8", "DFrE_TH":">f8",
+           "DFrI_SLT":">f8", "DFrI_TH":">f8", "DFxEHEFF":">f8",
+           "DFxESNOW":">f8", "DFxE_SLT":">f8", "DFxE_TH":">f8",
+           "DFyEHEFF":">f8", "DFyESNOW":">f8", "DFyE_SLT":">f8",
+           "DFyE_TH":">f8", "DRC":">f8", "DRF":">f8",
+           "DXC":">f8", "DXG":">f8", "DYC":">f8",
+           "DYG":">f8", "Depth":">f8", "ETAN":">f4",
+           "ETANSQ":">f4", "GM_PsiX":">f4", "GM_PsiY":">f4",
+           "KPPg_SLT":">f8", "KPPg_TH":">f8", "MXLDEPTH":">f4",
+           "PHIBOT":">f4", "PHrefC":">f8", "PHrefF":">f8",
+           "RAC":">f8", "RAS":">f8", "RAW":">f8",
+           "RAZ":">f8", "RC":">f8", "RF":">f8",
+           "RhoRef":">f8", "SALT":">f4", "SFLUX":">f8",
+           "SIaaflux":">f8", "SIacSubl":">f8", "SIarea":">f4",
+           "SIatmFW":">f8", "SIatmQnt":">f8", "SIheff":">f4",
+           "SIhsnow":">f4", "SIsnPrcp":">f8", "SItflux":">f8",
+           "SIuice":">f4", "SIvice":">f4", "SRELAX":">f8",
+           "TFLUX":">f8", "THETA":">f4", "TRELAX":">f8",
+           "UVELMASS":">f8", "VVELMASS":">f8", "WSLTMASS":">f8",
+           "WTHMASS":">f8", "WVELMASS":">f8", "XC":">f8",
+           "XG":">f8", "YC":">f8", "YG":">f8",
+           "hFacC":">f8", "hFacS":">f8", "hFacW":">f8",
+           "maskC":">f8", "maskCtrlC":">f8", "maskCtrlS":">f8",
+           "maskCtrlW":">f8", "maskInC":">f8", "maskInS":">f8",
+           "maskInW":">f8", "maskS":">f8", "maskW":">f8",
+           "oceFWflx":">f8", "oceQnet":">f8", "oceQsw":">f8",
+           "oceSPDep":">f4", "oceSPflx":">f8", "oceSPtnd":">f8",
+           "oceSflux":">f8", "oceTAUX":">f4", "oceTAUY":">f4",
+           "sIceLoad":">f4"}
 
 class ECCOPortalLLC2160Model(LLC2160Model):
 
@@ -188,7 +219,7 @@ class SverdrupASTE270Model(ASTE270Model):
         base_path = '/scratch2/tsmith/aste-release1-test/diags'
         grid_path = '/scratch2/tsmith/aste-release1-test/grid'
         mask_path = '/scratch2/tsmith/aste-release1-test/masks.zarr'
-        store = stores.BaseStore(fs, base_path=base_path, grid_path=grid_path,
+        store = stores.NestedStore(fs, base_path=base_path, grid_path=grid_path,
                                  mask_path=mask_path,
                                  shrunk=True, join_char='/')
 

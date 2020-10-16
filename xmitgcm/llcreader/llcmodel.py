@@ -577,6 +577,12 @@ class BaseLLCModel:
             masks[point] = _faces_to_facets(mask_faces,self.nface)
         return masks
 
+    def _dtype(self,varname=None):
+        if isinstance(self.dtype,np.dtype):
+            return self.dtype
+        elif isinstance(self.dtype,dict):
+            return np.dtype(self.dtype[varname])
+
     def _get_kp1_levels(self,k_levels):
         # determine kp1 levels
         # get borders to all k (center) levels
@@ -635,6 +641,7 @@ class BaseLLCModel:
         dsk = {}
         token = tokenize(varname, self.store, nfacet)
         name = '-'.join([varname, token])
+        dtype = self._dtype(varname)
 
         # iters == None for grid variables
         def _key_and_task(n_k, these_klevels, n_iter=None, iternum=None, dtype=None):
@@ -650,9 +657,6 @@ class BaseLLCModel:
         if iters is not None:
             for n_iter, iternum in enumerate(iters):
 
-                # look for meta file for default dtype override
-                dtype = self.store._get_dtype(varname,iternum)
-                dtype = dtype if dtype is not None else self.dtype
                 for n_k, these_klevels in enumerate(_chunks(klevels, k_chunksize)):
                     key, task = _key_and_task(n_k, these_klevels, n_iter, iternum, dtype)
                     dsk[key] = task
@@ -673,10 +677,7 @@ class BaseLLCModel:
         dsk = {}
         token = tokenize(varname, self.store)
         name = '-'.join([varname, token])
-
-        # look for meta file for default dtype override
-        dtype = self.store._get_dtype(varname,None)
-        dtype = dtype if dtype is not None else self.dtype
+        dtype = self._dtype(varname)
 
         nz = self.nz if _VAR_METADATA[varname]['dims'] != ['k_p1'] else self.nz+1
         task = (_get_1d_chunk, self.store, varname,
