@@ -408,7 +408,7 @@ def _chunks(l, n):
 
 
 def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, nfaces,
-                     dtype, mask_override, pad_before, pad_after):
+                     dtype, mask_override, domain, pad_before, pad_after):
 
     fs, path = store.get_fs_and_full_path(varname, iternum)
 
@@ -427,7 +427,7 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, nfaces,
        (store.shrunk_grid and iternum is None):
         # the store tells us whether we need a mask or not
         point = _get_variable_point(varname, mask_override)
-        mykey = nx if nx != 270 else 'aste270'
+        mykey = nx if domain == 'global' else f'{domain}_{nx}'
         index = all_index_data[mykey][point]
         zgroup = store.open_mask_group()
         mask = zgroup['mask_' + point].astype('bool')
@@ -546,6 +546,7 @@ class BaseLLCModel:
     varnames = []
     grid_varnames = []
     mask_override = {}
+    domain = 'global'
     pad_before = [0]*_nfacets
     pad_after  = [0]*_nfacets
 
@@ -563,7 +564,7 @@ class BaseLLCModel:
         if self.store.shrunk:
             self.masks = self._get_masks()
             from .shrunk_index import all_index_data
-            mykey = self.nx if self.nface != 6 else f'aste{self.nx}'
+            mykey = self.nx if self.domain == 'global' else f'{self.domain}_{self.nx}'
             self.indexes = all_index_data[mykey]
         else:
             self.masks = None
@@ -644,25 +645,26 @@ class BaseLLCModel:
         dtype = self._dtype(varname)
 
         # iters == None for grid variables
-        def _key_and_task(n_k, these_klevels, n_iter=None, iternum=None, dtype=None):
+        def _key_and_task(n_k, these_klevels, n_iter=None, iternum=None):
             if n_iter is None:
                 key = name, n_k, 0, 0, 0
             else:
                 key = name, n_iter, n_k, 0, 0, 0
             task = (_get_facet_chunk, self.store, varname, iternum,
                      nfacet, these_klevels, self.nx, self.nz, dtype,
-                     self.mask_override)
+                     self.mask_override, self.domain,
+                     self.pad_before, self.pad_after)
             return key, task
 
         if iters is not None:
             for n_iter, iternum in enumerate(iters):
 
                 for n_k, these_klevels in enumerate(_chunks(klevels, k_chunksize)):
-                    key, task = _key_and_task(n_k, these_klevels, n_iter, iternum, dtype)
+                    key, task = _key_and_task(n_k, these_klevels, n_iter, iternum)
                     dsk[key] = task
         else:
             for n_k, these_klevels in enumerate(_chunks(klevels, k_chunksize)):
-                key, task = _key_and_task(n_k, these_klevels, dtype=dtype)
+                key, task = _key_and_task(n_k, these_klevels)
                 dsk[key] = task
 
         return dsa.Array(dsk, name, chunks, dtype)

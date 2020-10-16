@@ -84,6 +84,7 @@ class ASTE270Model(BaseLLCModel):
     nface = 6
     nx = 270
     nz = 50
+    domain = 'aste'
     pad_before = [90, 0, 0, 0, 0]
     pad_after = [0, 0, 0, 90, 90]
     delta_t = 600
