@@ -771,6 +771,8 @@ class BaseLLCModel:
 
         ds = self._make_coords_faces(iters)
         if type=='latlon':
+            if self.domain=='aste':
+                raise TypeError('Swapping to lat/lon not available for ASTE. Must regrid or interpolate.')
             ds = _faces_coords_to_latlon(ds)
 
         k_levels = k_levels or list(range(self.nz))
