@@ -73,8 +73,7 @@ be used right away. These are
 - ``llcreader.PleiadesLLC2160Model``: LLC2160 accessed on Pleaides filesystem
 - ``llcreader.PleiadesLLC4320Model``: LLC4320 accessed on Pleaides filesystem
 - ``llcreader.CRIOSPortalASTE270Model``: ASTE Release 1 accessed via AWS
-- ``llcreader.SverdrupASTE270Model``: ASTE Release 1 accessed on Sverdrup
-    filesystem at UT Austin
+- ``llcreader.SverdrupASTE270Model``: ASTE Release 1 accessed on Sverdrup filesystem at UT Austin
 
 Below are a few examples of how to use these.
 
@@ -307,32 +306,34 @@ should be much higher than via the ECCO data portal.
 ASTE Release 1 on AWS
 ~~~~~~~~~~~~~~~~~~~~~
 
-The model output from the Arctic Subpolar gyre sTate Estimate (ASTE) Release 1
+Monthly time mean output from the Arctic Subpolar gyre sTate Estimate (ASTE) Release 1
 has been made available on AWS servers.
 ASTE is a medium-resolution data-constrained and dynamically consistent
 ocean-sea ice synthesis, spanning 2002-2017.
-Read more about this effort in [Nguyen et al, 2020] or
-`here <https://crios-ut.github.io/research>`_.
+Read more about this effort in [Nguyen et al, 2020].
 
-Access to these data have been modeled after the ECCO Data Portal efforts
-described above, and so usage is largely the same *except*:
+Users can access this output in essentially the same way as they access
+LLC4320/2160 output on the ECCO Data Portal.
+The key differences are:
 
-- specifying `type=latlon` is not available, because most of the model grid is not on a regular lat/lon configuration. Notice that specifying this for the global models above discards the Arctic - this is most of ASTE!
+- specifying `type=latlon` to `get_dataset` is not available, because most of the model grid is not on a regular lat/lon configuration. Notice that specifying this for the global models above discards the Arctic - this is most of ASTE!
 - there are 6 "faces" compared to 13 in the global grids
 - the grid is much smaller, for example a single 3D temperature field is 6 x 270 x 270 vs 13 x 4320 x 4320 as above, < 1% the size
 - some variables are named differently than the LLC4320/LLC2160 output, following MITgcm standard naming conventions. These are::
 
-    THETA       : Potential Temperature
-    SALT        : Salinity
-    ETAN        : Sea level anomaly
-    UVELMASS    : Zonal Velocity (mass weighted)
-    VVELMASS    : Zonal Velocity (mass weighted)
-    WVELMASS    : Vertical Velocity (mass weighted)
+    THETA       : Potential Temperature [degC]
+    SALT        : Salinity [psu]
+    ETAN        : Sea level anomaly [m]
+    UVELMASS    : Zonal Velocity [m/s] (mass weighted)
+    VVELMASS    : Meridional Velocity [m/s] (mass weighted)
+    WVELMASS    : Vertical Velocity [m/s] (mass weighted)
 
-where the "MASS" accounts for a time varying vertical coordinate.
+where the "mass-weighted" refers to the fact that ASTE uses the time varying,
+`r* vertical coordinate <https://mitgcm.readthedocs.io/en/latest/algorithm/nonlinear-freesurf.html#free-surface-effect-on-column-total-thickness-non-linear-free-surface>`_,
+and this changing coordinate has been taken into account during the time averages.
 
 
-Example usage to get temperature and salinity::
+Example usage to get temperature and salinity:
    
     >>> aste = llcreader.CRIOSPortalASTE270Model()
     >>> ds = aste.get_dataset(varnames=['THETA','SALT'])
@@ -392,7 +393,8 @@ Example usage to get temperature and salinity::
         THETA      (time, k, face, j, i) float32 dask.array<chunksize=(1, 1, 2, 270, 270), meta=np.ndarray>
         SALT       (time, k, face, j, i) float32 dask.array<chunksize=(1, 1, 2, 270, 270), meta 
 
-All available diagnostics are shown here::
+All available diagnostics are shown here:
+
     >>> aste.varnames
     ['ADVr_SLT', 'ADVr_TH', 'ADVxHEFF', 'ADVxSNOW', 'ADVx_SLT', 'ADVx_TH',
     'ADVyHEFF', 'ADVySNOW', 'ADVy_SLT', 'ADVy_TH', 'DETADT2', 'DFrE_SLT', 'DFrE_TH',
@@ -405,12 +407,15 @@ All available diagnostics are shown here::
     'oceQnet', 'oceQsw', 'oceSPDep', 'oceSPflx', 'oceSPtnd', 'oceSflux', 'oceTAUX',
     'oceTAUY', 'sIceLoad']
 
+Nguyen et al. (2020). The Arctic Subpolar gyre sTate Estimate: a data-constrained and dynamically consistent ocean-sea ice estimate for 2002–2017. Submitted to Journal of Advances in Modeling Earth Systems.
+
+
 ASTE Release 1 on Sverdrup
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Much in the same way LLC4320/2160 are available on Pleiades, ASTE Release 1 is
 available on Sverdrup, a cluster at the University of Texas at Austin.
-Those with access can see release 1 output with::
+Those with access can get release 1 output with:
 
     >>> aste = llcreader.SverdrupASTE270Model()
 
