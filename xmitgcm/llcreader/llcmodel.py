@@ -543,6 +543,7 @@ class BaseLLCModel:
     iter_start = None
     iter_stop = None
     iter_step = None
+    iters = None
     varnames = []
     grid_varnames = []
     mask_override = {}
@@ -711,7 +712,7 @@ class BaseLLCModel:
 
 
     def get_dataset(self, varnames=None, iter_start=None, iter_stop=None,
-                    iter_step=None, k_levels=None, k_chunksize=1,
+                    iter_step=None, iters=None, k_levels=None, k_chunksize=1,
                     type='faces', read_grid=True, grid_vars_to_coords=True):
         """
         Create an xarray Dataset object for this model.
@@ -724,11 +725,13 @@ class BaseLLCModel:
         iter_start : int, optional
             Starting iteration number. Otherwise use model default.
             Follows standard `range` conventions. (inclusive)
-        iter_start : int, optional
+        iter_stop : int, optional
             Stopping iteration number. Otherwise use model default.
             Follows standard `range` conventions. (exclusive)
         iter_step : int, optional
             Iteration number stepsize. Otherwise use model default.
+        iters : list, optional
+            Specific iteration numbers in a list.
         k_levels : list of ints, optional
             Vertical levels to extract. Default is to get them all
         k_chunksize : int, optional
@@ -754,13 +757,15 @@ class BaseLLCModel:
         iter_start = _if_not_none(iter_start, self.iter_start)
         iter_stop = _if_not_none(iter_stop, self.iter_stop)
         iter_step = _if_not_none(iter_step, self.iter_step)
+        iters = _if_not_none(iters, self.iters)
         iter_params = [iter_start, iter_stop, iter_step]
-        if any([a is None for a in iter_params]):
+        if any([a is None for a in iter_params]) and iters is None:
             raise ValueError("The parameters `iter_start`, `iter_stop` "
                              "and `iter_step` must be defined either by the "
                              "model class or as argument. Instead got %r "
                              % iter_params)
-        iters = np.arange(*iter_params)
+        iters = np.arange(*iter_params) if iters is None else iters
+        iters = np.array(iters) if isinstance(iters,list) else iters
 
         varnames = varnames or self.varnames
 
