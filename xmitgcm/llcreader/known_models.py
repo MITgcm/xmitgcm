@@ -66,6 +66,8 @@ class LLC4320Model(BaseLLCModel):
     iter_start = 10368
     iter_stop = 1495152 + 1
     iter_step = 144
+
+
     time_units='seconds since 2011-09-10'
     calendar = 'gregorian'
     varnames = ['Eta', 'KPPhbl', 'oceFWflx', 'oceQnet', 'oceQsw', 'oceSflux',
@@ -88,11 +90,48 @@ class ASTE270Model(BaseLLCModel):
     pad_before = [90, 0, 0, 0, 0]
     pad_after = [0, 0, 0, 90, 90]
     delta_t = 600
-    iter_start = 4464
-    iter_stop = 8496 + 1
-    iter_step = 4032
     time_units='seconds since 2002-01-01'
     calendar = 'gregorian'
+
+    iters=[4464, 8496, 12960, 17280, 21744,
+           26064, 30528, 34992, 39312, 43776,
+           48096, 52560, 57024, 61056, 65520,
+           69840, 74304, 78624, 83088, 87552,
+           91872, 96336, 100656, 105120, 109584,
+           113760, 118224, 122544, 127008, 131328,
+           135792, 140256, 144576, 149040, 153360,
+           157824, 162288, 166320, 170784, 175104,
+           179568, 183888, 188352, 192816, 197136,
+           201600, 205920, 210384, 214848, 218880,
+           223344, 227664, 232128, 236448, 240912,
+           245376, 249696, 254160, 258480, 262944,
+           267408, 271440, 275904, 280224, 284688,
+           289008, 293472, 297936, 302256, 306720,
+           311040, 315504, 319968, 324144, 328608,
+           332928, 337392, 341712, 346176, 350640,
+           354960, 359424, 363744, 368208, 372672,
+           376704, 381168, 385488, 389952, 394272,
+           398736, 403200, 407520, 411984, 416304,
+           420768, 425232, 429264, 433728, 438048,
+           442512, 446832, 451296, 455760, 460080,
+           464544, 468864, 473328, 477792, 481824,
+           486288, 490608, 495072, 499392, 503856,
+           508320, 512640, 517104, 521424, 525888,
+           530352, 534528, 538992, 543312, 547776,
+           552096, 556560, 561024, 565344, 569808,
+           574128, 578592, 583056, 587088, 591552,
+           595872, 600336, 604656, 609120, 613584,
+           617904, 622368, 626688, 631152, 635616,
+           639648, 644112, 648432, 652896, 657216,
+           661680, 666144, 670464, 674928, 679248,
+           683712, 688176, 692208, 696672, 700992,
+           705456, 709776, 714240, 718704, 723024,
+           727488, 731808, 736272, 740736, 744912,
+           749376, 753696, 758160, 762480, 766944,
+           771408, 775728, 780192, 784512, 788976,
+           793440, 797472, 801936, 806256, 810720,
+           815040, 819504, 823968, 828288, 832752,
+           837072, 841536, 841544]
     varnames = ['ADVr_SLT', 'ADVr_TH',  'ADVxHEFF', 'ADVxSNOW', 'ADVx_SLT',
                 'ADVx_TH',  'ADVyHEFF', 'ADVySNOW', 'ADVy_SLT', 'ADVy_TH',
                 'DETADT2',  'DFrE_SLT', 'DFrE_TH',  'DFrI_SLT', 'DFrI_TH',
@@ -205,9 +244,9 @@ class CRIOSPortalASTE270Model(ASTE270Model):
         base_path = 'https://aste-release1.s3.us-east-2.amazonaws.com/diags'
         grid_path = 'https://aste-release1.s3.us-east-2.amazonaws.com/grid'
         mask_path = 'https://aste-release1.s3.us-east-2.amazonaws.com/masks.zarr'
-        store = stores.BaseStore(fs, base_path=base_path, grid_path=grid_path,
-                                 mask_path=mask_path,
-                                 shrunk=True, join_char='/')
+        store = stores.NestedStore(fs, base_path=base_path, grid_path=grid_path,
+                                   mask_path=mask_path,
+                                   shrunk=True, join_char='/')
 
         super(CRIOSPortalASTE270Model, self).__init__(store)
 
@@ -217,11 +256,11 @@ class SverdrupASTE270Model(ASTE270Model):
     def __init__(self):
         from fsspec.implementations.local import LocalFileSystem
         fs = LocalFileSystem()
-        base_path = '/scratch2/tsmith/aste-release1-test/diags'
-        grid_path = '/scratch2/tsmith/aste-release1-test/grid'
-        mask_path = '/scratch2/tsmith/aste-release1-test/masks.zarr'
+        base_path = '/scratch2/shared/aste-release1/diags'
+        grid_path = '/scratch2/shared/aste-release1/grid'
+        mask_path = '/scratch2/shared/aste-release1/masks.zarr'
         store = stores.NestedStore(fs, base_path=base_path, grid_path=grid_path,
-                                 mask_path=mask_path,
-                                 shrunk=True, join_char='/')
+                                   mask_path=mask_path,
+                                   shrunk=True, join_char='/')
 
         super(SverdrupASTE270Model, self).__init__(store)
