@@ -527,6 +527,9 @@ class BaseLLCModel:
         Final model iteration number (exclusive; follows python range conventions)
     iter_step : int
         Spacing between iterations
+    iters : list of ints
+        Specific iteration numbers in a list, possibly with nonuniform spacing.
+        Either provide this or the iter parameters above.
     varnames, grid_varnames : list
         List of data variable and grid variable names contained in the dataset
     mask_override : dict
@@ -730,8 +733,9 @@ class BaseLLCModel:
             Follows standard `range` conventions. (exclusive)
         iter_step : int, optional
             Iteration number stepsize. Otherwise use model default.
-        iters : list, optional
-            Specific iteration numbers in a list.
+        iters : list of ints, optional
+            Specific iteration numbers in a list, possibly with nonuniform spacing.
+            Either provide this or the iter parameters above.
         k_levels : list of ints, optional
             Vertical levels to extract. Default is to get them all
         k_chunksize : int, optional
@@ -759,11 +763,15 @@ class BaseLLCModel:
         iter_step = _if_not_none(iter_step, self.iter_step)
         iters = _if_not_none(iters, self.iters)
         iter_params = [iter_start, iter_stop, iter_step]
-        if any([a is None for a in iter_params]) and iters is None:
-            raise ValueError("The parameters `iter_start`, `iter_stop` "
-                             "and `iter_step` must be defined either by the "
-                             "model class or as argument. Instead got %r "
-                             % iter_params)
+        if any([a is None for a in iter_params]):
+            if iters is None:
+                raise ValueError("The parameters `iter_start`, `iter_stop`, "
+                                 "and `iter_step` must be defined either by the "
+                                 "model class or as argument. Instead got %r "
+                                 % iter_params)
+        elif iters is not None:
+            raise ValueError("Only `iters` or the parameters `iter_start`, `iters_stop`, "
+                             "and `iter_step` can be provided. Both were provided")
         iters = np.arange(*iter_params) if iters is None else iters
         iters = np.array(iters) if isinstance(iters,list) else iters
 
