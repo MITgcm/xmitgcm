@@ -317,20 +317,18 @@ Read more about this effort in [Nguyen et al, 2020] or
 Access to these data have been modeled after the ECCO Data Portal efforts
 described above, and so usage is largely the same *except*:
 
-- specifying `type=latlon` is not available, because most of the model grid
-    is not on a regular lat/lon configuration. Notice that specifying this for
-    the global models above discards the Arctic - this is most of ASTE!
+- specifying `type=latlon` is not available, because most of the model grid is not on a regular lat/lon configuration. Notice that specifying this for the global models above discards the Arctic - this is most of ASTE!
 - there are 6 "faces" compared to 13 in the global grids
-- the grid is much smaller, for example a single 3D temperature field is
-    6 x 270 x 270 vs 13 x 4320 x 4320 as above, < 1% the size
-- some variables are named differently, and follow MITgcm standard naming
-    conventions. These are::
+- the grid is much smaller, for example a single 3D temperature field is 6 x 270 x 270 vs 13 x 4320 x 4320 as above, < 1% the size
+- some variables are named differently than the LLC4320/LLC2160 output, following MITgcm standard naming conventions. These are::
+
     THETA       : Potential Temperature
     SALT        : Salinity
     ETAN        : Sea level anomaly
     UVELMASS    : Zonal Velocity (mass weighted)
     VVELMASS    : Zonal Velocity (mass weighted)
     WVELMASS    : Vertical Velocity (mass weighted)
+
 where the "MASS" accounts for a time varying vertical coordinate.
 
 
