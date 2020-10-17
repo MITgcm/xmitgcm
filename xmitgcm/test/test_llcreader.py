@@ -23,7 +23,15 @@ EXPECTED_COORDS = {2160: ['CS','SN','Depth',
                           'drC','drF','dxC','dxF','dxG','dyC','dyF','dyG',
                           'hFacC','hFacS','hFacW','PHrefC','PHrefF',
                           'rA','rAs','rAw','rhoRef','Z','Zp1','Zl','Zu','XC','YC',
-                          'rAz','XG','YG','dxV','dyU']}
+                          'rAz','XG','YG','dxV','dyU'],
+                   'aste_270': ["CS", "Depth", "PHrefC", "PHrefF", "SN",
+                                "XC", "XG", "YC", "YG", "Z",
+                                "Zl", "Zp1", "Zu", "drC", "drF",
+                                "dxC", "dxG", "dyC", "dyG", "hFacC",
+                                "hFacS", "hFacW", "maskC", "maskCtrlC", "maskCtrlS",
+                                "maskCtrlW", "maskInC", "maskInS", "maskInW", "maskS",
+                                "maskW", "niter", "rA", "rAs", "rAw",
+                                "rAz", "rhoRef"]}
 
 ########### Generic llcreader tests on local data ##############################
 
@@ -150,6 +158,9 @@ def test_ecco_portal_latlon(ecco_portal_model):
             assert (len(ds_ll[fld]),)==ds_ll[fld].data.chunks[0]
 
 ########### ASTE Portal Tests ##################################################
+@pytest.fixture(scope='module')
+def aste_portal_model():
+    return llcreader.CRIOSPortalASTE270Model()
 
 def test_aste_portal_faces(aste_portal_model):
     # just get three timesteps
@@ -160,7 +171,7 @@ def test_aste_portal_faces(aste_portal_model):
                               'j_g': nx, 'k': 50, 'k_u': 50, 'k_l': 50,
                               'k_p1': 51, 'time': 3}
     assert set(aste_portal_model.varnames) == set(ds_faces.data_vars)
-    assert set(aste_portal_model.grid_varnames).issubset(set(ds_faces.coords))
+    assert set(EXPECTED_COORDS['aste_270']).issubset(set(ds_faces.coords))
 
     # make sure vertical coordinates are in one single chunk
     for fld in ds_faces[['Z','Zl','Zu','Zp1']].coords:
@@ -181,6 +192,4 @@ def test_aste_portal_latlon(aste_portal_model):
     with pytest.raises(TypeError):
         ds_ll = aste_portal_model.get_dataset(iters=iters,type='latlon')
 
-@pytest.fixture(scope='module')
-def aste_poral_model():
-    return llcreader.CRIOSPortalASTE270Model()
+
