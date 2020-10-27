@@ -407,7 +407,7 @@ All available diagnostics are shown here:
     'oceQnet', 'oceQsw', 'oceSPDep', 'oceSPflx', 'oceSPtnd', 'oceSflux', 'oceTAUX',
     'oceTAUY', 'sIceLoad']
 
-Nguyen et al. (2020). The Arctic Subpolar gyre sTate Estimate: a data-constrained and dynamically consistent ocean-sea ice estimate for 2002–2017. Submitted to Journal of Advances in Modeling Earth Systems.
+Nguyen, An T., Ocaña, V., Pillar, H., Bigdeli, A., Smith, T. A., & Heimbach, P. (2021). The Arctic Subpolar gyre sTate Estimate: a data-constrained and dynamically consistent ocean-sea ice estimate for 2002–2017. Submitted to Journal of Advances in Modeling Earth Systems.
 
 
 ASTE Release 1 on Sverdrup
