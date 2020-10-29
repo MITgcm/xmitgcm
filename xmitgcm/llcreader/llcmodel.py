@@ -435,9 +435,10 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, nfaces,
         index = None
         mask = None
 
-    # Need to offset all facets after any "pad_before_y"
-    pre_pad = np.cumsum(pad_before)
-    post_pad = shift_and_pad(np.cumsum(pad_after),left=False).compute()
+    # Offset start/end read position due to padding facet before me
+    pre_pad = np.cumsum([x+y for x,y in zip(pad_before,pad_after)])
+    pre_pad = shift_and_pad(pre_pad,left=False).compute()
+    tot_pad = pre_pad[-1]+pad_after[-1]
 
     for k in klevels:
         assert (k >= 0) & (k < nz)
@@ -449,13 +450,14 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, nfaces,
             start = index[i]
             end = index[i+1]
         else:
-            level_start = k * nx**2 * nfaces
+            level_start = k * (nx**2 * nfaces - nx * tot_pad)
             facet_start, facet_end = _uncompressed_facet_index(nfacet, nx, nfaces)
             start = level_start + facet_start
             end = level_start + facet_end - nx*pad_after[nfacet]
-
-            start,end = [x - (1+k*nfaces)*nx*(pre_pad[nfacet]+post_pad[nfacet]) if k+nfacet!=0 else x for x in [start,end]]
             end = end - nx*(pad_before[nfacet]) if k*nfacet==0 else end
+
+            start,end = [x - nx*pre_pad[nfacet] if k+nfacet!=0 else x for x in [start,end]]
+
 
         read_offset = start * dtype.itemsize # in bytes
         read_length  = (end - start) * dtype.itemsize # in bytes
