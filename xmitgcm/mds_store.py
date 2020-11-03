@@ -238,7 +238,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
                 elif xr.__version__ < '0.15.2':
                     ds = xr.combine_by_coords(datasets)
                 else:
-                    ds = xr.combine_by_coords(datasets,combine_attrs='drop')
+                    ds = xr.combine_by_coords(datasets, compat='override', coords='minimal', combine_attrs='drop')
 
                 if swap_dims:
                     ds = _swap_dimensions(ds, geometry)
