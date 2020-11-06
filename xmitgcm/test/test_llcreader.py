@@ -133,3 +133,17 @@ def test_ecco_portal_latlon(ecco_portal_model):
         if isinstance(ds_ll[fld].data,dsa):
             assert len(ds_ll[fld].data.chunks)==1
             assert (len(ds_ll[fld]),)==ds_ll[fld].data.chunks[0]
+
+# regression test for https://github.com/MITgcm/xmitgcm/issues/233
+@pytest.mark.slow
+def test_llc4320_klevels_bug(ecco_portal_model):
+    # just get three timesteps
+    iter_stop = ecco_portal_model.iter_start + ecco_portal_model.iter_step + 1
+    ds_vel = ecco_portal_model.get_dataset(
+        varnames=['U', 'V'],
+        type='latlon',
+        k_levels=[1],
+        iter_stop=iter_stop,
+        read_grid=False
+    )
+    ds_vel.sum().compute()
