@@ -450,7 +450,6 @@ def _get_1d_chunk(store, varname, klevels, nz, dtype):
     buffer = file.read(read_length)
     data = np.frombuffer(buffer,dtype=dtype)
 
-    # now subset: is this line broken?
     return data[klevels]
 
 class BaseLLCModel:
@@ -533,12 +532,12 @@ class BaseLLCModel:
         # determine kp1 levels
         # get borders to all k (center) levels
         # ki used to get Zu, Zl later
-        ku = np.concatenate([k_levels[1:],[k_levels[-1]+1]])
+        ku = k_levels[1:] + [k_levels[-1] + 1 ]
         kp1 = []
         ki=[]
         for i,(x,y) in enumerate(zip(k_levels,ku)):
-            kp1+= [x] if x not in kp1 else []
-            kp1+= [y] if y-x==1 else [x+1]
+            kp1 += [x] if x not in kp1 else []
+            kp1 += [y] if y-x==1 else [x+1]
 
 
         kp1=np.array(kp1)
@@ -711,7 +710,7 @@ class BaseLLCModel:
         if type=='latlon':
             ds = _faces_coords_to_latlon(ds)
 
-        k_levels = k_levels or np.arange(self.nz)
+        k_levels = k_levels or list(range(self.nz))
         kp1_levels = self._get_kp1_levels(k_levels)
 
         ds = ds.sel(k=k_levels, k_l=k_levels, k_u=k_levels, k_p1=kp1_levels)
