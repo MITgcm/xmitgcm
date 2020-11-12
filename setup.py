@@ -3,10 +3,10 @@ import os
 import re
 import sys
 import warnings
+import versioneer
 
 from setuptools import setup, find_packages
 
-VERSION = '0.2.2'
 DISTNAME = 'xmitgcm'
 LICENSE = 'Apache'
 AUTHOR = 'Ryan Abernathey'
@@ -19,17 +19,17 @@ CLASSIFIERS = [
     'Intended Audience :: Science/Research',
     'Programming Language :: Python',
     'Programming Language :: Python :: 2',
-    'Programming Language :: Python :: 2.6',
     'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.3',
-    'Programming Language :: Python :: 3.4',
+    'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.7',
+    'Programming Language :: Python :: 3.8',
     'Topic :: Scientific/Engineering',
 ]
 
-INSTALL_REQUIRES = ['xarray >= 0.10.1', 'dask >= 0.12']
+INSTALL_REQUIRES = ['xarray >= 0.10.1', 'dask >= 1.0', 'cachetools']
 SETUP_REQUIRES = ['pytest-runner']
-TESTS_REQUIRE = ['pytest >= 2.8', 'coverage']
+TESTS_REQUIRE = ['pytest >= 4.0', 'coverage']
 
 DESCRIPTION = "Read MITgcm mds binary files into xarray"
 def readme():
@@ -37,7 +37,8 @@ def readme():
         return f.read()
 
 setup(name=DISTNAME,
-      version=VERSION,
+      version=versioneer.get_version(),
+      cmdclass=versioneer.get_cmdclass(),
       license=LICENSE,
       author=AUTHOR,
       author_email=AUTHOR_EMAIL,

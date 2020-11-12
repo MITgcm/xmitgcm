@@ -21,18 +21,28 @@ from .variables import dimensions, \
     horizontal_coordinates_curvcart, horizontal_coordinates_llc, \
     horizontal_coordinates_cs, \
     vertical_coordinates, horizontal_grid_variables, vertical_grid_variables, \
-    volume_grid_variables, state_variables, aliases, package_state_variables
+    volume_grid_variables, state_variables, aliases, package_state_variables, \
+    extra_grid_variables, mask_variables
 # would it be better to import mitgcm_variables and then automate the search
 # for variable dictionaries
 
 from .utils import parse_meta_file, read_mds, parse_available_diagnostics,\
     get_extra_metadata
 
+from .file_utils import listdir, listdir_startswith, listdir_endswith, \
+    listdir_startsandendswith, listdir_fnmatch
+
 # Python2/3 compatibility
 if (sys.version_info > (3, 0)):
     stringtypes = [str]
 else:
     stringtypes = [str, unicode]
+
+# xarray>=0.12.0 compatiblity
+try:
+    from xarray.core.pycompat import OrderedDict
+except ImportError:
+    from collections import OrderedDict
 
 # should we hard code this?
 LLC_NUM_FACES = 13
@@ -42,7 +52,7 @@ LLC_FACE_DIMNAME = 'face'
 def open_mdsdataset(data_dir, grid_dir=None,
                     iters='all', prefix=None, read_grid=True,
                     delta_t=1, ref_date=None, calendar='gregorian',
-                    geometry='sphericalpolar',
+                    levels=None, geometry='sphericalpolar',
                     grid_vars_to_coords=True, swap_dims=None,
                     endian=">", chunks=None,
                     ignore_unknown_vars=False, default_dtype=None,
@@ -72,6 +82,9 @@ def open_mdsdataset(data_dir, grid_dir=None,
         e.g. "1990-1-1 0:0:0" (See CF conventions [1]_)
     calendar : string, optional
         A calendar allowed by CF conventions [1]_
+    levels : list or slice, optional
+        A list or slice of the indexes of the grid levels to read
+        Same syntax as in the data.diagnostics file
     geometry : {'sphericalpolar', 'cartesian', 'llc', 'curvilinear', 'cs'}
         MITgcm grid geometry specifier
     grid_vars_to_coords : boolean, optional
@@ -152,6 +165,13 @@ def open_mdsdataset(data_dir, grid_dir=None,
     else:
         pass
 
+    # if levels s a slice or a list, a subset of levels is needed
+    if levels is not None and nz is not None:
+        warnings.warn('levels has been set, nz will be ignored.')
+        nz = None
+    if isinstance(levels, slice):
+        levels = np.arange(levels.start, levels.stop)
+
     # We either have a single iter, in which case we create a fresh store,
     # or a list of iters, in which case we combine.
     if iters == 'all':
@@ -163,7 +183,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
             iternum = int(iters)
         # if not we probably have some kind of list
         except TypeError:
-            if len(iters) == 1:
+            if len(iters) == 1 and levels is None:
                 iternum = int(iters[0])
             else:
                 # We have to check to make sure we have the same prefixes at
@@ -195,21 +215,33 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     ignore_unknown_vars=ignore_unknown_vars,
                     default_dtype=default_dtype,
                     nx=nx, ny=ny, nz=nz, llc_method=llc_method,
-                    extra_metadata=extra_metadata)
+                    levels=levels, extra_metadata=extra_metadata)
                 datasets = [open_mdsdataset(
                         data_dir, iters=iternum, read_grid=False, **kwargs)
                     for iternum in iters]
                 # now add the grid
                 if read_grid:
                     if 'iters' in kwargs:
-                        kwargs.remove('iters')
+                        kwargs.pop('iters')
                     if 'read_grid' in kwargs:
-                        kwargs.remove('read_grid')
-                    datasets.insert(0,
-                        open_mdsdataset(data_dir, iters=None, read_grid=True,
-                                        **kwargs))
+                        kwargs.pop('read_grid')
+                    if levels is not None:
+                        kwargs.pop('nz')
+                        kwargs.pop('levels')
+                    grid_dataset = open_mdsdataset(data_dir, iters=None,
+                                                   read_grid=True, **kwargs)
+                    if levels is not None:
+                        grid_dataset = grid_dataset.isel(**{coord: levels
+                                    for coord in ['k', 'k_l', 'k_u', 'k_p1']})
+                    datasets.insert(0, grid_dataset)
                 # apply chunking
-                ds = xr.auto_combine(datasets)
+                if sys.version_info[0] < 3:
+                    ds = xr.auto_combine(datasets)
+                elif xr.__version__ < '0.15.2':
+                    ds = xr.combine_by_coords(datasets)
+                else:
+                    ds = xr.combine_by_coords(datasets, compat='override', coords='minimal', combine_attrs='drop')
+
                 if swap_dims:
                     ds = _swap_dimensions(ds, geometry)
                 if grid_vars_to_coords:
@@ -222,7 +254,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
                           ignore_unknown_vars=ignore_unknown_vars,
                           default_dtype=default_dtype,
                           nx=nx, ny=ny, nz=nz, llc_method=llc_method,
-                          extra_metadata=extra_metadata)
+                          levels=levels, extra_metadata=extra_metadata)
     ds = xr.Dataset.load_store(store)
 
     if swap_dims:
@@ -230,23 +262,8 @@ def open_mdsdataset(data_dir, grid_dir=None,
     if grid_vars_to_coords:
         ds = _set_coords(ds)
 
-    if ref_date and 'time' in ds:
-        # our own little hack for decoding cf datetimes
-        encoding = {}
-        units = ds.time.attrs.get('units') or ''
-        if 'since' in units:
-            calendar = ds.time.attrs.get('calendar')
-            encoding['units'] = units
-            del ds.time.attrs['units']
-            if calendar:
-                encoding['calendar'] = calendar
-                del ds.time.attrs['calendar']
-            ds.time.data = (xr.coding.times
-                            .decode_cf_datetime(ds.time.data, units=units,
-                                            calendar=calendar))
-            # this doesn't seem to have any effect, so we remove it
-            #ds.time.encoding = encoding
-
+    if 'time' in ds:
+        ds['time'] = xr.decode_cf(ds[['time']])['time']
 
     # do we need more fancy logic (like open_dataset), or is this enough
     if chunks is not None:
@@ -267,7 +284,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
 def _set_coords(ds):
     """Turn all variables without `time` dimensions into coordinates."""
     coords = set()
-    for vname in ds:
+    for vname in ds.variables:
         if ('time' not in ds[vname].dims) or (ds[vname].dims == ('time',)):
             coords.add(vname)
     return ds.set_coords(list(coords))
@@ -302,9 +319,12 @@ def _swap_dimensions(ds, geometry, drop_old=True):
     for orig_dim in ds.dims:
         if 'swap_dim' in ds[orig_dim].attrs:
             new_dim = ds[orig_dim].attrs['swap_dim']
-            ds = ds.swap_dims({orig_dim: new_dim})
+            ds = ds.swap_dims({orig_dim:  new_dim})
             if drop_old:
-                ds = ds.drop(orig_dim)
+                if sys.version_info[0] < 3:
+                    ds = ds.drop(orig_dim)
+                else:
+                    ds = ds.drop_vars(orig_dim)
     return ds
 
 
@@ -318,7 +338,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                  endian='>', ignore_unknown_vars=False,
                  default_dtype=np.dtype('f4'),
                  nx=None, ny=None, nz=None, llc_method="smallchunks",
-                 extra_metadata=None):
+                 levels=None, extra_metadata=None):
         """
         This is not a user-facing class. See open_mdsdataset for argument
         documentation. The only ones which are distinct are.
@@ -355,8 +375,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             self.default_dtype = default_dtype
 
         # storage dicts for variables and attributes
-        self._variables = xr.core.pycompat.OrderedDict()
-        self._attributes = xr.core.pycompat.OrderedDict()
+        self._variables = OrderedDict()
+        self._attributes = OrderedDict()
         self._dimensions = []
 
         # the dimensions are theoretically the same for all datasets
@@ -428,8 +448,12 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         # http://pycomodo.forge.imag.fr/norm.html
         irange = np.arange(self.nx)
         jrange = np.arange(self.ny)
-        krange = np.arange(self.nz)
-        krange_p1 = np.arange(self.nz+1)
+        if levels is None:
+            krange = np.arange(self.nz)
+            krange_p1 = np.arange(self.nz+1)
+        else:
+            krange = levels
+            krange_p1 = levels + [levels[-1] + 1]
         # the keys are `standard_name` attribute
         dimension_data = {
             "x_grid_index": irange,
@@ -496,8 +520,10 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
 
         # build lookup tables for variable metadata
         self._all_grid_variables = _get_all_grid_variables(self.geometry,
+                                                           self.grid_dir,
                                                            self.layers)
         self._all_data_variables = _get_all_data_variables(self.data_dir,
+                                                           self.grid_dir,
                                                            self.layers)
 
         # The rest of the data has to be read from disk.
@@ -525,6 +551,9 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 (vname, dims, data, attrs) = self.fix_inconsistent_variables(
                     vname, dims, data, attrs)
 
+                # Create masks from hFac variables
+                data = self.calc_masks(vname, data)
+
                 thisvar = xr.Variable(dims, data, attrs)
                 self._variables[vname] = thisvar
                 # print(type(data), type(thisvar._data), thisvar._in_memory)
@@ -540,6 +569,14 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 drc_data[-1] = 0.5 * data[-1]
                 data = drc_data
         return vname, dims, data, attrs
+
+    def calc_masks(self, vname, data):
+        """Compute mask as True where hFac nonzero, otherwise False"""
+
+        if vname[0:4] == 'mask':
+            data = data > 0
+
+        return data
 
     def load_from_prefix(self, prefix, iternum=None, extra_metadata=None):
         """Read data and look up metadata for grid variable `name`.
@@ -611,6 +648,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 metadata = (self._all_grid_variables[vname]
                             if vname in self._all_grid_variables
                             else self._all_data_variables[vname])
+
             except KeyError:
                 if self._ignore_unknown_vars:
                     # we didn't find any metadata, so we just skip this var
@@ -643,11 +681,14 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             # How should we handle this? Can either eliminate one of the dims
             # or add an extra axis to the data. Let's try the former, on the
             # grounds that it is simpler for the user.
-            if len(dims) == 3 and data.ndim == 2:
+            if ((len(dims) == 3 and data.ndim == 2) or
+                (self.llc and (len(dims) == 3 and data.ndim == 3))):
                 # Deleting the first dimension (z) assumes that 2D data always
                 # corresponds to x,y horizontal data. Is this really true?
                 # The answer appears to be yes: 2D (x|y,z) data retains the
                 # missing dimension as an axis of length 1.
+                # Also handles https://github.com/xgcm/xmitgcm/issues/140
+                # (special case for 2d llc diags)
                 dims = dims[1:]
             elif len(dims) == 1 and data.ndim > 1:
                 # this is for certain profile data like RC, PHrefC, etc.
@@ -711,7 +752,7 @@ def _guess_model_horiz_dims(data_dir, is_llc=False):
 
 def _guess_layers(data_dir):
     """Return a dict matching layers suffixes to dimension length."""
-    layers_files = glob(os.path.join(data_dir, 'layers*.meta'))
+    layers_files = listdir_startsandendswith(data_dir, 'layers', '.meta')
     all_layers = {}
     for fname in layers_files:
         # make sure to exclude filenames such as
@@ -719,13 +760,13 @@ def _guess_layers(data_dir):
         if not re.search('\.\d{10}\.', fname):
             # should turn "foo/bar/layers1RHO.meta" into "1RHO"
             layers_suf = os.path.splitext(os.path.basename(fname))[0][6:]
-            meta = parse_meta_file(fname)
+            meta = parse_meta_file(os.path.join(data_dir, fname))
             Nlayers = meta['dimList'][2][2]
             all_layers[layers_suf] = Nlayers
     return all_layers
 
 
-def _get_all_grid_variables(geometry, layers={}):
+def _get_all_grid_variables(geometry, grid_dir=None, layers={}):
     """"Put all the relevant grid metadata into one big dictionary."""
     possible_hcoords = {'cartesian': horizontal_coordinates_cartesian,
                         'llc': horizontal_coordinates_llc,
@@ -733,8 +774,13 @@ def _get_all_grid_variables(geometry, layers={}):
                         'curvilinear': horizontal_coordinates_curvcart,
                         'sphericalpolar': horizontal_coordinates_spherical}
     hcoords = possible_hcoords[geometry]
+
+    # look for extra variables, if they exist in grid_dir
+    extravars = _get_extra_grid_variables(grid_dir) if grid_dir is not None else {}
+
     allvars = [hcoords, vertical_coordinates, horizontal_grid_variables,
-               vertical_grid_variables, volume_grid_variables]
+               vertical_grid_variables, volume_grid_variables, mask_variables,
+               extravars]
 
     # tortured logic to add layers grid variables
     layersvars = [_make_layers_variables(layer_name)
@@ -745,10 +791,25 @@ def _get_all_grid_variables(geometry, layers={}):
     return metadata
 
 
+def _get_extra_grid_variables(grid_dir):
+    """Scan a directory and return all file prefixes for extra grid files.
+       Then return the variable information for each of these"""
+    extra_grid = {}
+
+    all_datafiles = listdir_endswith(grid_dir, '.data')
+    for f in all_datafiles:
+        prefix = os.path.split(f[:-5])[-1]
+        # Only consider what we find that matches extra_grid_vars
+        if prefix in extra_grid_variables:
+            extra_grid[prefix] = extra_grid_variables[prefix]
+
+    return extra_grid
+
+
 def _make_layers_variables(layer_name):
     """Translate metadata template to actual variable metadata."""
     from .variables import layers_grid_variables
-    lvars = xr.core.pycompat.OrderedDict()
+    lvars = OrderedDict()
     layer_num = layer_name[0]
     # should always be int
     assert isinstance(int(layer_num), int)
@@ -776,17 +837,25 @@ def _recursively_replace(item, search, replace):
         return item
 
 
-def _get_all_data_variables(data_dir, layers):
+def _get_all_data_variables(data_dir, grid_dir, layers):
     """"Put all the relevant data metadata into one big dictionary."""
     allvars = [state_variables]
     allvars.append(package_state_variables)
+
     # add others from available_diagnostics.log
-    fname = os.path.join(data_dir, 'available_diagnostics.log')
-    if os.path.exists(fname):
-        diag_file = fname
+    # search in the data dir
+    fnameD = os.path.join(data_dir, 'available_diagnostics.log')
+    # and in the grid dir
+    fnameG = os.path.join(grid_dir, 'available_diagnostics.log')
+    # first look in the data dir
+    if os.path.exists(fnameD):
+        diag_file = fnameD
+    # then in the grid dir
+    elif os.path.exists(fnameG):
+        diag_file = fnameG
     else:
         warnings.warn("Couldn't find available_diagnostics.log "
-                      "in %s. Using default version." % data_dir)
+                      "in %s or %s. Using default version." % (data_dir, grid_dir))
         from .default_diagnostics import diagnostics
         diag_file = StringIO(diagnostics)
     available_diags = parse_available_diagnostics(diag_file, layers)
@@ -796,7 +865,7 @@ def _get_all_data_variables(data_dir, layers):
     # Now add the suffix '-T' to every diagnostic. This is a somewhat hacky
     # way to increase the coverage of possible output filenames.
     # But it doesn't work in python3!!!
-    extra_metadata = xr.core.pycompat.OrderedDict()
+    extra_metadata = OrderedDict()
     for name, val in metadata.items():
         newname = name + '-T'
         extra_metadata[newname] = val
@@ -810,7 +879,7 @@ def _get_all_data_variables(data_dir, layers):
 
 
 def _concat_dicts(list_of_dicts):
-    result = xr.core.pycompat.OrderedDict()
+    result = OrderedDict()
     for eachdict in list_of_dicts:
         for k, v in eachdict.items():
             result[k] = v
@@ -821,7 +890,7 @@ def _get_all_iternums(data_dir, file_prefixes=None,
                       file_format='*.??????????.data'):
     """Scan a directory for all iteration number suffixes."""
     iternums = set()
-    all_datafiles = glob(os.path.join(data_dir, file_format))
+    all_datafiles = listdir_fnmatch(data_dir, file_format)
     istart = file_format.find('?')-len(file_format)
     iend = file_format.rfind('?')-len(file_format)+1
     for f in all_datafiles:
@@ -837,10 +906,11 @@ def _get_all_iternums(data_dir, file_prefixes=None,
 
 
 def _is_pickup_prefix(prefix):
-    if len(prefix)>=6:
+    if len(prefix) >= 6:
         if prefix[:6] == 'pickup':
             return True
     return False
+
 
 def _get_all_matching_prefixes(data_dir, iternum, file_prefixes=None,
                                ignore_pickup=True):
@@ -849,7 +919,7 @@ def _get_all_matching_prefixes(data_dir, iternum, file_prefixes=None,
     if iternum is None:
         return []
     prefixes = set()
-    all_datafiles = glob(os.path.join(data_dir, '*.%010d.data' % iternum))
+    all_datafiles = listdir_endswith(data_dir, '.%010d.data' % iternum)
     for f in all_datafiles:
         iternum = int(f[-15:-5])
         prefix = os.path.split(f[:-16])[-1]
@@ -891,5 +961,5 @@ def _reshape_for_llc(dims, data):
             # add face dimension to dims
             jdim = dims.index(dim)
             dims.insert(jdim, LLC_FACE_DIMNAME)
-            assert data.ndim==len(dims)
+    assert data.ndim==len(dims), '%r %r' % (data.shape, dims)
     return dims, data

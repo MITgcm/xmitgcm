@@ -12,6 +12,8 @@ from functools import reduce
 from dask import delayed
 import dask.array as dsa
 from dask.base import tokenize
+import xarray as xr
+import sys
 
 def parse_meta_file(fname):
     """Get the metadata as a dict out of the MITgcm mds .meta file.
@@ -96,7 +98,8 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
     iternum : int, optional
         The iteration number suffix
     use_mmap : bool, optional
-        Whether to read the data using a numpy.memmap
+        Whether to read the data using a numpy.memmap.
+        Mutually exclusive with `use_dask`.
     endian : {'>', '<', '|'}, optional
         Dndianness of the data
     dtype : numpy.dtype, optional
@@ -104,7 +107,8 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
     shape : tuple, optional
         Shape of the data (will be inferred from the .meta file by default)
     use_dask : bool, optional
-        Whether wrap the reading of the raw data in a ``dask.delayed`` object
+        Whether wrap the reading of the raw data in a ``dask.delayed`` object.
+        Mutually exclusive with `use_mmap`.
     extra_metadata : dict, optional
         Dictionary containing some extra metadata that will be appended to
         content of MITgcm meta file to create the file_metadata. This is needed
@@ -112,23 +116,23 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
         extra metadata used is of the form :
 
         aste = {'has_faces': True, 'ny': 1350, 'nx': 270,
-                'ny_facets': [450,0,270,180,450],
-                'pad_before_y': [90,0,0,0,0],
-                'pad_after_y': [0,0,0,90,90],
-                'face_facets': [0, 0, 2, 3, 4, 4],
-                'facet_orders' : ['C', 'C', 'C', 'F', 'F'],
-                'face_offsets' : [0, 1, 0, 0, 0, 1],
-                'transpose_face' : [False, False, False,
-                                    True, True, True]}
+        'ny_facets': [450,0,270,180,450],
+        'pad_before_y': [90,0,0,0,0],
+        'pad_after_y': [0,0,0,90,90],
+        'face_facets': [0, 0, 2, 3, 4, 4],
+        'facet_orders' : ['C', 'C', 'C', 'F', 'F'],
+        'face_offsets' : [0, 1, 0, 0, 0, 1],
+        'transpose_face' : [False, False, False,
+        True, True, True]}
 
         llc90 = {'has_faces': True, 'ny': 13*90, 'nx': 90,
-                 'ny_facets': [3*90, 3*90, 90, 3*90, 3*90],
-                 'face_facets': [0, 0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 4, 4],
-                 'facet_orders': ['C', 'C', 'C', 'F', 'F'],
-                 'face_offsets': [0, 1, 2, 0, 1, 2, 0, 0, 1, 2, 0, 1, 2],
-                 'transpose_face' : [False, False, False,
-                                     False, False, False, False,
-                                     True, True, True, True, True, True]}
+        'ny_facets': [3*90, 3*90, 90, 3*90, 3*90],
+        'face_facets': [0, 0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 4, 4],
+        'facet_orders': ['C', 'C', 'C', 'F', 'F'],
+        'face_offsets': [0, 1, 2, 0, 1, 2, 0, 0, 1, 2, 0, 1, 2],
+        'transpose_face' : [False, False, False,
+        False, False, False, False,
+        True, True, True, True, True, True]}
 
         llc grids have typically 5 rectangular facets and will be mapped onto
         N (=13 for llc, =6 for aste) square faces.
@@ -143,11 +147,11 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
         * list of len=nfacets:
 
         #. ny_facets : number of points in y direction of each facet
-                      (usually n * nx)
+        (usually n * nx)
         #. pad_before_y (Regional configuration) : pad data with N zeros
-                                                  before array
+        before array
         #. pad_after_y (Regional configuration) : pad data with N zeros
-                                                 after array
+        after array
         #. facet_order : row/column major order of this facet
 
         * list of len=nfaces:
@@ -179,6 +183,13 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
        on the options selected.
     """
 
+    if use_mmap and use_dask:
+        raise TypeError('`use_mmap` and `use_dask` are mutually exclusive:'
+                        ' Both memory-mapped and dask arrays'
+                        ' use lazy evaluation.')
+    elif use_mmap is None:
+        use_mmap = False if use_dask else True
+
     if iternum is None:
         istr = ''
     else:
@@ -186,6 +197,11 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
         istr = '.%010d' % iternum
     datafile = fname + istr + '.data'
     metafile = fname + istr + '.meta'
+
+    if use_mmap and use_dask:
+        raise TypeError('nope')
+    elif use_mmap is None:
+        use_mmap = False if use_dask else True
 
     # get metadata
     try:
@@ -354,6 +370,91 @@ def read_raw_data(datafile, dtype, shape, use_mmap=False, offset=0,
     return data
 
 
+def parse_namelist(file, silence_errors=True):
+    """Read a FOTRAN namelist file into a dictionary.
+
+    PARAMETERS
+    ----------
+    file : str
+        Path to the namelist file to read.
+
+    RETURNS
+    -------
+    data : dict
+        Dictionary of each namelist as dictionaries
+    """
+    def parse_val(val):
+        """Parse a string and cast it in the appropriate python type."""
+        if ',' in val:  # It's a list, parse recursively
+            return [parse_val(subval.strip()) for subval in val.split(',')]
+        elif val.startswith("'"):  # It's a string, remove quotes.
+            return val[1:-1].strip()
+        elif '*' in val:  # It's shorthand for a repeated value
+            repeat, number = val.split('*')
+            return [parse_val(number)] * int(repeat)
+        elif val in ['.TRUE.', '.FALSE.']:
+            return val == '.TRUE.'
+        elif '.' in val or 'E' in val:  # It is a Real (float)
+            return float(val)
+        # Finally try for an int
+        return int(val)
+
+    data = {}
+    current_namelist = ''
+    raw_lines = []
+    with open(file) as f:
+        for line in f:
+            # Remove comments
+            line = line.split('#')[0].strip()
+            if '=' in line or '&' in line:
+                raw_lines.append(line)
+            elif line:
+                raw_lines[-1] += line
+
+    for line in raw_lines:
+        if line.startswith('&'):
+            current_namelist = line.split('&')[1]
+            if current_namelist:  # else : it's the end of a namelist.
+                data[current_namelist] = {}
+        else:
+            field, value = map(str.strip, line[:-1].split('='))
+            try:
+                value = parse_val(value)
+            except ValueError:
+                mess = ('Unable to read value for field {field} in file {file}: {value}'
+                        ).format(field=field, file=file, value=value)
+                if silence_errors:
+                    warnings.warn(mess)
+                    value = None
+                else:
+                    raise ValueError(mess)
+
+            if '(' in field:  # Field is an array
+                field, idxs = field[:-1].split('(')
+                if field not in data[current_namelist]:
+                    data[current_namelist][field] = []
+                # For generality, we will assign a slice, so we cast in list
+                value = value if isinstance(value, list) else [value]
+                idxs = [slice(int(idx.split(':')[0]) - 1,
+                              int(idx.split(':')[1]))
+                        if ':' in idx else slice(int(idx) - 1, int(idx))
+                        for idx in idxs.split(',')]
+
+                datafield = data[current_namelist][field]
+                # Array are 1D or 2D, if 2D we extend it to the good shape,
+                # filling it with [] and pass the appropriate sublist.
+                # Only works with slice assign (a:b) in first position.
+                missing_spots = idxs[-1].stop - len(datafield)
+                if missing_spots > 0:
+                    datafield.extend([] for i in range(missing_spots))
+                if len(idxs) == 2:
+                    datafield = datafield[idxs[1].start]
+                datafield[idxs[0]] = value
+            else:
+                data[current_namelist][field] = value
+    return data
+
+
 def parse_available_diagnostics(fname, layers={}):
     """Examine the available_diagnostics.log file and translate it into
     useful variable metadata.
@@ -410,25 +511,36 @@ def parse_available_diagnostics(fname, layers={}):
                     zcoord = []
                 elif rlev == 'R':
                     zcoord = [rcoords[rpoint]]
-                elif rlev == 'X' and layers:
-                    layer_name = key.ljust(8)[-4:].strip()
-                    n_layers = layers[layer_name]
-                    if levs == n_layers:
-                        suffix = 'bounds'
-                    elif levs == (n_layers-1):
-                        suffix = 'center'
-                    elif levs == (n_layers-2):
-                        suffix = 'interface'
+                elif rlev == 'L':  # pragma : no cover
+                    # max(Nr, Nrphys) according to doc...
+                    # this seems to be only used in atmos
+                    # with different levels for dynamics and physics
+                    # setting to Nr meanwhile
+                    zcoord = [rcoords[rpoint]]
+                elif rlev == 'X':
+                    if layers:
+                        layer_name = key.ljust(8)[-4:].strip()
+                        n_layers = layers[layer_name]
+                        if levs == n_layers:
+                            suffix = 'bounds'
+                        elif levs == (n_layers-1):
+                            suffix = 'center'
+                        elif levs == (n_layers-2):
+                            suffix = 'interface'
+                        else:  # pragma: no cover
+                            suffix = None
+                            warnings.warn("Could not match rlev = %g to a "
+                                          "layers coordiante" % rlev)
+                        # dimname = ('layer_' + layer_name + '_' +
+                        #            suffix if suffix
+                        dimname = (('l' + layer_name[0] + '_' +
+                                    suffix[0]) if suffix else '_UNKNOWN_')
+                        zcoord = [dimname]
                     else:
-                        suffix = None
-                        warnings.warn("Could not match rlev = %g to a layers"
-                                      "coordiante" % rlev)
-                    # dimname = ('layer_' + layer_name + '_' + suffix if suffix
-                    dimname = (('l' + layer_name[0] + '_' + suffix[0]) if suffix
-                               else '_UNKNOWN_')
-                    zcoord = [dimname]
-                else:
+                        zcoord = ['_UNKNOWN_']
+                else:  # pragma: no cover
                     warnings.warn("Not sure what to do with rlev = " + rlev)
+                    warnings.warn("corresponding diag_id  = " + str(diag_id))
                     zcoord = ['_UNKNOWN_']
                 coords = zcoord + xycoords
                 all_diags[key] = dict(dims=coords,
@@ -651,7 +763,7 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False,
     """
     Return a dictionary of dask arrays for variables in a MDS file
 
-    Parameters
+    PARAMETERS
     ----------
     variable_list   : list
                       list of MITgcm variables, from fldList in .meta
@@ -663,11 +775,12 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False,
                       Whether to read 2D (default) or 3D chunks
                       2D chunks are reading (x,y) levels and 3D chunks
                       are reading the a (x,y,z) field
-    Returns
+    RETURNS
     -------
-    list of data arrays (dask.array, numpy.ndarray or memmap)
-    corresponding to variables from given list in the file
-    described by file_metadata
+    out : list
+        list of data arrays (dask.array, numpy.ndarray or memmap)
+        corresponding to variables from given list in the file
+        described by file_metadata
 
     """
 
@@ -1138,17 +1251,20 @@ def _pad_array(data, file_metadata, face=0):
 
 
 def get_extra_metadata(domain='llc', nx=90):
-    """ Return the extra_metadata dictionay for selected domains
+    """ 
+    Return the extra_metadata dictionay for selected domains
 
-    PARAMETERS:
-    -----------
-    domain: str
-    domain can be llc, aste, cs
-    nx:     int
-    size of the face in the x direction
-    RETURNS:
-    --------
-    dict of extra_metadata
+    PARAMETERS
+    ----------
+    domain : str
+        domain can be llc, aste, cs
+    nx : int
+        size of the face in the x direction
+
+    RETURNS
+    -------
+    extra_metadata : dict
+        all extra_metadata to handle multi-faceted grids
     """
 
     available_domains = ['llc', 'aste', 'cs']
@@ -1192,3 +1308,437 @@ def get_extra_metadata(domain='llc', nx=90):
         extra_metadata = cs
 
     return extra_metadata
+
+
+def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
+                        dtype=np.dtype('d'), endian='>', use_dask=False,
+                        extra_metadata=None):
+    """ 
+    Read grid variables from grid input files, this is especially useful
+    for llc and cube sphere configurations used with land tiles
+    elimination. Reading the input grid files (e.g. tile00[1-5].mitgrid)
+    allows to fill in the blanks of eliminated land tiles.
+
+    PARAMETERS
+    ----------
+    gridfile : str
+        gridfile must contain <NFACET> as wildcard (e.g. tile<NFACET>.mitgrid)
+    nx : int
+        size of the face in the x direction
+    ny : int
+        size of the face in the y direction
+    geometry : str
+        domain geometry can be llc, cs or carthesian not supported yet
+    dtype : np.dtype
+        numeric precision (single/double) of input data
+    endian : string
+        endianness of input data
+    use_dask : bool
+        use dask or not
+    extra_metadata : dict
+        dictionary of extra metadata, needed for llc configurations
+
+    RETURNS
+    ------- 
+    grid : xarray.Dataset
+        all grid variables
+    """
+
+    file_metadata = {}
+    # grid variables are stored in this order
+    file_metadata['fldList'] = ['XC', 'YC', 'DXF', 'DYF', 'RAC',
+                                'XG', 'YG', 'DXV', 'DYU', 'RAZ',
+                                'DXC', 'DYC', 'RAW', 'RAS', 'DXG', 'DYG']
+
+    file_metadata['vars'] = file_metadata['fldList']
+    dims_vars_list = []
+    for var in file_metadata['fldList']:
+        dims_vars_list.append(('ny', 'nx'))
+    file_metadata['dims_vars'] = dims_vars_list
+
+    # no vertical levels or time records
+    file_metadata['nz'] = 1
+    file_metadata['nt'] = 1
+
+# for curvilinear non-facet grids (TO DO)
+#    if nx is not None:
+#        file_metadata['nx'] = nx
+#    if ny is not None:
+#        file_metadata['ny'] = ny
+    if extra_metadata is not None:
+        file_metadata.update(extra_metadata)
+
+    # numeric representation
+    file_metadata['endian'] = endian
+    file_metadata['dtype'] = dtype
+
+    if geometry == 'llc':
+        nfacets = 5
+        try:
+            nfaces = len(file_metadata['face_facets'])
+        except:
+            raise ValueError('metadata must contain face_facets')
+    if geometry == 'cs':  # pragma: no cover
+        raise NotImplementedError("'cs' geometry is not supported yet")
+
+    # create placeholders for data
+    gridfields = {}
+    for field in file_metadata['fldList']:
+        gridfields.update({field: None})
+
+    if geometry == 'llc':
+        for kfacet in range(nfacets):
+            # we need to adapt the metadata to the grid file
+            grid_metadata = file_metadata.copy()
+
+            fname = gridfile.replace('<NFACET>', str(kfacet+1).zfill(3))
+            grid_metadata['filename'] = fname
+
+            if file_metadata['facet_orders'][kfacet] == 'C':
+                nxgrid = file_metadata['nx'] + 1
+                nygrid = file_metadata['ny_facets'][kfacet] + 1
+            elif file_metadata['facet_orders'][kfacet] == 'F':
+                nxgrid = file_metadata['ny_facets'][kfacet] + 1
+                nygrid = file_metadata['nx'] + 1
+
+            grid_metadata.update({'nx': nxgrid, 'ny': nygrid,
+                                  'has_faces': False})
+
+            raw = read_all_variables(grid_metadata['vars'], grid_metadata,
+                                     use_dask=use_dask)
+
+            rawfields = {}
+            for kfield in np.arange(len(file_metadata['fldList'])):
+
+                rawfields.update(
+                    {file_metadata['fldList'][kfield]: raw[kfield]})
+
+            for field in file_metadata['fldList']:
+                # symetrize
+                tmp = rawfields[field][:, :, :-1, :-1].squeeze()
+                # transpose
+                if grid_metadata['facet_orders'][kfacet] == 'F':
+                    tmp = tmp.transpose()
+
+                for face in np.arange(nfaces):
+                    # identify faces that need to be filled
+                    if grid_metadata['face_facets'][face] == kfacet:
+                        # get offset of face from facet
+                        offset = file_metadata['face_offsets'][face]
+                        nx = file_metadata['nx']
+                        # pad data, if needed (would trigger eager data eval)
+                        # needs a new array not to pad multiple times
+                        padded = _pad_array(tmp, file_metadata, face=face)
+                        # extract the data
+                        dataface = padded[offset*nx:(offset+1)*nx, :]
+                        # transpose, if needed
+                        if file_metadata['transpose_face'][face]:
+                            dataface = dataface.transpose()
+                        # assign values
+                        dataface = dsa.stack([dataface], axis=0)
+                        if face == 0:
+                            gridfields[field] = dataface
+                        else:
+                            gridfields[field] = dsa.concatenate(
+                                [gridfields[field], dataface], axis=0)
+
+    elif geometry == 'cs':  # pragma: no cover
+        raise NotImplementedError("'cs' geometry is not supported yet")
+        pass
+
+    # create the dataset
+    if geometry in ['llc', 'cs']:
+        grid = xr.Dataset({'XC':  (['face', 'j', 'i'],     gridfields['XC']),
+                           'YC':  (['face', 'j', 'i'],     gridfields['YC']),
+                           'DXF': (['face', 'j', 'i'],     gridfields['DXF']),
+                           'DYF': (['face', 'j', 'i'],     gridfields['DYF']),
+                           'RAC': (['face', 'j', 'i'],     gridfields['RAC']),
+                           'XG':  (['face', 'j_g', 'i_g'], gridfields['XG']),
+                           'YG':  (['face', 'j_g', 'i_g'], gridfields['YG']),
+                           'DXV': (['face', 'j', 'i'],     gridfields['DXV']),
+                           'DYU': (['face', 'j', 'i'],     gridfields['DYU']),
+                           'RAZ': (['face', 'j_g', 'i_g'], gridfields['RAZ']),
+                           'DXC': (['face', 'j', 'i_g'],   gridfields['DXC']),
+                           'DYC': (['face', 'j_g', 'i'],   gridfields['DYC']),
+                           'RAW': (['face', 'j', 'i_g'],   gridfields['RAW']),
+                           'RAS': (['face', 'j_g', 'i'],   gridfields['RAS']),
+                           'DXG': (['face', 'j_g', 'i'],   gridfields['DXG']),
+                           'DYG': (['face', 'j', 'i_g'],   gridfields['DYG'])
+                           },
+                          coords={'i': (['i'], np.arange(file_metadata['nx'])),
+                                  'j': (['j'], np.arange(file_metadata['nx'])),
+                                  'i_g': (['i_g'],
+                                          np.arange(file_metadata['nx'])),
+                                  'j_g': (['j_g'],
+                                          np.arange(file_metadata['nx'])),
+                                  'face': (['face'], np.arange(nfaces))
+                                  }
+                          )
+    else:  # pragma: no cover
+        grid = xr.Dataset({'XC':  (['j', 'i'],     gridfields['XC']),
+                           'YC':  (['j', 'i'],     gridfields['YC']),
+                           'DXF': (['j', 'i'],     gridfields['DXF']),
+                           'DYF': (['j', 'i'],     gridfields['DYF']),
+                           'RAC': (['j', 'i'],     gridfields['RAC']),
+                           'XG':  (['j_g', 'i_g'], gridfields['XG']),
+                           'YG':  (['j_g', 'i_g'], gridfields['YG']),
+                           'DXV': (['j', 'i'],     gridfields['DXV']),
+                           'DYU': (['j', 'i'],     gridfields['DYU']),
+                           'RAZ': (['j_g', 'i_g'], gridfields['RAZ']),
+                           'DXC': (['j', 'i_g'],   gridfields['DXC']),
+                           'DYC': (['j_g', 'i'],   gridfields['DYC']),
+                           'RAW': (['j', 'i_g'],   gridfields['RAW']),
+                           'RAS': (['j_g', 'i'],   gridfields['RAS']),
+                           'DXG': (['j_g', 'i'],   gridfields['DXG']),
+                           'DYG': (['j', 'i_g'],   gridfields['DYG'])
+                           },
+                          coords={'i': (['i'], np.arange(file_metadata['nx'])),
+                                  'j': (['j'], np.arange(file_metadata['ny'])),
+                                  'i_g': (['i_g'],
+                                          np.arange(file_metadata['nx'])),
+                                  'j_g': (['j_g'],
+                                          np.arange(file_metadata['ny']))
+                                  }
+                          )
+
+    return grid
+
+
+########## WRITING BINARIES #############################
+
+def find_concat_dim_facet(da, facet, extra_metadata):
+    """ In llc grids, find along which horizontal dimension to concatenate
+    facet between i, i_g and j, j_g. If the order of the facet is F, concat
+    along i or i_g. If order is C, concat along j or j_g. Also return
+    horizontal dim not to concatenate
+
+    PARAMETERS
+    ----------
+    da : xarray.DataArray
+        xmitgcm llc data array
+    facet : int
+        facet number
+    extra_metadata : dict
+        dict of extra_metadata from get_extra_metadata
+
+    RETURNS
+    -------
+    concat_dim, nonconcat_dim : str, str
+        names of the dimensions for concatenation or not
+
+    """
+    order = extra_metadata['facet_orders'][facet]
+    if order == 'C':
+        possible_concat_dims = ['j', 'j_g']
+    elif order == 'F':
+        possible_concat_dims = ['i', 'i_g']
+
+    concat_dim = find_concat_dim(da, possible_concat_dims)
+
+    # we also need to other horizontal dimension for vector indexing
+    all_dims = list(da.dims)
+    # discard face
+    all_dims.remove('face')
+    # remove the concat_dim to find horizontal non_concat dimension
+    all_dims.remove(concat_dim)
+    non_concat_dim = all_dims[0]
+    return concat_dim, non_concat_dim
+
+
+def find_concat_dim(da, possible_concat_dims):
+    """ look for available dimensions in dataaray and pick the one
+    from a list of candidates
+
+    PARAMETERS
+    ----------
+    da : xarray.DataArray
+        xmitgcm llc data array
+    possible_concat_dims : list
+        list of potential dims
+
+    RETURNS
+    -------
+    out : str
+        dimension on which to concatenate
+
+    """
+    out = None
+    for d in possible_concat_dims:
+        if d in da.dims:
+            out = d
+    return out
+
+
+def rebuild_llc_facets(da, extra_metadata):
+    """ For LLC grids, rebuilds facets from a xmitgcm dataarray and
+    store into a dictionary
+
+    PARAMETERS
+    ----------
+    da : xarray.DataArray
+        xmitgcm llc data array
+    extra_metadata : dict
+        dict of extra_metadata from get_extra_metadata
+
+    RETURNS
+    -------
+    facets : dict
+        all facets data in xarray.DataArray form packed into a dictionary
+
+    """
+
+    nfacets = len(extra_metadata['facet_orders'])
+    nfaces = len(extra_metadata['face_facets'])
+    facets = {}
+
+    # rebuild the facets (with padding if present)
+    for kfacet in range(nfacets):
+        facets.update({'facet' + str(kfacet): None})
+
+        concat_dim, non_concat_dim = find_concat_dim_facet(
+            da, kfacet, extra_metadata)
+
+        for kface in range(nfaces):
+            # concatenate faces back into facets
+            if extra_metadata['face_facets'][kface] == kfacet:
+                if extra_metadata['face_offsets'][kface] == 0:
+                    # first face of facet
+                    tmp = da.sel(face=kface)
+                else:
+                    # any other face needs to be concatenated
+                    newface = da.sel(face=kface)
+                    tmp = xr.concat([facets['facet' + str(kfacet)],
+                                     newface], dim=concat_dim)
+
+                facets['facet' + str(kfacet)] = tmp
+
+    # if present, remove padding from facets
+    for kfacet in range(nfacets):
+
+        concat_dim, non_concat_dim = find_concat_dim_facet(
+            da, kfacet, extra_metadata)
+
+        # remove pad before
+        if 'pad_before_y' in extra_metadata:
+            pad = extra_metadata['pad_before_y'][kfacet]
+            # padded array
+            padded = facets['facet' + str(kfacet)]
+
+            if pad != 0:
+                # we need to relabel the grid cells
+                ng = len(padded[concat_dim].values)
+                padded[concat_dim] = np.arange(ng)
+                # select index from non-padded array
+                unpadded_bef = padded.isel({concat_dim: range(pad, ng)})
+            else:
+                unpadded_bef = padded
+
+            facets['facet' + str(kfacet)] = unpadded_bef
+
+        # remove pad after
+        if 'pad_after_y' in extra_metadata:
+            pad = extra_metadata['pad_after_y'][kfacet]
+            # padded array
+            padded = facets['facet' + str(kfacet)]
+
+            if pad != 0:
+                # we need to relabel the grid cells
+                ng = len(padded[concat_dim].values)
+                padded[concat_dim] = np.arange(ng)
+                # select index from non-padded array
+                last = ng-pad
+                unpadded_aft = padded.isel({concat_dim: range(last)})
+            else:
+                unpadded_aft = padded
+
+            facets['facet' + str(kfacet)] = unpadded_aft
+
+    return facets
+
+
+def llc_facets_3d_spatial_to_compact(facets, dimname, extra_metadata):
+    """ Write in compact form a list of 3d facets
+
+    PARAMETERS
+    ----------
+    facets : dict
+        dict of xarray.dataarrays for the facets
+    extra_metadata : dict
+        extra_metadata from get_extra_metadata
+
+    RETURNS
+    -------
+    flatdata : numpy.array
+        all the data in vector form
+    """
+
+    nz = len(facets['facet0'][dimname])
+    nfacets = len(facets)
+    flatdata = np.array([])
+
+    for kz in range(nz):
+        # rebuild the dict
+        tmpdict = {}
+        for kfacet in range(nfacets):
+            this_facet = facets['facet' + str(kfacet)]
+            if this_facet is not None:
+                tmpdict['facet' + str(kfacet)] = this_facet.isel(k=kz)
+            else:
+                tmpdict['facet' + str(kfacet)] = None
+        # concatenate all 2d arrays
+        compact2d = llc_facets_2d_to_compact(tmpdict, extra_metadata)
+        flatdata = np.concatenate([flatdata, compact2d])
+
+    return flatdata
+
+
+def llc_facets_2d_to_compact(facets, extra_metadata):
+    """ Write in compact form a list of 2d facets
+
+    PARAMETERS
+    ----------
+    facets: dict
+        dict of xarray.dataarrays for the facets
+    extra_metadata: dict
+        extra_metadata from get_extra_metadata
+
+    RETURNS
+    -------
+    flatdata : numpy.array
+        all the data in vector form
+    """
+
+    flatdata = np.array([])
+    # loop over facets
+    for kfacet in range(len(facets)):
+        if facets['facet' + str(kfacet)] is not None:
+            tmp = np.reshape(facets['facet' + str(kfacet)].values, (-1))
+            flatdata = np.concatenate([flatdata, tmp])
+
+    return flatdata
+
+
+def write_to_binary(flatdata, fileout, dtype=np.dtype('f')):
+    """ write data in binary file
+
+    PARAMETERS
+    ----------
+    flatdata: numpy.array
+        vector of data to write
+    fileout: str
+        output file name
+    dtype: np.dtype
+        single/double precision
+
+    RETURNS
+    -------
+    None
+    """
+    # write data to binary files
+    fid = open(fileout, "wb")
+    tmp = flatdata.astype(dtype)
+    if sys.byteorder == 'little':
+        tmp = tmp.byteswap(True)
+    fid.write(tmp.tobytes())
+    fid.close()
+    return None

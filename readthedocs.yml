@@ -1,5 +1,11 @@
+version: 2
+
 conda:
-    file: doc/environment.yml
+    environment: doc/environment.yml
+
 python:
-   version: 2
-   setup_py_install: true
+   version: 2.7
+   install:
+      - method: setuptools
+        path: .
+   system_packages: true

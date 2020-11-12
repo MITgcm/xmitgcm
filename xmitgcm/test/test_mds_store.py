@@ -3,6 +3,7 @@ import xmitgcm
 import xarray as xr
 from glob import glob
 from shutil import copyfile
+import py
 
 _TESTDATA_FILENAME = 'testdata.tar.gz'
 _TESTDATA_ITERS = [39600, ]
@@ -165,11 +166,12 @@ def test_open_dataset_no_meta(all_mds_datadirs):
         assert ds['Eta'].dims == dims_2d
         assert ds['Eta'].values.ndim == len(dims_2d)
 
-        with pytest.raises(IOError, message="Expecting IOError when default_dtype "
-                                            "is not precised (i.e., None)"):
+        with pytest.raises(IOError):
             xmitgcm.open_mdsdataset(dirname, prefix=['T', 'Eta'], iters=it,
                                     geometry=expected['geometry'],
                                     read_grid=False)
+            pytest.fail("Expecting IOError when default_dtype "
+                        "is not precised (i.e., None)")
 
     # now get rid of the variables used to infer dimensions
     with hide_file(dirname, 'XC.meta', 'RC.meta'):
@@ -197,6 +199,39 @@ def test_open_dataset_no_meta(all_mds_datadirs):
             ds = xmitgcm.open_mdsdataset(dirname, prefix=['T', 'Eta'],
                                          nz=nz, **kwargs)
 
+def test_open_dataset_2D_diags(all_mds_datadirs):
+    # convert 3D fields with only 2D diagnostic output
+    # https://github.com/xgcm/xmitgcm/issues/140
+    dirname, expected = all_mds_datadirs
+
+    shape = expected['shape']
+
+    nz = shape[0]
+    ny, nx = shape[-2:]
+    shape_2d = shape[1:]
+    dims_2d = ('j', 'i')
+    if expected['geometry']=='llc':
+        dims_2d = ('face',) + dims_2d
+        ny = nx*shape[-3]
+    dims_3d = dims_2d if nz==1 else ('k',) + dims_2d
+    dims_2d = ('time',) + dims_2d
+    dims_3d = ('time',) + dims_3d
+
+    it = expected['test_iternum']
+    kwargs = dict(iters=it, geometry=expected['geometry'], read_grid=False,
+                  swap_dims=False)
+
+    to_hide = ['T.%010d.meta' % it, 'T.%010d.data' % it]
+    with hide_file(dirname, *to_hide):
+
+        ldir = py.path.local(dirname)
+        old_prefix = 'Eta.%010d' % it
+        new_prefix = 'T.%010d' % it
+        for suffix in ['.data', '.meta']:
+            lp = ldir.join(old_prefix + suffix)
+            lp.copy(ldir.join(new_prefix + suffix))
+
+        ds = xmitgcm.open_mdsdataset(dirname, prefix=['T'], **kwargs)
 
 def test_swap_dims(all_mds_datadirs):
     """See if we can swap dimensions."""
@@ -314,6 +349,7 @@ def test_multiple_iters(multidim_mds_datadirs):
     # now hide all the PH and PHL files: should be able to infer prefixes fine
     missing_files = [os.path.basename(f)
                      for f in glob(os.path.join(dirname, 'PH*.0*data'))]
+    print(missing_files)
     with hide_file(dirname, *missing_files):
         ds = xmitgcm.open_mdsdataset(
             dirname, read_grid=False, iters=expected['all_iters'],
@@ -336,30 +372,17 @@ def test_date_parsing(mds_datadirs_with_refdate):
     assert 'units' not in ds.time.attrs
     assert 'calendar' not in ds.time.attrs
 
-
-def test_parse_diagnostics(all_mds_datadirs):
-    """Make sure we can parse the available_diagnostics.log file."""
-    from xmitgcm.utils import parse_available_diagnostics
-    dirname, expected = all_mds_datadirs
-    diagnostics_fname = os.path.join(dirname, 'available_diagnostics.log')
-    ad = parse_available_diagnostics(diagnostics_fname)
-
-    # a somewhat random sampling of diagnostics
-    expected_diags = {
-        'UVEL': {'dims': ['k', 'j', 'i_g'],
-                 'attrs': {'units': 'm/s',
-                           'long_name': 'Zonal Component of Velocity (m/s)',
-                           'standard_name': 'UVEL',
-                           'mate': 'VVEL'}},
-        'TFLUX': {'dims': ['j', 'i'],
-                  'attrs': {'units': 'W/m^2',
-                            'long_name': 'total heat flux (match heat-content '
-                            'variations), >0 increases theta',
-                            'standard_name': 'TFLUX'}}
-     }
-
-    for key, val in expected_diags.items():
-        assert ad[key] == val
+def test_serialize_nonstandard_calendar(multidim_mds_datadirs, tmp_path):
+    dirname, expected = multidim_mds_datadirs
+    ref_date = '2680-01-01 00:00:00'
+    calendar = '360_day'
+    ds = xmitgcm.open_mdsdataset(dirname, iters='all', prefix=['S'],
+                                 ref_date=ref_date,
+                                 calendar=calendar,
+                                 read_grid=False,
+                                 delta_t=expected['delta_t'],
+                                 geometry=expected['geometry'])
+    ds.to_zarr(tmp_path / 'test.zarr')
 
 
 def test_diagnostics(mds_datadirs_with_diagnostics):
@@ -393,6 +416,26 @@ def test_default_diagnostics(mds_datadirs_with_diagnostics):
     for diagname in expected_diags:
         assert diagname in ds
         # check vector mates
+        if 'mate' in ds[diagname].attrs:
+            mate = ds[diagname].attrs['mate']
+            assert ds[mate].attrs['mate'] == diagname
+
+def test_avail_diags_in_grid_dir(mds_datadirs_with_diagnostics):
+    """Try reading dataset with diagnostics output."""
+    dirname, expected = mds_datadirs_with_diagnostics
+
+    diag_prefix, expected_diags = expected['diagnostics']
+    iters = expected['test_iternum']
+
+    with hide_file(dirname,
+                    *['XC.meta', 'XC.data', 'RC.meta', 'RC.data',
+                      'available_diagnostics.log']) as grid_dir:
+        ds = xmitgcm.open_mdsdataset(
+                dirname, grid_dir=grid_dir, iters=iters, prefix=[diag_prefix],
+                read_grid=False, geometry=expected['geometry'])
+
+    for diagname in expected_diags:
+        assert diagname in ds
         if 'mate' in ds[diagname].attrs:
             mate = ds[diagname].attrs['mate']
             assert ds[mate].attrs['mate'] == diagname
@@ -453,19 +496,37 @@ def test_llc_dims(llc_mds_datadirs, method, with_refdate):
 def test_drc_length(all_mds_datadirs):
     """Test that open_mdsdataset is adding an extra level to drC if it has length nr"""
     dirname, expected = all_mds_datadirs
-    #Only older versions of the gcm have len(drC) = nr, so force len(drC) = nr for the test
-    copyfile(os.path.join(dirname, 'DRF.data'), os.path.join(dirname, 'DRC.data'))
-    copyfile(os.path.join(dirname, 'DRF.meta'), os.path.join(dirname, 'DRC.meta'))
+    # Only older versions of the gcm have len(drC) = nr, so force len(drC) = nr for the test
+    copyfile(os.path.join(dirname, 'DRF.data'),
+             os.path.join(dirname, 'DRC.data'))
+    copyfile(os.path.join(dirname, 'DRF.meta'),
+             os.path.join(dirname, 'DRC.meta'))
     ds = xmitgcm.open_mdsdataset(
-                dirname, iters=None, read_grid=True,
-                geometry=expected['geometry'])
-    assert len(ds.drC)==(len(ds.drF)+1)
+        dirname, iters=None, read_grid=True,
+        geometry=expected['geometry'])
+    assert len(ds.drC) == (len(ds.drF)+1)
 
+
+def test_mask_values(all_mds_datadirs):
+    """Test that open_mdsdataset generates binary masks with correct values"""
+
+    dirname, expected = all_mds_datadirs
+    ds = xmitgcm.open_mdsdataset(
+        dirname, iters=None, read_grid=True,
+        geometry=expected['geometry'])
+
+    hFac_list = ['hFacC', 'hFacW', 'hFacS']
+    mask_list = ['maskC', 'maskW', 'maskS']
+
+    for hFac, mask in zip(hFac_list, mask_list):
+        xr.testing.assert_equal(ds[hFac] * ds[mask], ds[hFac])
 
 #
 # Series of tests which try to open a dataset with different combinations of
 # of options, to identify if ref_date can trigger an error
 #
+
+
 @pytest.mark.parametrize("load", [True, False])
 # can't call swap_dims without read_grid=True
 @pytest.mark.parametrize("swap_dims, read_grid", [(True, True),
@@ -512,3 +573,17 @@ def test_llc_extra_metadata(llc_mds_datadirs, method):
 
     if method == "smallchunks":
         assert ds.U.chunks == (nt*(1,), nz*(1,), nface*(1,), (ny,), (nx,))
+
+
+def test_levels_diagnostics(mds_datadirs_with_inputfiles):
+    dirname, expected = mds_datadirs_with_inputfiles
+
+    for diagname, (levels, (idx, value)) in expected['diag_levels'].items():
+        ds = xmitgcm.open_mdsdataset(dirname, prefix=[diagname], levels=levels,
+                                     geometry=expected['geometry'])
+
+        assert ds['Zl'].values[idx] == value
+
+        with pytest.warns(UserWarning, match='nz will be ignored'):
+            xmitgcm.open_mdsdataset(dirname, prefix=[diagname], levels=levels, 
+                                    geometry=expected['geometry'], nz=12)

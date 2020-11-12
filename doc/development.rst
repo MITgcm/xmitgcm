@@ -4,8 +4,32 @@ Development
 Release History
 ---------------
 
+v0.4.1 (2019-07-11)
+~~~~~~~~~~~~~~~~~~~
+
+  - Incorporated llcreader bugfix from Spencer Jones (:issue:`154`)
+
+v0.4.0 (2019-07-11)
+~~~~~~~~~~~~~~~~~~~
+
+  - New :doc:`llcreader` module (see
+    `blog post <https://medium.com/pangeo/petabytes-of-ocean-data-part-1-nasa-ecco-data-portal-81e3c5e077be>`_
+    for more details.)
+
+
+v0.3.0 (2019-05-19)
+~~~~~~~~~~~~~~~~~~~~
+  - Ability to read ASTE grids
+  - Ability to read seaice and thsice native output
+  - Reading of optional grid files
+  - Moved test data to figshare
+  - Writing of binary files
+  - Xarray 0.12 compatibility
+  - Ability to read 2D slice diagnostics of 3D fields
+
+
 v.0.2.2 (2018-07-18)
-~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
   - Extend capabilities of read_raw_data (:issue:`84`)
   - Fix the problem with testing type of prefix (:issue:`83`)
   - Cast prefix to list if it isn't already one (:issue:`79`)
@@ -23,12 +47,12 @@ v.0.2.2 (2018-07-18)
   - Added layers axis attribute (:issue:`47`)
 
 v.0.2.1 (2017-05-31)
-~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
   - Fix to ensure that grid indices are always interger dtype.
   - Fix to keep proper Comodo metadata when swapping dimensions.
 
 v0.2.0 (2017-02-14)
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 This release contains the following feature enhancements:
   - Files are not read until the data are accessed. This helps overcome a common
@@ -61,7 +85,7 @@ Anyone interested in helping to develop xmitgcm needs to create their own fork
 of our `git repository`. (Follow the github `forking instructions`_. You
 will need a github account.)
 
-.. _git repository: https://github.com/xgcm/xmitgcm
+.. _git repository: https://github.com/MITgcm/xmitgcm
 .. _forking instructions: https://help.github.com/articles/fork-a-repo/
 
 Clone your fork on your local machine.
@@ -77,7 +101,7 @@ Then set your fork to track the upstream xmitgcm repo.
 .. code-block:: bash
 
     $ cd xmitgcm
-    $ git remote add upstream git://github.com/xgcm/xmitgcm.git
+    $ git remote add upstream git://github.com/MITgcm/xmitgcm.git
 
 You will want to periodically sync your master branch with the upstream master.
 

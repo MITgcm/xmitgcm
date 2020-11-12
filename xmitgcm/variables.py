@@ -5,8 +5,12 @@ All of the metadata related to MITgcm variables, grids, naming conventions, etc.
 from __future__ import print_function, division
 import numpy as np
 
-from xarray.core.pycompat import OrderedDict
-
+# xarray>=0.12.0 compatiblity
+try:
+    from xarray.core.pycompat import OrderedDict
+except ImportError:
+    from collections import OrderedDict
+    
 # We are trying to combine the following two things:
 # - MITgcm grid
 #   http://mitgcm.org/sealion/online_documents/node47.html
@@ -194,7 +198,7 @@ horizontal_grid_variables = OrderedDict(
     rAs=dict(dims=["j_g", "i"], attrs=dict(
         standard_name="cell_area_at_v_location",
         long_name="cell area", units="m2", coordinates="YG XC"),
-        filename='RAZ'),
+        filename='RAS'),
 )
 
 vertical_grid_variables = OrderedDict(
@@ -222,6 +226,23 @@ volume_grid_variables = OrderedDict(
     hFacS=dict(dims=['k', 'j_g', 'i'], attrs=dict(
         standard_name="cell_vertical_fraction_at_v_location",
         long_name="vertical fraction of open cell"))
+)
+
+# Mask files denoting wet points
+# set filename to hFac then compute mask as 1 where hFacC nonzero
+mask_variables = OrderedDict(
+    maskC=dict(dims=['k', 'j', 'i'], attrs=dict(
+        standard_name="sea_binary_mask_at_t_location",
+        long_name="mask denoting wet point at center"),
+        filename="hFacC"),
+    maskW=dict(dims=['k', 'j', 'i_g'], attrs=dict(
+        standard_name="cell_vertical_fraction_at_u_location",
+        long_name="mask denoting wet point at interface"),
+        filename="hFacW"),
+    maskS=dict(dims=['k', 'j_g', 'i'], attrs=dict(
+        standard_name="cell_vertical_fraction_at_v_location",
+        long_name="mask denoting wet point at interface"),
+        filename="hFacS")
 )
 
 # this a template: NAME gets replaced with the layer name (e.g. 1RHO)
@@ -588,6 +609,89 @@ package_state_variables = {
         units='kg m-2 s-1'))
 }
 
+extra_grid_variables = OrderedDict(
+    # Printed from write_grid when debugLevel>=debugLevC
+    rLowC=dict(dims=['j', 'i'], attrs=dict(
+        standard_name="depth_r0_to_bottom",
+        long_name='Depth fixed r0 to bottom at tracer location',
+        units='m')),
+    rLowW=dict(dims=['j', 'i_g'], attrs=dict(
+        standard_name="depth_r0_to_bottom_at_u_location",
+        long_name='Depth from fixed r0 to bottom at u location',
+        units='m')),
+    rLowS=dict(dims=['j_g', 'i'], attrs=dict(
+        standard_name="depth_r0_to_bottom_at_v_location",
+        long_name='Depth fixed r0 to bottom at v location',
+        units='m')),
+    rSurfC=dict(dims=['j', 'i'], attrs=dict(
+        standard_name="depth_r0_to_ref_surface",
+        long_name='Depth fixed r0 to reference surface level at '
+                  'tracer location',
+        units='m')),
+    rSurfW=dict(dims=['j', 'i_g'], attrs=dict(
+        standard_name="depth_r0_to_ref_surface_at_u_location",
+        long_name='Depth fixed r0 to reference surface level at u location',
+        units='m')),
+    rSurfS=dict(dims=['j_g', 'i'], attrs=dict(
+        standard_name="depth_r0_to_ref_surface_at_v_location",
+        long_name='Depth fixed r0 to reference surface level at v location',
+        units='m')),
+    # Printed from write_grid when useOBCS==T
+    maskInC=dict(dims=['j', 'i'], attrs=dict(
+        standard_name="interior_2d_mask",
+        long_name='OBCS 2D interior mask at tracer location, zero beyond OB',
+        units='')),
+    maskInW=dict(dims=['j', 'i_g'], attrs=dict(
+        standard_name="interior_2d_mask_at_u_location",
+        long_name='OBCS 2D interior mask at u location, zero on & beyond OB',
+        units='')),
+    maskInS=dict(dims=['j_g', 'i'], attrs=dict(
+        standard_name="interior_2d_mask_at_v_location",
+        long_name='OBCS 2D interior mask at v location, zero on & beyond OB',
+        units='')),
+    # Printed from pkg/ctrl/ctrl_init_wet when useCTRL=T
+    maskCtrlC=dict(dims=['k', 'j', 'i'], attrs=dict(
+        standard_name="ctrl_vector_3d_mask",
+        long_name='CTRL 3D mask where ctrl vector is active at '
+                  'tracer location',
+        units='')),
+    maskCtrlW=dict(dims=['k', 'j', 'i_g'], attrs=dict(
+        standard_name="ctrl_vector_3d_mask_at_u_location",
+        long_name='CTRL 3D mask where ctrl vector is active at u location',
+        units='')),
+    maskCtrlS=dict(dims=['k', 'j_g', 'i'], attrs=dict(
+        standard_name="ctrl_vector_3d_mask_at_v_location",
+        long_name='CTRL 3D mask where ctrl vector is active at v location',
+        units='')),
+    # Reference density profile
+    rhoRef=dict(dims=['k'],attrs=dict(
+        standard_name="reference_density_profile",
+        long_name="1D, vertical reference density profile",
+        coordinate="Z",
+        units='kg m-3'),
+        filename='RhoRef'),
+    # Additional grid metrics
+    dxF=dict(dims=['j','i'],attrs=dict(
+        standard_name="cell_x_size_at_t_location",
+        long_name="cell x size", units="m", coordinate="YC XC"),
+        filename='DXF'),
+    dyF=dict(dims=['j','i'],attrs=dict(
+        standard_name="cell_y_size_at_t_location",
+        long_name="cell y size", units="m", coordinate="YC XC"),
+        filename='DYF'),
+    dxV=dict(dims=['j_g','i_g'],attrs=dict(
+        standard_name="cell_x_size_at_f_location",
+        long_name="cell x size", units="m", coordinate="YG XG"),
+        filename='DXV'),
+    dyU=dict(dims=['j_g','i_g'],attrs=dict(
+        standard_name="cell_y_size_at_f_location",
+        long_name="cell y size", units="m", coordinate="YG XG"),
+        filename='DYU')
+    # Printed from write_grid when sigma coordinates are used
+    # AHybSigmF, BHybSigF, ...
+    # Unclear where on the grid these variables exist,
+    # skipping for now ...
+)
 
 # Nptracers=99
 # _ptracers = { 'PTRACER%02d' % n :
