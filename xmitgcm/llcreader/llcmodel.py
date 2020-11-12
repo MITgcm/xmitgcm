@@ -641,6 +641,20 @@ class BaseLLCModel:
         return data_facets
 
 
+    def _check_iter_start(self, iter_start):
+        if self.iter_start is not None and self.iter_step is not None:
+            if (iter_start - self.iter_start) % self.iter_step:
+                msg = "Iteration {} may not exist, you may need to change 'iter_start'".format(iter_start)
+                warnings.warn(msg)
+
+
+    def _check_iter_step(self, iter_step):
+        if self.iter_step is not None:
+            if iter_step % self.iter_step:
+                msg = "'iter_step' is not a multiple of {}, meaning some expected timesteps may not be returned".format(self.iter_step)
+                warnings.warn(msg)
+
+
     def get_dataset(self, varnames=None, iter_start=None, iter_stop=None,
                     iter_step=None, k_levels=None, k_chunksize=1,
                     type='faces', read_grid=True, grid_vars_to_coords=True):
@@ -691,6 +705,8 @@ class BaseLLCModel:
                              "and `iter_step` must be defined either by the "
                              "model class or as argument. Instead got %r "
                              % iter_params)
+        self._check_iter_start(iter_start)
+        self._check_iter_step(iter_step)
         iters = np.arange(*iter_params)
 
         varnames = varnames or self.varnames
