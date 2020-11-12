@@ -8,6 +8,10 @@ from .test_xmitgcm_common import llc_mds_datadirs
 EXPECTED_VARS = ['Eta', 'KPPhbl', 'oceFWflx', 'oceQnet', 'oceQsw', 'oceSflux',
             'oceTAUX', 'oceTAUY', 'PhiBot', 'Salt', 'SIarea', 'SIheff',
             'SIhsalt', 'SIhsnow', 'SIuice', 'SIvice', 'Theta', 'U', 'V', 'W']
+GRID_VARNAMES = ['AngleCS', 'AngleSN', 'DRC', 'DRF', 'DXC', 'DXG', 'DYC', 'DYG',
+                 'Depth', 'PHrefC', 'PHrefF', 'RAC', 'RAS', 'RAW', 'RAZ', 'RC', 'RF',
+                 'RhoRef', 'XC', 'XG', 'YC', 'YG', 'hFacC', 'hFacS', 'hFacW']
+
 
 EXPECTED_COORDS = {2160: ['CS','SN','Depth',
                           'drC','drF','dxC','dxF','dxG','dyC','dyF','dyG',
@@ -28,7 +32,8 @@ def local_llc90_store(llc_mds_datadirs):
     from fsspec.implementations.local import LocalFileSystem
     dirname, expected = llc_mds_datadirs
     fs = LocalFileSystem()
-    return llcreader.BaseStore(fs, base_path=dirname)
+    store = llcreader.BaseStore(fs, base_path=dirname, grid_path=dirname)
+    return store
 
 @pytest.fixture(scope='module')
 def llc90_kwargs():
@@ -58,6 +63,8 @@ def test_llc90_local_latlon(local_llc90_store, llc90_kwargs):
                               'i_g': 360, 'k_u': 50, 'k': 50, 'k_l': 50,
                               'j_g': 270, 'j': 270}
 
+
+# includes regression test for https://github.com/MITgcm/xmitgcm/issues/233
 @pytest.mark.parametrize('rettype', ['faces', 'latlon'])
 @pytest.mark.parametrize('k_levels, kp1_levels, k_chunksize',
         [(None, None, 1),
@@ -67,12 +74,19 @@ def test_llc90_local_latlon(local_llc90_store, llc90_kwargs):
          ([0, 2, 7, 9, 10, 20],
           [0,1,2,3,7,8,9,10,11,20,21], 2)
          ])
+@pytest.mark.parametrize('read_grid', [False, True]
+)
 def test_llc90_local_faces_load(local_llc90_store, llc90_kwargs, rettype, k_levels,
-                                kp1_levels, k_chunksize):
+                                kp1_levels, k_chunksize, read_grid):
     store = local_llc90_store
     model = llcreader.LLC90Model(store)
+    model.grid_varnames = GRID_VARNAMES
     ds = model.get_dataset(k_levels=k_levels, k_chunksize=k_chunksize,
-                           type=rettype, **llc90_kwargs)
+                           type=rettype, read_grid=read_grid, **llc90_kwargs)
+    if read_grid:
+        # doesn't work because the variables change name
+        # assert set(GRID_VARNAMES).issubset(set(ds.coords))
+        pass
     if k_levels is None:
         assert list(ds.k.values) == list(range(50))
         assert list(ds.k_p1.values) == list(range(51))
@@ -82,6 +96,7 @@ def test_llc90_local_faces_load(local_llc90_store, llc90_kwargs, rettype, k_leve
     assert all([cs==k_chunksize for cs in ds['T'].data.chunks[1]])
 
     ds.load()
+
 
 ########### ECCO Portal Tests ##################################################
 
@@ -133,17 +148,3 @@ def test_ecco_portal_latlon(ecco_portal_model):
         if isinstance(ds_ll[fld].data,dsa):
             assert len(ds_ll[fld].data.chunks)==1
             assert (len(ds_ll[fld]),)==ds_ll[fld].data.chunks[0]
-
-# regression test for https://github.com/MITgcm/xmitgcm/issues/233
-@pytest.mark.slow
-def test_llc4320_klevels_bug(ecco_portal_model):
-    # just get three timesteps
-    iter_stop = ecco_portal_model.iter_start + ecco_portal_model.iter_step + 1
-    ds_vel = ecco_portal_model.get_dataset(
-        varnames=['U', 'V'],
-        type='latlon',
-        k_levels=[1],
-        iter_stop=iter_stop,
-        read_grid=False
-    )
-    ds_vel.sum().compute()
