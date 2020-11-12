@@ -160,17 +160,17 @@ def test_read_mds(all_mds_datadirs):
     assert prefix in res
     assert isinstance(res[prefix], np.ndarray)
 
-    res = read_mds(basename, chunking_method="2D")
+    res = read_mds(basename, chunks="2D")
     assert isinstance(res, dict)
     assert prefix in res
     assert isinstance(res[prefix], dask.array.core.Array)
 
-    res = read_mds(basename, chunking_method="2D", use_dask=False)
+    res = read_mds(basename, chunks="2D", use_dask=False)
     assert isinstance(res, dict)
     assert prefix in res
     assert isinstance(res[prefix], np.memmap)
 
-    res = read_mds(basename, chunking_method="2D", use_dask=False,
+    res = read_mds(basename, chunks="2D", use_dask=False,
                    use_mmap=False)
     assert isinstance(res, dict)
     assert prefix in res
@@ -188,7 +188,7 @@ def test_read_mds(all_mds_datadirs):
                                     True, True, True, True, True, True]}
     else:
         emeta = None
-    res = read_mds(basename, chunking_method="2D", use_dask=False,
+    res = read_mds(basename, chunks="2D", use_dask=False,
                    use_mmap=False, extra_metadata=emeta)
     assert isinstance(res, dict)
     assert prefix in res
@@ -222,19 +222,19 @@ def test_read_mds(all_mds_datadirs):
     assert prefix in res
     assert isinstance(res[prefix], np.ndarray)
 
-    res = read_mds(basename, iternum=iternum, chunking_method="2D")
+    res = read_mds(basename, iternum=iternum, chunks="2D")
     assert isinstance(res, dict)
     assert prefix in res
     assert isinstance(res[prefix], dask.array.core.Array)
 
-    res = read_mds(basename, iternum=iternum, chunking_method="2D",
+    res = read_mds(basename, iternum=iternum, chunks="2D",
                    use_dask=False)
     assert isinstance(res, dict)
     assert prefix in res
     print(type(res[prefix]))
     assert isinstance(res[prefix], np.ndarray)  # should be memmap
 
-    res = read_mds(basename, iternum=iternum, chunking_method="2D",
+    res = read_mds(basename, iternum=iternum, chunks="2D",
                    use_dask=False, use_mmap=False)
     assert isinstance(res, dict)
     assert prefix in res
@@ -245,7 +245,7 @@ def test_read_mds(all_mds_datadirs):
         emeta.update({'ny': 13*270, 'nx': 270})
         with pytest.raises(AssertionError):
             res = read_mds(basename, iternum=iternum,
-                           chunking_method="2D",
+                           chunks="2D",
                            use_dask=False,
                            use_mmap=False, extra_metadata=emeta)
 
@@ -695,13 +695,13 @@ def test_read_all_variables(all_mds_datadirs, memmap, usedask):
         with pytest.raises(ValueError):
             dataset = read_all_variables(file_metadata['vars'], file_metadata,
                                          use_mmap=memmap, use_dask=usedask,
-                                         chunking_method="3D")
+                                         chunks="3D")
             if usedask:
                 dataset[0].compute()
     else:
         dataset = read_all_variables(file_metadata['vars'], file_metadata,
                                      use_mmap=memmap, use_dask=usedask,
-                                     chunking_method="3D")
+                                     chunks="3D")
 
         assert isinstance(dataset, list)
         assert len(dataset) == len(file_metadata['vars'])
@@ -717,11 +717,11 @@ def test_read_all_variables(all_mds_datadirs, memmap, usedask):
     if file_metadata['geometry'] not in ['cs']:
         dataset = read_all_variables(file_metadata['vars'], file_metadata,
                                      use_mmap=memmap, use_dask=usedask,
-                                     chunking_method="2D")
+                                     chunks="2D")
     else:
         dataset = read_all_variables(file_metadata['vars'], file_metadata,
                                      use_mmap=memmap, use_dask=usedask,
-                                     chunking_method="CS")
+                                     chunks="CS")
 
     assert isinstance(dataset, list)
     assert len(dataset) == len(file_metadata['vars'])
@@ -750,7 +750,7 @@ def test_read_all_variables(all_mds_datadirs, memmap, usedask):
 
     dataset = read_all_variables(file_metadata['vars'], file_metadata,
                                  use_mmap=memmap, use_dask=usedask,
-                                 chunking_method="2D")
+                                 chunks="2D")
 
     assert isinstance(dataset, list)
     assert len(dataset) == len(file_metadata['vars'])

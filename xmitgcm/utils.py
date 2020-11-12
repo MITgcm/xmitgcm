@@ -86,7 +86,7 @@ def _get_useful_info_from_meta_file(metafile):
 
 def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
              dtype=None, use_dask=True, extra_metadata=None,
-             chunking_method="3D",
+             chunks="3D",
              llc=False, llc_method="smallchunks", legacy=True):
     """Read an MITgcm .meta / .data file pair
 
@@ -162,7 +162,7 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
 
         #. transpose_face : transpose the data for this face
 
-    chunking_method : {'3D', '2D', 'CS'}
+    chunks : {'3D', '2D', 'CS'}
         Which routine to use for chunking data. '2D' splits the file
         into a individual dask chunk of size (nx x nx) for each face (if llc)
         of each record of each level.
@@ -274,7 +274,7 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
     # from legacy code (needs to be phased out)
     # transition code to keep unit tests working
     if llc:
-        chunking_method = "2D"
+        chunks = "2D"
     # --------------- /LEGACY --------------------------
 
     # it is possible to override the values of nx, ny, nz from extra_metadata
@@ -287,7 +287,7 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
     # read all variables from file into the list d
     d = read_all_variables(file_metadata['fldList'], file_metadata,
                            use_mmap=use_mmap, use_dask=use_dask,
-                           chunking_method=chunking_method)
+                           chunks=chunks)
 
     # convert list into dictionary
     out = {}
@@ -759,7 +759,7 @@ def _llc_data_shape(llc_id, nz=None):
 
 
 def read_all_variables(variable_list, file_metadata, use_mmap=False,
-                       use_dask=False, chunking_method="3D"):
+                       use_dask=False, chunks="3D"):
     """
     Return a dictionary of dask arrays for variables in a MDS file
 
@@ -771,7 +771,7 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False,
                       internal metadata for binary file
     use_mmap        : bool, optional
                       Whether to read the data using a numpy.memmap
-    chunking_method : str, optional
+    chunks : str, optional
                       Whether to read 2D (default) or 3D chunks
                       2D chunks are reading (x,y) levels and 3D chunks
                       are reading the a (x,y,z) field
@@ -786,13 +786,13 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False,
 
     out = []
     for variable in variable_list:
-        if chunking_method == "2D":
+        if chunks == "2D":
             out.append(read_2D_chunks(variable, file_metadata,
                                       use_mmap=use_mmap, use_dask=use_dask))
-        elif chunking_method == "3D":
+        elif chunks == "3D":
             out.append(read_3D_chunks(variable, file_metadata,
                                       use_mmap=use_mmap, use_dask=use_dask))
-        elif chunking_method == "CS":
+        elif chunks == "CS":
             out.append(read_CS_chunks(variable, file_metadata,
                                       use_mmap=use_mmap, use_dask=use_dask))
 
