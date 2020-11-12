@@ -546,6 +546,7 @@ class BaseLLCModel:
         return kp1
 
     def _make_coords_faces(self, all_iters):
+
         time = self.delta_t * all_iters
         time_attrs = {'units': self.time_units,
                       'calendar': self.calendar}
@@ -561,7 +562,13 @@ class BaseLLCModel:
                   'niter': ('time', all_iters),
                   'time': ('time', time, time_attrs)
                  }
-        return xr.decode_cf(xr.Dataset(coords=coords))
+        ds = xr.decode_cf(xr.Dataset(coords=coords))
+
+        from ..variables import dimensions
+        for d in dimensions:
+            if d in ds:
+                ds[d].attrs.update(dimensions[d]['attrs'])
+        return ds
 
 
     def _make_coords_latlon():

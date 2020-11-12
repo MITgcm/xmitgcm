@@ -43,6 +43,12 @@ def test_llc90_local_faces(local_llc90_store, llc90_kwargs):
     assert ds_faces.dims == {'face': 13, 'i': 90, 'i_g': 90, 'j': 90, 'j_g': 90,
                              'k': 50, 'k_u': 50, 'k_l': 50, 'k_p1': 51, 'time': 2}
 
+def test_llc90_dim_metadata(local_llc90_store, llc90_kwargs):
+    store = local_llc90_store
+    model = llcreader.LLC90Model(store)
+    ds_faces = model.get_dataset(**llc90_kwargs)
+    assert ds_faces.i.attrs['axis'] == 'X'
+
 def test_llc90_local_latlon(local_llc90_store, llc90_kwargs):
     store = local_llc90_store
     model = llcreader.LLC90Model(store)
