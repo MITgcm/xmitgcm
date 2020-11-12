@@ -145,7 +145,7 @@ _experiments = {
                                                     'GM_Kwy',
                                                     'GM_Kwz',
                                                     'GM_PsiX',
-                                                    'GM_PsiY'])}
+                                                    'GM_PsiY'])},
 
     'ideal_2D_oce': {'geometry': 'sphericalpolar',
                      'dlink': dlroot + '17288255',
