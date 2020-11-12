@@ -6,7 +6,7 @@ import dask
 from xmitgcm.test.test_xmitgcm_common import (hide_file, file_md5_checksum,
     all_mds_datadirs, mds_datadirs_with_diagnostics, llc_mds_datadirs,
     layers_mds_datadirs, all_grid_datadirs, mds_datadirs_with_inputfiles,
-    _experiments)
+    _experiments, cs_mds_datadirs)
 from xmitgcm.file_utils import listdir
 
 
@@ -629,6 +629,47 @@ def test_read_3D_chunks(all_mds_datadirs, memmap, usedask):
             assert isinstance(data, np.memmap)
         else:
             assert isinstance(data, np.ndarray)
+
+
+@pytest.mark.parametrize("memmap", [True, False])
+@pytest.mark.parametrize("usedask", [True, False])
+def test_read_CS_chunks(cs_mds_datadirs, memmap, usedask):
+
+    from xmitgcm.utils import read_CS_chunks
+
+    dirname, expected = cs_mds_datadirs
+    print(expected)
+    nz, ny, nfaces, nx = expected['shape']
+    # 3D array, single variable in file
+    file_metadata = {}
+    file_metadata['nx'] = nx
+    file_metadata['ny'] = ny * nfaces
+    file_metadata['ny_facets'] = [ny, ny, ny, ny, ny, ny]
+    file_metadata['nz'] = nz
+    file_metadata['nt'] = 1
+    file_metadata['dtype'] = np.dtype('>f4')
+    file_metadata['test_iternum'] = expected['test_iternum']
+    file_metadata.update({'filename': dirname + '/' + 'T.' +
+                          str(file_metadata['test_iternum']).zfill(10) +
+                          '.data', 'vars': ['T'], 'endian': '>'})
+    data = read_CS_chunks('T', file_metadata, use_mmap=memmap, use_dask=usedask)
+    if usedask:
+        assert isinstance(data, dask.array.core.Array)
+    else:
+        assert isinstance(data, np.ndarray)
+    assert data.shape == (1,) + expected['shape']
+    # 1D array, single variable in file
+    file_metadata['nx'] = 1
+    file_metadata['ny'] = 1
+    file_metadata['nz'] = nz
+    file_metadata.update({'filename': dirname + '/' + 'RC.data',
+                          'vars': ['RC'], 'endian': '>'})
+    data = read_CS_chunks('RC', file_metadata, use_mmap=memmap, use_dask=usedask)
+    if usedask:
+        assert isinstance(data, dask.array.core.Array)
+    else:
+        assert isinstance(data, np.ndarray)
+    assert data.shape == (1, nz, 1, 1, 1)
 
 
 @pytest.mark.parametrize("memmap", [True, False])

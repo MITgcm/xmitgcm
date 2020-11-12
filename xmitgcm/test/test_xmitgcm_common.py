@@ -181,13 +181,13 @@ _grids = {
                      'dlink': dlroot + '14072591',
                      'md5': '92b28c65e0dfb54b253bfcd0a249359b',
                      'gridfile': 'tile<NFACET>.mitgrid',
-                     'nx': 270, 'shape': (6, 270, 270)}  # ,
+                     'nx': 270, 'shape': (6, 270, 270)},
 
-    #    'grid_cs32': {'geometry': 'cs', 'domain': 'cs',
-    #                  'dlink': dlroot + '14072597',
-    #                  'md5': '848cd5b6daab5b069e96a0cff67d4b57',
-    #                  'gridfile': 'grid_cs32.face<NFACET>.bin',
-    #                  'nx': 32, 'shape': (6, 32, 32)}
+    'grid_cs32': {'geometry': 'cs', 'domain': 'cs',
+                  'dlink': dlroot + '14072597',
+                  'md5': '848cd5b6daab5b069e96a0cff67d4b57',
+                  'gridfile': 'grid_cs32.face<NFACET>.bin',
+                  'nx': 32, 'shape': (6, 32, 32)}
 }
 
 
@@ -301,6 +301,11 @@ def layers_mds_datadirs(tmpdir_factory, request):
 
 @pytest.fixture(scope='module', params=['global_oce_llc90'])
 def llc_mds_datadirs(tmpdir_factory, request):
+    return setup_mds_dir(tmpdir_factory, request, _experiments)
+
+
+@pytest.fixture(scope='module', params=['global_oce_cs32'])
+def cs_mds_datadirs(tmpdir_factory, request):
     return setup_mds_dir(tmpdir_factory, request, _experiments)
 
 
