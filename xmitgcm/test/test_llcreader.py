@@ -8,6 +8,10 @@ from .test_xmitgcm_common import llc_mds_datadirs
 EXPECTED_VARS = ['Eta', 'KPPhbl', 'oceFWflx', 'oceQnet', 'oceQsw', 'oceSflux',
             'oceTAUX', 'oceTAUY', 'PhiBot', 'Salt', 'SIarea', 'SIheff',
             'SIhsalt', 'SIhsnow', 'SIuice', 'SIvice', 'Theta', 'U', 'V', 'W']
+GRID_VARNAMES = ['AngleCS', 'AngleSN', 'DRC', 'DRF', 'DXC', 'DXG', 'DYC', 'DYG',
+                 'Depth', 'PHrefC', 'PHrefF', 'RAC', 'RAS', 'RAW', 'RAZ', 'RC', 'RF',
+                 'RhoRef', 'XC', 'XG', 'YC', 'YG', 'hFacC', 'hFacS', 'hFacW']
+
 
 EXPECTED_COORDS = {2160: ['CS','SN','Depth',
                           'drC','drF','dxC','dxF','dxG','dyC','dyF','dyG',
@@ -28,7 +32,8 @@ def local_llc90_store(llc_mds_datadirs):
     from fsspec.implementations.local import LocalFileSystem
     dirname, expected = llc_mds_datadirs
     fs = LocalFileSystem()
-    return llcreader.BaseStore(fs, base_path=dirname)
+    store = llcreader.BaseStore(fs, base_path=dirname, grid_path=dirname)
+    return store
 
 @pytest.fixture(scope='module')
 def llc90_kwargs():
@@ -43,6 +48,12 @@ def test_llc90_local_faces(local_llc90_store, llc90_kwargs):
     assert ds_faces.dims == {'face': 13, 'i': 90, 'i_g': 90, 'j': 90, 'j_g': 90,
                              'k': 50, 'k_u': 50, 'k_l': 50, 'k_p1': 51, 'time': 2}
 
+def test_llc90_dim_metadata(local_llc90_store, llc90_kwargs):
+    store = local_llc90_store
+    model = llcreader.LLC90Model(store)
+    ds_faces = model.get_dataset(**llc90_kwargs)
+    assert ds_faces.i.attrs['axis'] == 'X'
+
 def test_llc90_local_latlon(local_llc90_store, llc90_kwargs):
     store = local_llc90_store
     model = llcreader.LLC90Model(store)
@@ -52,18 +63,30 @@ def test_llc90_local_latlon(local_llc90_store, llc90_kwargs):
                               'i_g': 360, 'k_u': 50, 'k': 50, 'k_l': 50,
                               'j_g': 270, 'j': 270}
 
+
+# includes regression test for https://github.com/MITgcm/xmitgcm/issues/233
 @pytest.mark.parametrize('rettype', ['faces', 'latlon'])
-@pytest.mark.parametrize('k_levels, kp1_levels',
-        [(None,None),
+@pytest.mark.parametrize('k_levels, kp1_levels, k_chunksize',
+        [(None, None, 1),
+         ([1], [1, 2], 1),
          ([0, 2, 7, 9, 10, 20],
-          [0,1,2,3,7,8,9,10,11,20,21])])
-@pytest.mark.parametrize('k_chunksize', [1, 2])
+          [0,1,2,3,7,8,9,10,11,20,21], 1),
+         ([0, 2, 7, 9, 10, 20],
+          [0,1,2,3,7,8,9,10,11,20,21], 2)
+         ])
+@pytest.mark.parametrize('read_grid', [False, True]
+)
 def test_llc90_local_faces_load(local_llc90_store, llc90_kwargs, rettype, k_levels,
-                                kp1_levels, k_chunksize):
+                                kp1_levels, k_chunksize, read_grid):
     store = local_llc90_store
     model = llcreader.LLC90Model(store)
+    model.grid_varnames = GRID_VARNAMES
     ds = model.get_dataset(k_levels=k_levels, k_chunksize=k_chunksize,
-                           type=rettype, **llc90_kwargs)
+                           type=rettype, read_grid=read_grid, **llc90_kwargs)
+    if read_grid:
+        # doesn't work because the variables change name
+        # assert set(GRID_VARNAMES).issubset(set(ds.coords))
+        pass
     if k_levels is None:
         assert list(ds.k.values) == list(range(50))
         assert list(ds.k_p1.values) == list(range(51))
