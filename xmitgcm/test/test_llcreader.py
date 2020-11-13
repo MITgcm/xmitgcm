@@ -74,6 +74,15 @@ def test_llc90_local_faces_load(local_llc90_store, llc90_kwargs, rettype, k_leve
 
     ds.load()
 
+
+@pytest.mark.parametrize('varname', ['U', 'V'])
+def test_vector_mate_error(local_llc90_store, varname):
+    store = local_llc90_store
+    model = llcreader.LLC90Model(store)
+    with pytest.raises(ValueError, match=r".* must also be .*"):
+        ds_latlon = model.get_dataset(type='latlon', varnames=varname, iter_start=0, iter_stop=9, iter_step=8)
+
+
 ########### ECCO Portal Tests ##################################################
 
 @pytest.fixture(scope='module', params=[2160, 4320])
