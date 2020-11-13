@@ -657,8 +657,8 @@ class BaseLLCModel:
             else:
                 key = name, n_iter, n_k, 0, 0, 0
             task = (_get_facet_chunk, self.store, varname, iternum,
-                     nfacet, these_klevels, self.nx, self.nz, dtype,
-                     self.mask_override, self.domain,
+                     nfacet, these_klevels, self.nx, self.nz, self.nface,
+                     dtype, self.mask_override, self.domain,
                      self.pad_before, self.pad_after)
             return key, task
 
