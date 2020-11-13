@@ -643,7 +643,7 @@ def test_read_CS_chunks(cs_mds_datadirs, memmap, usedask):
     # 3D array, single variable in file
     file_metadata = {}
     file_metadata['nx'] = nx
-    file_metadata['ny'] = ny * nfaces
+    file_metadata['ny'] = ny
     file_metadata['ny_facets'] = [ny, ny, ny, ny, ny, ny]
     file_metadata['nz'] = nz
     file_metadata['nt'] = 1
@@ -708,8 +708,7 @@ def test_read_all_variables(all_mds_datadirs, memmap, usedask):
     elif file_metadata['geometry'] in ['cs']:
         nx = file_metadata['shape'][3]
         file_metadata.update({'nx': file_metadata['shape'][3],
-                              'ny': file_metadata['shape'][1] *
-                              file_metadata['shape'][2],
+                              'ny': file_metadata['shape'][1],
                               'nface': file_metadata['shape'][2],
                               'nz': file_metadata['shape'][0],
                               'nt': 1,
