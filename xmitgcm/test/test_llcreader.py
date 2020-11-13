@@ -1,3 +1,4 @@
+import re
 import pytest
 from dask.array.core import Array as dsa
 
@@ -124,3 +125,21 @@ def test_ecco_portal_latlon(ecco_portal_model):
         if isinstance(ds_ll[fld].data,dsa):
             assert len(ds_ll[fld].data.chunks)==1
             assert (len(ds_ll[fld]),)==ds_ll[fld].data.chunks[0]
+
+
+def test_iteration_start_check(ecco_portal_model):
+    with pytest.warns(RuntimeWarning) as record:
+        ecco_portal_model._check_iter_start(ecco_portal_model.iter_start - 1)  # Should give runtime warning
+        ecco_portal_model._check_iter_start(ecco_portal_model.iter_start)  # Should give no warning
+        ecco_portal_model._check_iter_start(ecco_portal_model.iter_start + ecco_portal_model.iter_step) # Should give no warning
+    assert len(record) == 1
+    assert re.search("Iteration .* may not exist, you may need to change 'iter_start'", record[0].message.args[0])
+
+
+def test_iteration_step_check(ecco_portal_model):
+    with pytest.warns(RuntimeWarning) as record:
+        ecco_portal_model._check_iter_step(ecco_portal_model.iter_step - 1)  # Should give runtime warning
+        ecco_portal_model._check_iter_step(ecco_portal_model.iter_step)  # Should give no warning
+        ecco_portal_model._check_iter_step(2 * ecco_portal_model.iter_step) # Should give no warning
+    assert len(record) == 1
+    assert re.search("'iter_step' is not a multiple of .*, meaning some expected timesteps may not be returned", record[0].message.args[0])
