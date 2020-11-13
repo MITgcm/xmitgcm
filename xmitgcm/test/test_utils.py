@@ -246,6 +246,7 @@ def test_read_mds(all_mds_datadirs):
         with pytest.raises(AssertionError):
             res = read_mds(basename, iternum=iternum,
                            chunks="2D",
+                           llc=True,
                            use_dask=False,
                            use_mmap=False, extra_metadata=emeta)
 
