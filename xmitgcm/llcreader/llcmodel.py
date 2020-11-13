@@ -436,7 +436,8 @@ def _get_facet_chunk(store, varname, iternum, nfacet, klevels, nx, nz, dtype,
         data.shape = facet_shape
         level_data.append(data)
 
-    return np.concatenate(level_data, axis=1)
+    out = np.concatenate(level_data, axis=-4)
+    return out
 
 def _get_1d_chunk(store, varname, klevels, nz, dtype):
     """for 1D vertical grid variables"""
@@ -450,7 +451,6 @@ def _get_1d_chunk(store, varname, klevels, nz, dtype):
     buffer = file.read(read_length)
     data = np.frombuffer(buffer,dtype=dtype)
 
-    # now subset
     return data[klevels]
 
 class BaseLLCModel:
@@ -533,12 +533,12 @@ class BaseLLCModel:
         # determine kp1 levels
         # get borders to all k (center) levels
         # ki used to get Zu, Zl later
-        ku = np.concatenate([k_levels[1:],[k_levels[-1]+1]])
+        ku = k_levels[1:] + [k_levels[-1] + 1 ]
         kp1 = []
         ki=[]
         for i,(x,y) in enumerate(zip(k_levels,ku)):
-            kp1+= [x] if x not in kp1 else []
-            kp1+= [y] if y-x==1 else [x+1]
+            kp1 += [x] if x not in kp1 else []
+            kp1 += [y] if y-x==1 else [x+1]
 
 
         kp1=np.array(kp1)
@@ -590,20 +590,24 @@ class BaseLLCModel:
         name = '-'.join([varname, token])
 
         # iters == None for grid variables
+        def _key_and_task(n_k, these_klevels, n_iter=None, iternum=None):
+            if n_iter is None:
+                key = name, n_k, 0, 0, 0
+            else:
+                key = name, n_iter, n_k, 0, 0, 0
+            task = (_get_facet_chunk, self.store, varname, iternum,
+                     nfacet, these_klevels, self.nx, self.nz, self.dtype,
+                     self.mask_override)
+            return key, task
+
         if iters is not None:
             for n_iter, iternum in enumerate(iters):
                 for n_k, these_klevels in enumerate(_chunks(klevels, k_chunksize)):
-                    key = name, n_iter, n_k, 0, 0, 0
-                    task = (_get_facet_chunk, self.store, varname, iternum,
-                             nfacet, these_klevels, self.nx, self.nz, self.dtype,
-                             self.mask_override)
+                    key, task = _key_and_task(n_k, these_klevels, n_iter, iternum)
                     dsk[key] = task
         else:
             for n_k, these_klevels in enumerate(_chunks(klevels, k_chunksize)):
-                key = name, n_k, 0, 0, 0
-                task = (_get_facet_chunk, self.store, varname, None,
-                         nfacet, these_klevels, self.nx, self.nz, self.dtype,
-                         self.mask_override)
+                key, task = _key_and_task(n_k, these_klevels)
                 dsk[key] = task
 
         return dsa.Array(dsk, name, chunks, self.dtype)
@@ -711,7 +715,7 @@ class BaseLLCModel:
         if type=='latlon':
             ds = _faces_coords_to_latlon(ds)
 
-        k_levels = k_levels or np.arange(self.nz)
+        k_levels = k_levels or list(range(self.nz))
         kp1_levels = self._get_kp1_levels(k_levels)
 
         ds = ds.sel(k=k_levels, k_l=k_levels, k_u=k_levels, k_p1=kp1_levels)
