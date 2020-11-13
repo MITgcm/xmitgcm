@@ -645,14 +645,14 @@ class BaseLLCModel:
         if self.iter_start is not None and self.iter_step is not None:
             if (iter_start - self.iter_start) % self.iter_step:
                 msg = "Iteration {} may not exist, you may need to change 'iter_start'".format(iter_start)
-                warnings.warn(msg)
+                warnings.warn(msg, RuntimeWarning)
 
 
     def _check_iter_step(self, iter_step):
         if self.iter_step is not None:
             if iter_step % self.iter_step:
                 msg = "'iter_step' is not a multiple of {}, meaning some expected timesteps may not be returned".format(self.iter_step)
-                warnings.warn(msg)
+                warnings.warn(msg, RuntimeWarning)
 
 
     def get_dataset(self, varnames=None, iter_start=None, iter_stop=None,
