@@ -260,13 +260,14 @@ def read_mds(fname, iternum=None, use_mmap=None, endian='>', shape=None,
                           'has_faces': False})
 
     # extra_metadata contains informations about llc/regional llc grid
-    if extra_metadata is not None:
+    if extra_metadata is not None and len(extra_metadata['face_facets']) == 5:
         nhpts_ex = extra_metadata['nx'] * extra_metadata['ny']
         nhpts = metadata['nx'] * metadata['ny']
         # check that nx * ny is consistent between extra_metadata and meta file
         # unless it's a vertical profile nx = ny = 1
         if nhpts > 1:
             assert nhpts_ex == nhpts
+    if extra_metadata is not None:
         file_metadata.update(extra_metadata)
 
     # --------------- LEGACY --------------------------
