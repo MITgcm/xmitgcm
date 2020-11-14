@@ -492,3 +492,46 @@ The ``llcreader`` module also has a standalone function for converting
 13-face-style LLC datasets into rectangular quasi-lat-lon datasets.
 
 .. autofunction:: xmitgcm.llcreader.faces_dataset_to_latlon
+
+Developer Notes
+~~~~~~~~~~~~~~~~~~~
+
+Documentation for some complicated low-level functions, with the ASTE 270 domain as an example.
+
+.. autofunction:: xmitgcm.llcreader.llcmodel._pad_facet
+
+
+ASTE Release 1 Example
+""""""""""""""""""""""
+
+The ASTE model output has the following unique definitions,
+and the image below shows two examples of the ``_pad_facet`` function.
+
+- ``nx`` = 270
+
+- ``pad_before`` = [90,0,0,0,0]
+
+- ``pad_after`` = [0,0,0,90,90]
+
+- ``nfaces`` = 6
+
+- ``_facet_strides(6)`` = ( (0,2), (2,2), (2,3), (3,4), (4,6) )
+
+.. image:: aste_pad.png
+    :width: 500
+    :align: center
+
+Left: faces 0 and 1 live on facet 0, as shown by ``_facet_strides``.
+This facet has an expected shape of
+(2* ``nx`` , ``nx``) = (540,270) as determined by ``_facet_shape``.
+The data shape is only (450,270), however, as shown in color.
+To make two ``nx`` x ``nx`` tiles, the facet must be padded with a
+(90,270) array, shown in white.
+On this facet, ``reshape`` = ``False``, so the ``j`` dimension is padded.
+
+Right: face 3 lives on facet 2, and the expected data shape would
+be (``nx`` , ``nx``) = (270,270), but the data only cover
+(270,180), shown in color.
+Therefore, the data are padded with an array of size (270,90),
+shown in white, and this is padded to the `i` dimension
+since ``reshape`` = ``True`` for this facet.

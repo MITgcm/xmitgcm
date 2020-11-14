@@ -118,6 +118,32 @@ def _decompress(data, mask, dtype):
     return data_blank
 
 def _pad_facet(data,facet_shape,reshape,pad_before,pad_after,dtype):
+    """add padding to facet data that are irregularly shaped, returning
+    data of size ``facet_shape`` to make equally sized faces.
+    See
+    https://xmitgcm.readthedocs.io/en/latest/llcreader.html#aste-release-1-example
+    for an example
+
+    Parameters
+    ----------
+    data : array like
+        data to be reshaped
+    facet_shape : tuple
+        "expected" facet shape determined by the _facet_shape function
+    reshape : bool
+        whether to reshape each face, True if facet is "rotated".
+        This determines the axis along which pad_before or pad_after refers to
+    pad_before, pad_after : int
+        size of padding added to either the i or j dimension where
+        before vs after determines ordering of: data-then-pad or pad-then-data
+    dtype : numpy.dtype
+        Datatype of the data
+
+    Returns
+    -------
+    padded_data : array like
+        which has shape = facet_shape, with nan's for padding
+    """
     pre_shape=list(facet_shape)
     pad_shape=list(facet_shape)
     if reshape:
