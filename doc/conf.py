@@ -23,8 +23,8 @@ from subprocess import check_output, CalledProcessError
 #sys.path.insert(0, os.path.abspath('.'))
 #sys.path.insert(os.path.abspath('..'))
 
-print "python exec:", sys.executable
-print "sys.path:", sys.path
+print("python exec:", sys.executable)
+print("sys.path:", sys.path)
 
 
 # -- General configuration ------------------------------------------------

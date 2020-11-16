@@ -23,7 +23,15 @@ EXPECTED_COORDS = {2160: ['CS','SN','Depth',
                           'drC','drF','dxC','dxF','dxG','dyC','dyF','dyG',
                           'hFacC','hFacS','hFacW','PHrefC','PHrefF',
                           'rA','rAs','rAw','rhoRef','Z','Zp1','Zl','Zu','XC','YC',
-                          'rAz','XG','YG','dxV','dyU']}
+                          'rAz','XG','YG','dxV','dyU'],
+                   'aste_270': ["CS", "Depth", "PHrefC", "PHrefF", "SN",
+                                "XC", "XG", "YC", "YG", "Z",
+                                "Zl", "Zp1", "Zu", "drC", "drF",
+                                "dxC", "dxG", "dyC", "dyG", "hFacC",
+                                "hFacS", "hFacW", "maskC", "maskCtrlC", "maskCtrlS",
+                                "maskCtrlW", "maskInC", "maskInS", "maskInW", "maskS",
+                                "maskW", "niter", "rA", "rAs", "rAw",
+                                "rAz", "rhoRef"]}
 
 ########### Generic llcreader tests on local data ##############################
 
@@ -148,3 +156,40 @@ def test_ecco_portal_latlon(ecco_portal_model):
         if isinstance(ds_ll[fld].data,dsa):
             assert len(ds_ll[fld].data.chunks)==1
             assert (len(ds_ll[fld]),)==ds_ll[fld].data.chunks[0]
+
+########### ASTE Portal Tests ##################################################
+@pytest.fixture(scope='module')
+def aste_portal_model():
+    return llcreader.CRIOSPortalASTE270Model()
+
+def test_aste_portal_faces(aste_portal_model):
+    # just get three timesteps
+    iters = aste_portal_model.iters[:3]
+    ds_faces = aste_portal_model.get_dataset(iters=iters)
+    nx = aste_portal_model.nx
+    assert ds_faces.dims == {'face': 6, 'i': nx, 'i_g': nx, 'j': nx,
+                              'j_g': nx, 'k': 50, 'k_u': 50, 'k_l': 50,
+                              'k_p1': 51, 'time': 3}
+    assert set(aste_portal_model.varnames) == set(ds_faces.data_vars)
+    assert set(EXPECTED_COORDS['aste_270']).issubset(set(ds_faces.coords))
+
+    # make sure vertical coordinates are in one single chunk
+    for fld in ds_faces[['Z','Zl','Zu','Zp1']].coords:
+        if isinstance(ds_faces[fld].data,dsa):
+            assert len(ds_faces[fld].data.chunks)==1
+            assert (len(ds_faces[fld]),)==ds_faces[fld].data.chunks[0]
+
+@pytest.mark.slow
+def test_aste_portal_load(aste_portal_model):
+    # an expensive test because it actually loads data
+    iters = aste_portal_model.iters[:3]
+    ds_faces = aste_portal_model.get_dataset(varnames=['ETAN'], iters=iters)
+    expected = 0.641869068145752
+    assert ds_faces.ETAN[0, 1, 0, 0].values.item() == expected
+
+def test_aste_portal_latlon(aste_portal_model):
+    iters = aste_portal_model.iters[:3]
+    with pytest.raises(TypeError):
+        ds_ll = aste_portal_model.get_dataset(iters=iters,type='latlon')
+
+
