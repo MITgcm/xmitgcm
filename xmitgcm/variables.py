@@ -10,7 +10,7 @@ try:
     from xarray.core.pycompat import OrderedDict
 except ImportError:
     from collections import OrderedDict
-    
+
 # We are trying to combine the following two things:
 # - MITgcm grid
 #   http://mitgcm.org/sealion/online_documents/node47.html
@@ -454,6 +454,14 @@ package_state_variables = {
         standard_name="KPP_boundary_layer",
         long_name='KPP boundary layer depth, bulk Ri criterion',
         units='m')),
+    'KPPg_TH': dict(dims=['k_l','j','i'], attrs=dict(
+        standard_name='KPP_theta_flux',
+        long_name='KPP non-local Flux of Pot.Temperature',
+        units='degC m3 s-1')),
+    'KPPg_SLT': dict(dims=['k_l','j','i'], attrs=dict(
+        standard_name='KPP_salt_flux',
+        long_name='KPP non-local Flux of Salinity',
+        units='psu m3 s-1')),
     # pkg/thsice variables
     'ice_fract': dict(dims=['j', 'i'], attrs=dict(
         standard_name="sea_ice_area_fraction",
