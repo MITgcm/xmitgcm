@@ -352,13 +352,21 @@ def faces_dataset_to_latlon(ds, metric_vector_pairs=[('dxC', 'dyC'), ('dyG', 'dx
     vector_pairs = []
     scalars = []
     vnames = list(ds.reset_coords().variables)
+
     for vname in vnames:
         try:
             mate = ds[vname].attrs['mate']
-            vector_pairs.append((vname, mate))
-            vnames.remove(mate)
         except KeyError:
-            pass
+            mate = None
+
+        # Raises an exception if the mate of a variable in vnames is missing.
+        if mate is not None:
+            vector_pairs.append((vname, mate))
+            try:
+                vnames.remove(mate)
+            except ValueError:
+                msg = 'If {} in varnames, {} must also be in varnames'.format(vname, mate)
+                raise ValueError(msg)
 
     all_vector_components = [inner for outer in (vector_pairs + metric_vector_pairs)
                              for inner in outer]
@@ -404,13 +412,21 @@ def _all_facets_to_latlon(data_facets, meta, nfaces=None):
     vector_pairs = []
     scalars = []
     vnames = list(data_facets)
+
     for vname in vnames:
         try:
             mate = meta[vname]['attrs']['mate']
-            vector_pairs.append((vname, mate))
-            vnames.remove(mate)
         except KeyError:
-            pass
+            mate = None
+
+        # Raises an exception if the mate of a variable in vnames is missing.
+        if mate is not None:
+            vector_pairs.append((vname, mate))
+            try:
+                vnames.remove(mate)
+            except ValueError:
+                msg = 'If {} in varnames, {} must also be in varnames'.format(vname, mate)
+                raise ValueError(msg)
 
     all_vector_components = [inner for outer in vector_pairs for inner in outer]
     scalars = [vname for vname in vnames if vname not in all_vector_components]
