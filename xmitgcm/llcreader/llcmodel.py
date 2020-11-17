@@ -771,6 +771,17 @@ class BaseLLCModel:
                 msg = "'iter_step' is not a multiple of {}, meaning some expected timesteps may not be returned".format(self.iter_step)
                 warnings.warn(msg, RuntimeWarning)
 
+    def _check_iters(self, iters):
+        if self.iters is not None:
+            if not set(iters) <= set(self.iters):
+                msg = "Some requested iterations may not exist, you may need to change 'iters'"
+                warnings.warn(msg, RuntimeWarning)
+        
+        elif self.iter_start is not None and self.iter_step is not None:
+            if (iter_start - self.iter_start) % self.iter_step:
+                msg = "Some requested iterations may not exist, you may need to change 'iters'"
+                warnings.warn(msg, RuntimeWarning)
+            
 
     def get_dataset(self, varnames=None, iter_start=None, iter_stop=None,
                     iter_step=None, iters=None, k_levels=None, k_chunksize=1,
@@ -835,6 +846,8 @@ class BaseLLCModel:
         if iters is None:
             self._check_iter_start(iter_start)
             self._check_iter_step(iter_step)
+        else:
+            self._check_iters(iters)
 
         iters = np.arange(*iter_params) if iters is None else iters
         iters = np.array(iters) if isinstance(iters,list) else iters
