@@ -778,9 +778,11 @@ class BaseLLCModel:
                 warnings.warn(msg, RuntimeWarning)
         
         elif self.iter_start is not None and self.iter_step is not None:
-            if (iter_start - self.iter_start) % self.iter_step:
-                msg = "Some requested iterations may not exist, you may need to change 'iters'"
-                warnings.warn(msg, RuntimeWarning)
+            for iter in iters:
+                if (iter - self.iter_start) % self.iter_step:
+                    msg = "Some requested iterations may not exist, you may need to change 'iters'"
+                    warnings.warn(msg, RuntimeWarning)
+                    break
             
 
     def get_dataset(self, varnames=None, iter_start=None, iter_stop=None,
@@ -827,30 +829,53 @@ class BaseLLCModel:
             else:
                 return a
 
-        iter_start = _if_not_none(iter_start, self.iter_start)
-        iter_stop = _if_not_none(iter_stop, self.iter_stop)
-        iter_step = _if_not_none(iter_step, self.iter_step)
-        iters = _if_not_none(iters, self.iters)
-        iter_params = [iter_start, iter_stop, iter_step]
-        if any([a is None for a in iter_params]):
-            if iters is None:
+        user_iter_params = [iter_start, iter_stop, iter_step]
+        attribute_iter_params = [self.iter_start, self.iter_stop, self.iter_step]
+
+        # If the user has specified some iter params:
+        if any([a is not None for a in user_iter_params]):
+            # If iters is also set we have a problem
+            if iters is not None:
+                raise ValueError("Only `iters` or the parameters `iter_start`, `iters_stop`, "
+                                 "and `iter_step` can be provided. Both were provided")
+            
+            # Otherwise we can override any missing values
+            iter_start = _if_not_none(iter_start, self.iter_start)
+            iter_stop = _if_not_none(iter_stop, self.iter_stop)
+            iter_step = _if_not_none(iter_step, self.iter_step)
+            iter_params = [iter_start, iter_stop, iter_step]
+            if any([a is None for a in iter_params]):
                 raise ValueError("The parameters `iter_start`, `iter_stop`, "
                                  "and `iter_step` must be defined either by the "
                                  "model class or as argument. Instead got %r "
                                  % iter_params)
+        
+        # Otherwise try loading from the user set iters
         elif iters is not None:
-            raise ValueError("Only `iters` or the parameters `iter_start`, `iters_stop`, "
-                             "and `iter_step` can be provided. Both were provided")
+            pass
+
+        # Now have a go at using the attribute derived iteration parameters 
+        elif all([a is not None for a in attribute_iter_params]):
+            iter_params = attribute_iter_params
+
+        # Now try using the attribute derived iters
+        elif self.iters is not None:
+            iters = self.iters
+
+        # Now give up
+        else:
+            raise ValueError("The parameters `iter_start`, `iter_stop`, "
+                             "and `iter_step`, or `iters` must be defined either by the "
+                             "model class or as argument")
         
         # Check the iter_start and iter_step
         if iters is None:
-            self._check_iter_start(iter_start)
-            self._check_iter_step(iter_step)
+            self._check_iter_start(iter_params[0])
+            self._check_iter_step(iter_params[2])
+            iters = np.arange(*iter_params)
         else:
             self._check_iters(iters)
-
-        iters = np.arange(*iter_params) if iters is None else iters
-        iters = np.array(iters) if isinstance(iters,list) else iters
+            iters = np.array(iters)
 
         varnames = varnames or self.varnames
 
