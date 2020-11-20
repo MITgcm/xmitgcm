@@ -1,3 +1,4 @@
+import re
 import pytest
 from dask.array.core import Array as dsa
 
@@ -140,6 +141,23 @@ def test_ecco_portal_faces(ecco_portal_model):
             assert len(ds_faces[fld].data.chunks)==1
             assert (len(ds_faces[fld]),)==ds_faces[fld].data.chunks[0]
 
+
+def test_ecco_portal_iterations(ecco_portal_model):
+    with pytest.warns(RuntimeWarning, match=r"Iteration .* may not exist, you may need to change 'iter_start'"):
+        ecco_portal_model.get_dataset(varnames=['Eta'], iter_start=ecco_portal_model.iter_start + 1, read_grid=False)
+
+    with pytest.warns(RuntimeWarning, match=r"'iter_step' is not a multiple of .*, meaning some expected timesteps may not be returned"):
+        ecco_portal_model.get_dataset(varnames=['Eta'], iter_step=ecco_portal_model.iter_step - 1, read_grid=False)
+
+    with pytest.warns(RuntimeWarning, match=r"Some requested iterations may not exist, you may need to change 'iters'"):
+        iters = [ecco_portal_model.iter_start, ecco_portal_model.iter_start + 1]
+        ecco_portal_model.get_dataset(varnames=['Eta'], iters=iters, read_grid=False)
+
+    with pytest.warns(None) as record:
+        ecco_portal_model.get_dataset(varnames=['Eta'], read_grid=False)
+    assert not record
+
+
 @pytest.mark.slow
 def test_ecco_portal_load(ecco_portal_model):
     # an expensive test because it actually loads data
@@ -165,6 +183,7 @@ def test_ecco_portal_latlon(ecco_portal_model):
             assert len(ds_ll[fld].data.chunks)==1
             assert (len(ds_ll[fld]),)==ds_ll[fld].data.chunks[0]
 
+
 ########### ASTE Portal Tests ##################################################
 @pytest.fixture(scope='module')
 def aste_portal_model():
@@ -186,6 +205,20 @@ def test_aste_portal_faces(aste_portal_model):
         if isinstance(ds_faces[fld].data,dsa):
             assert len(ds_faces[fld].data.chunks)==1
             assert (len(ds_faces[fld]),)==ds_faces[fld].data.chunks[0]
+
+
+def test_aste_portal_iterations(aste_portal_model):
+    with pytest.warns(RuntimeWarning, match=r"Some requested iterations may not exist, you may need to change 'iters'"):
+        #iters = [ecco_portal_model.iter_start, ecco_portal_model.iter_start + 1]
+        iters = aste_portal_model.iters[:2]
+        iters[1] = iters[1] + 1
+        aste_portal_model.get_dataset(varnames=['ETAN'], iters=iters, read_grid=False)
+
+    with pytest.warns(None) as record:
+        iters = aste_portal_model.iters[:2]
+        aste_portal_model.get_dataset(varnames=['ETAN'], iters=iters, read_grid=False)
+    assert not record
+
 
 @pytest.mark.slow
 def test_aste_portal_load(aste_portal_model):
