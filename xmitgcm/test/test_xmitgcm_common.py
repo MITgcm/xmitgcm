@@ -1,5 +1,6 @@
 import pytest
 import os
+import fnmatch
 import tarfile
 import numpy as np
 import dask
@@ -13,6 +14,7 @@ except ImportError:
     # urllib in python2 has different structure
     import urllib as req
 
+from xmitgcm.file_utils import clear_cache
 
 @contextmanager
 def hide_file(origdir, *basenames):
@@ -26,7 +28,8 @@ def hide_file(origdir, *basenames):
     # move the files
     for oldpath, newpath in zip(oldpaths, newpaths):
         oldpath.rename(newpath)
-
+    # clear the cache if it exists
+    clear_cache()
     try:
         yield str(tmpdir)
     finally:
@@ -62,6 +65,7 @@ _experiments = {
                         'dtype': np.dtype('f4'),
                         'expected_values': {'XC': ((0, 0), 10000.0)},
                         'all_iters': [0, 10],
+                        'delta_t': 3600,
                         'prefixes': ['T', 'S', 'Eta', 'U', 'V', 'W']},
     'internal_wave': {'geometry': 'sphericalpolar',
                       'dlink': dlroot + '14066642',
@@ -129,7 +133,26 @@ _experiments = {
                               (0, np.datetime64('2013-11-12T12:00:00.000000000')),
                               (1, np.datetime64('2013-11-12T12:02:00.000000000'))],
                           'prefixes': ['THETA']},
-
+    'ideal_2D_oce': {'geometry': 'sphericalpolar',
+                     'dlink': dlroot + '17288255',
+                     'md5': 'd8868731ff6a8fd951babefbc5ea69ba',
+                     'expected_namelistvals': {'eosType': 'LINEAR',
+                                               'viscAh': 12e5,
+                                               'niter0': 36000,
+                                               'delX': [3.],
+                                               'fileName': ['surfDiag', 'dynDiag',
+                                                            'oceDiag', 'flxDiag'],
+                                               'levels': [[1.0], [],
+                                                          [2., 3., 4., 5., 6.,
+                                                           7., 8., 9., 10., 11.,
+                                                           12., 13.]],
+                                               'useDiagnostics': True},
+                     'diag_levels': {'surfDiag': ([1], (0, -50)),
+                                     'oceDiag': (slice(2, 14), (0, -122.5))},
+                     'expected_values': {'XC': ((0, 0), 1.5)},
+                     'shape': (15, 56, 1),
+                     'test_iternum': 36020,
+                     'dtype': np.dtype('f4')}
 }
 
 
@@ -199,6 +222,7 @@ def download_archive(url, filename):
     req.urlretrieve(url, filename)
     return None
 
+
 def untar(data_dir, basename, target_dir):
     """Unzip a tar file into the target directory. Return path to unzipped
     directory."""
@@ -215,6 +239,14 @@ def untar(data_dir, basename, target_dir):
     if not os.path.exists(fulldir):
         raise IOError('Could not find tar file output dir %s' % fulldir)
     # the actual data lives in a file called testdata
+    # clean up ugly weird hidden files that mac-os sometimes puts in the archive
+    # https://unix.stackexchange.com/questions/9665/create-tar-archive-of-a-directory-except-for-hidden-files
+    # https://superuser.com/questions/259703/get-mac-tar-to-stop-putting-filenames-in-tar-archives
+    bad_files = [f for f in os.listdir(fulldir)
+                 if fnmatch.fnmatch(f, '._*') ]
+    for f in bad_files:
+        os.remove(os.path.join(fulldir, f))
+
     return fulldir
 
 
@@ -261,3 +293,8 @@ def llc_mds_datadirs(tmpdir_factory, request):
 @pytest.fixture(scope='module', params=_grids.keys())
 def all_grid_datadirs(tmpdir_factory, request):
     return setup_mds_dir(tmpdir_factory, request, _grids)
+
+
+@pytest.fixture(scope='module', params=['ideal_2D_oce'])
+def mds_datadirs_with_inputfiles(tmpdir_factory, request):
+    return setup_mds_dir(tmpdir_factory, request, _experiments)

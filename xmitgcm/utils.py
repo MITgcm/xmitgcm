@@ -84,7 +84,7 @@ def _get_useful_info_from_meta_file(metafile):
     return nrecs, shape, name, dtype, fldlist
 
 
-def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
+def read_mds(fname, iternum=None, use_mmap=None, endian='>', shape=None,
              dtype=None, use_dask=True, extra_metadata=None, chunks="3D",
              llc=False, llc_method="smallchunks", legacy=True):
     """Read an MITgcm .meta / .data file pair
@@ -97,7 +97,8 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
     iternum : int, optional
         The iteration number suffix
     use_mmap : bool, optional
-        Whether to read the data using a numpy.memmap
+        Whether to read the data using a numpy.memmap.
+        Mutually exclusive with `use_dask`.
     endian : {'>', '<', '|'}, optional
         Dndianness of the data
     dtype : numpy.dtype, optional
@@ -105,7 +106,8 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
     shape : tuple, optional
         Shape of the data (will be inferred from the .meta file by default)
     use_dask : bool, optional
-        Whether wrap the reading of the raw data in a ``dask.delayed`` object
+        Whether wrap the reading of the raw data in a ``dask.delayed`` object.
+        Mutually exclusive with `use_mmap`.
     extra_metadata : dict, optional
         Dictionary containing some extra metadata that will be appended to
         content of MITgcm meta file to create the file_metadata. This is needed
@@ -179,6 +181,13 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
        on the options selected.
     """
 
+    if use_mmap and use_dask:
+        raise TypeError('`use_mmap` and `use_dask` are mutually exclusive:'
+                        ' Both memory-mapped and dask arrays'
+                        ' use lazy evaluation.')
+    elif use_mmap is None:
+        use_mmap = False if use_dask else True
+
     if iternum is None:
         istr = ''
     else:
@@ -186,6 +195,11 @@ def read_mds(fname, iternum=None, use_mmap=True, endian='>', shape=None,
         istr = '.%010d' % iternum
     datafile = fname + istr + '.data'
     metafile = fname + istr + '.meta'
+
+    if use_mmap and use_dask:
+        raise TypeError('nope')
+    elif use_mmap is None:
+        use_mmap = False if use_dask else True
 
     # get metadata
     try:
@@ -351,6 +365,91 @@ def read_raw_data(datafile, dtype, shape, use_mmap=False, offset=0,
             data = np.fromfile(f, dtype=dtype, count=number_of_values)
             data = data.reshape(shape, order=order)
     data.shape = shape
+    return data
+
+
+def parse_namelist(file, silence_errors=True):
+    """Read a FOTRAN namelist file into a dictionary.
+
+    PARAMETERS
+    ----------
+    file : str
+        Path to the namelist file to read.
+
+    RETURNS
+    -------
+    data : dict
+        Dictionary of each namelist as dictionaries
+    """
+    def parse_val(val):
+        """Parse a string and cast it in the appropriate python type."""
+        if ',' in val:  # It's a list, parse recursively
+            return [parse_val(subval.strip()) for subval in val.split(',')]
+        elif val.startswith("'"):  # It's a string, remove quotes.
+            return val[1:-1].strip()
+        elif '*' in val:  # It's shorthand for a repeated value
+            repeat, number = val.split('*')
+            return [parse_val(number)] * int(repeat)
+        elif val in ['.TRUE.', '.FALSE.']:
+            return val == '.TRUE.'
+        elif '.' in val or 'E' in val:  # It is a Real (float)
+            return float(val)
+        # Finally try for an int
+        return int(val)
+
+    data = {}
+    current_namelist = ''
+    raw_lines = []
+    with open(file) as f:
+        for line in f:
+            # Remove comments
+            line = line.split('#')[0].strip()
+            if '=' in line or '&' in line:
+                raw_lines.append(line)
+            elif line:
+                raw_lines[-1] += line
+
+    for line in raw_lines:
+        if line.startswith('&'):
+            current_namelist = line.split('&')[1]
+            if current_namelist:  # else : it's the end of a namelist.
+                data[current_namelist] = {}
+        else:
+            field, value = map(str.strip, line[:-1].split('='))
+            try:
+                value = parse_val(value)
+            except ValueError:
+                mess = ('Unable to read value for field {field} in file {file}: {value}'
+                        ).format(field=field, file=file, value=value)
+                if silence_errors:
+                    warnings.warn(mess)
+                    value = None
+                else:
+                    raise ValueError(mess)
+
+            if '(' in field:  # Field is an array
+                field, idxs = field[:-1].split('(')
+                if field not in data[current_namelist]:
+                    data[current_namelist][field] = []
+                # For generality, we will assign a slice, so we cast in list
+                value = value if isinstance(value, list) else [value]
+                idxs = [slice(int(idx.split(':')[0]) - 1,
+                              int(idx.split(':')[1]))
+                        if ':' in idx else slice(int(idx) - 1, int(idx))
+                        for idx in idxs.split(',')]
+
+                datafield = data[current_namelist][field]
+                # Array are 1D or 2D, if 2D we extend it to the good shape,
+                # filling it with [] and pass the appropriate sublist.
+                # Only works with slice assign (a:b) in first position.
+                missing_spots = idxs[-1].stop - len(datafield)
+                if missing_spots > 0:
+                    datafield.extend([] for i in range(missing_spots))
+                if len(idxs) == 2:
+                    datafield = datafield[idxs[1].start]
+                datafield[idxs[0]] = value
+            else:
+                data[current_namelist][field] = value
     return data
 
 

@@ -163,11 +163,12 @@ def test_open_dataset_no_meta(all_mds_datadirs):
         assert ds['Eta'].dims == dims_2d
         assert ds['Eta'].values.ndim == len(dims_2d)
 
-        with pytest.raises(IOError, message="Expecting IOError when default_dtype "
-                                            "is not precised (i.e., None)"):
+        with pytest.raises(IOError):
             xmitgcm.open_mdsdataset(dirname, prefix=['T', 'Eta'], iters=it,
                                     geometry=expected['geometry'],
                                     read_grid=False)
+            pytest.fail("Expecting IOError when default_dtype "
+                        "is not precised (i.e., None)")
 
     # now get rid of the variables used to infer dimensions
     with hide_file(dirname, 'XC.meta', 'RC.meta'):
@@ -345,6 +346,7 @@ def test_multiple_iters(multidim_mds_datadirs):
     # now hide all the PH and PHL files: should be able to infer prefixes fine
     missing_files = [os.path.basename(f)
                      for f in glob(os.path.join(dirname, 'PH*.0*data'))]
+    print(missing_files)
     with hide_file(dirname, *missing_files):
         ds = xmitgcm.open_mdsdataset(
             dirname, read_grid=False, iters=expected['all_iters'],
@@ -366,6 +368,18 @@ def test_date_parsing(mds_datadirs_with_refdate):
     # since time was decoded, this encoding should be removed from attributes
     assert 'units' not in ds.time.attrs
     assert 'calendar' not in ds.time.attrs
+
+def test_serialize_nonstandard_calendar(multidim_mds_datadirs, tmp_path):
+    dirname, expected = multidim_mds_datadirs
+    ref_date = '2680-01-01 00:00:00'
+    calendar = '360_day'
+    ds = xmitgcm.open_mdsdataset(dirname, iters='all', prefix=['S'],
+                                 ref_date=ref_date,
+                                 calendar=calendar,
+                                 read_grid=False,
+                                 delta_t=expected['delta_t'],
+                                 geometry=expected['geometry'])
+    ds.to_zarr(tmp_path / 'test.zarr')
 
 
 def test_diagnostics(mds_datadirs_with_diagnostics):
@@ -416,7 +430,7 @@ def test_avail_diags_in_grid_dir(mds_datadirs_with_diagnostics):
         ds = xmitgcm.open_mdsdataset(
                 dirname, grid_dir=grid_dir, iters=iters, prefix=[diag_prefix],
                 read_grid=False, geometry=expected['geometry'])
-    
+
     for diagname in expected_diags:
         assert diagname in ds
         if 'mate' in ds[diagname].attrs:
@@ -556,3 +570,17 @@ def test_llc_extra_metadata(llc_mds_datadirs, method):
 
     if method == "smallchunks":
         assert ds.U.chunks == (nt*(1,), nz*(1,), nface*(1,), (ny,), (nx,))
+
+
+def test_levels_diagnostics(mds_datadirs_with_inputfiles):
+    dirname, expected = mds_datadirs_with_inputfiles
+
+    for diagname, (levels, (idx, value)) in expected['diag_levels'].items():
+        ds = xmitgcm.open_mdsdataset(dirname, prefix=[diagname], levels=levels,
+                                     geometry=expected['geometry'])
+
+        assert ds['Zl'].values[idx] == value
+
+        with pytest.warns(UserWarning, match='nz will be ignored'):
+            xmitgcm.open_mdsdataset(dirname, prefix=[diagname], levels=levels, 
+                                    geometry=expected['geometry'], nz=12)

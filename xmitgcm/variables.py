@@ -10,7 +10,7 @@ try:
     from xarray.core.pycompat import OrderedDict
 except ImportError:
     from collections import OrderedDict
-    
+
 # We are trying to combine the following two things:
 # - MITgcm grid
 #   http://mitgcm.org/sealion/online_documents/node47.html
@@ -76,7 +76,7 @@ horizontal_coordinates_spherical = OrderedDict(
         units="degrees_east", coordinate="YG XG")),
     YG=dict(dims=["j_g", "i_g"], attrs=dict(
         standard_name="latitude_at_f_location", long_name="latitude",
-        units="degrees_north", coordinates="YG XG"))
+        units="degrees_north", coordinate="YG XG"))
 )
 
 horizontal_coordinates_llc = horizontal_coordinates_spherical.copy()
@@ -102,7 +102,7 @@ horizontal_coordinates_curvcart = OrderedDict(
         long_name="x coordinate", units="m", coordinate="YG XG")),
     YG=dict(dims=["j_g", "i_g"], attrs=dict(
         standard_name="plane_y_coordinate_at_f_location",
-        long_name="y coordinate", units="m", coordinates="YG XG")),
+        long_name="y coordinate", units="m", coordinate="YG XG")),
     CS=dict(dims=["j", "i"], attrs=dict(standard_name="Cos of grid orientation angle",
                                         long_name="AngleCS", units=" ", coordinate="YC XC"),
             filename='AngleCS'),
@@ -123,7 +123,7 @@ horizontal_coordinates_cartesian = OrderedDict(
         long_name="x coordinate", units="m", coordinate="YG XG")),
     YG=dict(dims=["j_g", "i_g"], attrs=dict(
         standard_name="plane_y_coordinate_at_f_location",
-        long_name="y coordinate", units="m", coordinates="YG XG"))
+        long_name="y coordinate", units="m", coordinate="YG XG"))
 )
 
 vertical_coordinates = OrderedDict(
@@ -186,8 +186,8 @@ horizontal_grid_variables = OrderedDict(
     # v cell
     rAs=dict(dims=["j_g", "i"], attrs=dict(
         standard_name="cell_area_at_v_location",
-        long_name="cell area", units="m2", coordinates="YG XC"),
-        filename='RAZ'),
+        long_name="cell area", units="m2", coordinate="YG XC"),
+        filename='RAS'),
 )
 
 vertical_grid_variables = OrderedDict(
@@ -454,6 +454,14 @@ package_state_variables = {
         standard_name="KPP_boundary_layer",
         long_name='KPP boundary layer depth, bulk Ri criterion',
         units='m')),
+    'KPPg_TH': dict(dims=['k_l','j','i'], attrs=dict(
+        standard_name='KPP_theta_flux',
+        long_name='KPP non-local Flux of Pot.Temperature',
+        units='degC m3 s-1')),
+    'KPPg_SLT': dict(dims=['k_l','j','i'], attrs=dict(
+        standard_name='KPP_salt_flux',
+        long_name='KPP non-local Flux of Salinity',
+        units='psu m3 s-1')),
     # pkg/thsice variables
     'ice_fract': dict(dims=['j', 'i'], attrs=dict(
         standard_name="sea_ice_area_fraction",
@@ -651,7 +659,31 @@ extra_grid_variables = OrderedDict(
     maskCtrlS=dict(dims=['k', 'j_g', 'i'], attrs=dict(
         standard_name="ctrl_vector_3d_mask_at_v_location",
         long_name='CTRL 3D mask where ctrl vector is active at v location',
-        units=''))
+        units='')),
+    # Reference density profile
+    rhoRef=dict(dims=['k'],attrs=dict(
+        standard_name="reference_density_profile",
+        long_name="1D, vertical reference density profile",
+        coordinate="Z",
+        units='kg m-3'),
+        filename='RhoRef'),
+    # Additional grid metrics
+    dxF=dict(dims=['j','i'],attrs=dict(
+        standard_name="cell_x_size_at_t_location",
+        long_name="cell x size", units="m", coordinate="YC XC"),
+        filename='DXF'),
+    dyF=dict(dims=['j','i'],attrs=dict(
+        standard_name="cell_y_size_at_t_location",
+        long_name="cell y size", units="m", coordinate="YC XC"),
+        filename='DYF'),
+    dxV=dict(dims=['j_g','i_g'],attrs=dict(
+        standard_name="cell_x_size_at_f_location",
+        long_name="cell x size", units="m", coordinate="YG XG"),
+        filename='DXV'),
+    dyU=dict(dims=['j_g','i_g'],attrs=dict(
+        standard_name="cell_y_size_at_f_location",
+        long_name="cell y size", units="m", coordinate="YG XG"),
+        filename='DYU')
     # Printed from write_grid when sigma coordinates are used
     # AHybSigmF, BHybSigF, ...
     # Unclear where on the grid these variables exist,
