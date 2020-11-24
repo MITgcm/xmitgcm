@@ -4,6 +4,27 @@ Development
 Release History
 ---------------
 
+
+v0.5.0 (2020-24-11)
+~~~~~~~~~~~~~~~~~~~
+
+  - Add mask override option to llcreader from Ryan Abernathey (:issue:`191`)
+  - Python 3.8 compatibility from Takaya Uchida (:issue:`194`)
+  - llcreader: get grid info from ECCO portal from Tim Smith (:issue:`158`, :issue:`161`, :issue:`166`)
+  - Fix python 3.6 master build from Tim Smith (:issue:`200`)
+  - ECCO portal new iter_stop from Antonio Quintana (:issue:`193`)
+  - Added missing grid variables to llcreader known_models from Ryan Abernathey (:issue:`207`)
+  - Migrated to GitHub Actions from Tim Smith (:issue:`223`)
+  - Dropped python 2 from Tim Smith (:issue:`226`)
+  - llcreader klevels bugfix from Ryan Abernathey (:issue:`224`)
+  - Incorporated llcreader for ASTE release 1 from Tim Smith (:issue:`231`)
+  - Fixed typo for 'coordinate' entry in dimensions dictionary from Ian Fenty (:issue:`236`)
+  - Lazy open_mdsdataset from Pascal Bourgault (:issue:`229`)
+  - Implemented checking for variable mates from Fraser Goldsworth (:issue:`234`)
+  - Added metadata to llcreader dimensions from Ryan Abernathey (:issue:`239`)
+  - Cehck iter_start and iter_stop from Fraser Goldsworth (:issue:`235`)
+  - Automated release to pypi from from Ryan Abernathey (:issue:`241`)
+
 v0.4.1 (2019-07-11)
 ~~~~~~~~~~~~~~~~~~~
 
