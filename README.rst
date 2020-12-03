@@ -73,7 +73,7 @@ This will create a directory called ``global_oce_latlon`` which we will use
 for the rest of these examples. If you have your own data, replace this with
 the path to your mitgcm files.
 
-To opean MITgcm MDS data as an xarray.Dataset, do the following in python::
+To open MITgcm MDS data as an xarray.Dataset, do the following in python::
 
     from xmitgcm import open_mdsdataset
     data_dir = './global_oce_latlon'
