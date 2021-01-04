@@ -10,7 +10,7 @@ try:
     from xarray.core.pycompat import OrderedDict
 except ImportError:
     from collections import OrderedDict
-    
+
 # We are trying to combine the following two things:
 # - MITgcm grid
 #   http://mitgcm.org/sealion/online_documents/node47.html
@@ -76,7 +76,7 @@ horizontal_coordinates_spherical = OrderedDict(
         units="degrees_east", coordinate="YG XG")),
     YG=dict(dims=["j_g", "i_g"], attrs=dict(
         standard_name="latitude_at_f_location", long_name="latitude",
-        units="degrees_north", coordinates="YG XG"))
+        units="degrees_north", coordinate="YG XG"))
 )
 
 horizontal_coordinates_llc = horizontal_coordinates_spherical.copy()
@@ -113,7 +113,7 @@ horizontal_coordinates_curvcart = OrderedDict(
         long_name="x coordinate", units="m", coordinate="YG XG")),
     YG=dict(dims=["j_g", "i_g"], attrs=dict(
         standard_name="plane_y_coordinate_at_f_location",
-        long_name="y coordinate", units="m", coordinates="YG XG")),
+        long_name="y coordinate", units="m", coordinate="YG XG")),
     CS=dict(dims=["j", "i"], attrs=dict(standard_name="Cos of grid orientation angle",
                                         long_name="AngleCS", units=" ", coordinate="YC XC"),
             filename='AngleCS'),
@@ -134,7 +134,7 @@ horizontal_coordinates_cartesian = OrderedDict(
         long_name="x coordinate", units="m", coordinate="YG XG")),
     YG=dict(dims=["j_g", "i_g"], attrs=dict(
         standard_name="plane_y_coordinate_at_f_location",
-        long_name="y coordinate", units="m", coordinates="YG XG"))
+        long_name="y coordinate", units="m", coordinate="YG XG"))
 )
 
 vertical_coordinates = OrderedDict(
@@ -197,7 +197,7 @@ horizontal_grid_variables = OrderedDict(
     # v cell
     rAs=dict(dims=["j_g", "i"], attrs=dict(
         standard_name="cell_area_at_v_location",
-        long_name="cell area", units="m2", coordinates="YG XC"),
+        long_name="cell area", units="m2", coordinate="YG XC"),
         filename='RAS'),
 )
 
@@ -465,6 +465,14 @@ package_state_variables = {
         standard_name="KPP_boundary_layer",
         long_name='KPP boundary layer depth, bulk Ri criterion',
         units='m')),
+    'KPPg_TH': dict(dims=['k_l','j','i'], attrs=dict(
+        standard_name='KPP_theta_flux',
+        long_name='KPP non-local Flux of Pot.Temperature',
+        units='degC m3 s-1')),
+    'KPPg_SLT': dict(dims=['k_l','j','i'], attrs=dict(
+        standard_name='KPP_salt_flux',
+        long_name='KPP non-local Flux of Salinity',
+        units='psu m3 s-1')),
     # pkg/thsice variables
     'ice_fract': dict(dims=['j', 'i'], attrs=dict(
         standard_name="sea_ice_area_fraction",

@@ -796,12 +796,16 @@ def _get_extra_grid_variables(grid_dir):
        Then return the variable information for each of these"""
     extra_grid = {}
 
+    fnames = dict([[val['filename'],key] for key,val in extra_grid_variables.items() if 'filename' in val])
+
     all_datafiles = listdir_endswith(grid_dir, '.data')
     for f in all_datafiles:
         prefix = os.path.split(f[:-5])[-1]
         # Only consider what we find that matches extra_grid_vars
         if prefix in extra_grid_variables:
             extra_grid[prefix] = extra_grid_variables[prefix]
+        elif prefix in fnames:
+            extra_grid[fnames[prefix]] = extra_grid_variables[fnames[prefix]]
 
     return extra_grid
 

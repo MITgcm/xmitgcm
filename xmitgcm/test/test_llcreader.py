@@ -1,3 +1,4 @@
+import re
 import pytest
 from dask.array.core import Array as dsa
 
@@ -8,6 +9,10 @@ from .test_xmitgcm_common import llc_mds_datadirs
 EXPECTED_VARS = ['Eta', 'KPPhbl', 'oceFWflx', 'oceQnet', 'oceQsw', 'oceSflux',
             'oceTAUX', 'oceTAUY', 'PhiBot', 'Salt', 'SIarea', 'SIheff',
             'SIhsalt', 'SIhsnow', 'SIuice', 'SIvice', 'Theta', 'U', 'V', 'W']
+GRID_VARNAMES = ['AngleCS', 'AngleSN', 'DRC', 'DRF', 'DXC', 'DXG', 'DYC', 'DYG',
+                 'Depth', 'PHrefC', 'PHrefF', 'RAC', 'RAS', 'RAW', 'RAZ', 'RC', 'RF',
+                 'RhoRef', 'XC', 'XG', 'YC', 'YG', 'hFacC', 'hFacS', 'hFacW']
+
 
 EXPECTED_COORDS = {2160: ['CS','SN','Depth',
                           'drC','drF','dxC','dxF','dxG','dyC','dyF','dyG',
@@ -19,7 +24,15 @@ EXPECTED_COORDS = {2160: ['CS','SN','Depth',
                           'drC','drF','dxC','dxF','dxG','dyC','dyF','dyG',
                           'hFacC','hFacS','hFacW','PHrefC','PHrefF',
                           'rA','rAs','rAw','rhoRef','Z','Zp1','Zl','Zu','XC','YC',
-                          'rAz','XG','YG','dxV','dyU']}
+                          'rAz','XG','YG','dxV','dyU'],
+                   'aste_270': ["CS", "Depth", "PHrefC", "PHrefF", "SN",
+                                "XC", "XG", "YC", "YG", "Z",
+                                "Zl", "Zp1", "Zu", "drC", "drF",
+                                "dxC", "dxG", "dyC", "dyG", "hFacC",
+                                "hFacS", "hFacW", "maskC", "maskCtrlC", "maskCtrlS",
+                                "maskCtrlW", "maskInC", "maskInS", "maskInW", "maskS",
+                                "maskW", "niter", "rA", "rAs", "rAw",
+                                "rAz", "rhoRef"]}
 
 ########### Generic llcreader tests on local data ##############################
 
@@ -28,7 +41,8 @@ def local_llc90_store(llc_mds_datadirs):
     from fsspec.implementations.local import LocalFileSystem
     dirname, expected = llc_mds_datadirs
     fs = LocalFileSystem()
-    return llcreader.BaseStore(fs, base_path=dirname)
+    store = llcreader.BaseStore(fs, base_path=dirname, grid_path=dirname)
+    return store
 
 @pytest.fixture(scope='module')
 def llc90_kwargs():
@@ -58,18 +72,30 @@ def test_llc90_local_latlon(local_llc90_store, llc90_kwargs):
                               'i_g': 360, 'k_u': 50, 'k': 50, 'k_l': 50,
                               'j_g': 270, 'j': 270}
 
+
+# includes regression test for https://github.com/MITgcm/xmitgcm/issues/233
 @pytest.mark.parametrize('rettype', ['faces', 'latlon'])
-@pytest.mark.parametrize('k_levels, kp1_levels',
-        [(None,None),
+@pytest.mark.parametrize('k_levels, kp1_levels, k_chunksize',
+        [(None, None, 1),
+         ([1], [1, 2], 1),
          ([0, 2, 7, 9, 10, 20],
-          [0,1,2,3,7,8,9,10,11,20,21])])
-@pytest.mark.parametrize('k_chunksize', [1, 2])
+          [0,1,2,3,7,8,9,10,11,20,21], 1),
+         ([0, 2, 7, 9, 10, 20],
+          [0,1,2,3,7,8,9,10,11,20,21], 2)
+         ])
+@pytest.mark.parametrize('read_grid', [False, True]
+)
 def test_llc90_local_faces_load(local_llc90_store, llc90_kwargs, rettype, k_levels,
-                                kp1_levels, k_chunksize):
+                                kp1_levels, k_chunksize, read_grid):
     store = local_llc90_store
     model = llcreader.LLC90Model(store)
+    model.grid_varnames = GRID_VARNAMES
     ds = model.get_dataset(k_levels=k_levels, k_chunksize=k_chunksize,
-                           type=rettype, **llc90_kwargs)
+                           type=rettype, read_grid=read_grid, **llc90_kwargs)
+    if read_grid:
+        # doesn't work because the variables change name
+        # assert set(GRID_VARNAMES).issubset(set(ds.coords))
+        pass
     if k_levels is None:
         assert list(ds.k.values) == list(range(50))
         assert list(ds.k_p1.values) == list(range(51))
@@ -79,6 +105,15 @@ def test_llc90_local_faces_load(local_llc90_store, llc90_kwargs, rettype, k_leve
     assert all([cs==k_chunksize for cs in ds['T'].data.chunks[1]])
 
     ds.load()
+
+
+@pytest.mark.parametrize('varname', [['U'], ['V']])
+def test_vector_mate_error(local_llc90_store, varname):
+    store = local_llc90_store
+    model = llcreader.LLC90Model(store)
+    with pytest.raises(ValueError, match=r".* must also be .*"):
+        ds_latlon = model.get_dataset(type='latlon', varnames=varname, iter_start=0, iter_stop=9, iter_step=8)
+
 
 ########### ECCO Portal Tests ##################################################
 
@@ -106,6 +141,23 @@ def test_ecco_portal_faces(ecco_portal_model):
             assert len(ds_faces[fld].data.chunks)==1
             assert (len(ds_faces[fld]),)==ds_faces[fld].data.chunks[0]
 
+
+def test_ecco_portal_iterations(ecco_portal_model):
+    with pytest.warns(RuntimeWarning, match=r"Iteration .* may not exist, you may need to change 'iter_start'"):
+        ecco_portal_model.get_dataset(varnames=['Eta'], iter_start=ecco_portal_model.iter_start + 1, read_grid=False)
+
+    with pytest.warns(RuntimeWarning, match=r"'iter_step' is not a multiple of .*, meaning some expected timesteps may not be returned"):
+        ecco_portal_model.get_dataset(varnames=['Eta'], iter_step=ecco_portal_model.iter_step - 1, read_grid=False)
+
+    with pytest.warns(RuntimeWarning, match=r"Some requested iterations may not exist, you may need to change 'iters'"):
+        iters = [ecco_portal_model.iter_start, ecco_portal_model.iter_start + 1]
+        ecco_portal_model.get_dataset(varnames=['Eta'], iters=iters, read_grid=False)
+
+    with pytest.warns(None) as record:
+        ecco_portal_model.get_dataset(varnames=['Eta'], read_grid=False)
+    assert not record
+
+
 @pytest.mark.slow
 def test_ecco_portal_load(ecco_portal_model):
     # an expensive test because it actually loads data
@@ -130,3 +182,55 @@ def test_ecco_portal_latlon(ecco_portal_model):
         if isinstance(ds_ll[fld].data,dsa):
             assert len(ds_ll[fld].data.chunks)==1
             assert (len(ds_ll[fld]),)==ds_ll[fld].data.chunks[0]
+
+
+########### ASTE Portal Tests ##################################################
+@pytest.fixture(scope='module')
+def aste_portal_model():
+    return llcreader.CRIOSPortalASTE270Model()
+
+def test_aste_portal_faces(aste_portal_model):
+    # just get three timesteps
+    iters = aste_portal_model.iters[:3]
+    ds_faces = aste_portal_model.get_dataset(iters=iters)
+    nx = aste_portal_model.nx
+    assert ds_faces.dims == {'face': 6, 'i': nx, 'i_g': nx, 'j': nx,
+                              'j_g': nx, 'k': 50, 'k_u': 50, 'k_l': 50,
+                              'k_p1': 51, 'time': 3}
+    assert set(aste_portal_model.varnames) == set(ds_faces.data_vars)
+    assert set(EXPECTED_COORDS['aste_270']).issubset(set(ds_faces.coords))
+
+    # make sure vertical coordinates are in one single chunk
+    for fld in ds_faces[['Z','Zl','Zu','Zp1']].coords:
+        if isinstance(ds_faces[fld].data,dsa):
+            assert len(ds_faces[fld].data.chunks)==1
+            assert (len(ds_faces[fld]),)==ds_faces[fld].data.chunks[0]
+
+
+def test_aste_portal_iterations(aste_portal_model):
+    with pytest.warns(RuntimeWarning, match=r"Some requested iterations may not exist, you may need to change 'iters'"):
+        #iters = [ecco_portal_model.iter_start, ecco_portal_model.iter_start + 1]
+        iters = aste_portal_model.iters[:2]
+        iters[1] = iters[1] + 1
+        aste_portal_model.get_dataset(varnames=['ETAN'], iters=iters, read_grid=False)
+
+    with pytest.warns(None) as record:
+        iters = aste_portal_model.iters[:2]
+        aste_portal_model.get_dataset(varnames=['ETAN'], iters=iters, read_grid=False)
+    assert not record
+
+
+@pytest.mark.slow
+def test_aste_portal_load(aste_portal_model):
+    # an expensive test because it actually loads data
+    iters = aste_portal_model.iters[:3]
+    ds_faces = aste_portal_model.get_dataset(varnames=['ETAN'], iters=iters)
+    expected = 0.641869068145752
+    assert ds_faces.ETAN[0, 1, 0, 0].values.item() == expected
+
+def test_aste_portal_latlon(aste_portal_model):
+    iters = aste_portal_model.iters[:3]
+    with pytest.raises(TypeError):
+        ds_ll = aste_portal_model.get_dataset(iters=iters,type='latlon')
+
+
