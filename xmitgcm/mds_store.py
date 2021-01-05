@@ -269,9 +269,6 @@ def open_mdsdataset(data_dir, grid_dir=None,
     if chunks is not None:
         ds = ds.chunk(chunks)
 
-    if geometry == "cs":
-        ds = ds.transpose("face", ...)
-
     # set attributes for CF conventions
     ds.attrs['Conventions'] = "CF-1.6"
     ds.attrs['title'] = "netCDF wrapper of MITgcm MDS binary data"

@@ -41,16 +41,16 @@ def test_open_mdsdataset_minimal(all_mds_datadirs):
         dirname, iters=None, read_grid=False, swap_dims=False,
         geometry=expected['geometry'])
 
-    if expected['geometry'] == 'cs':
-        pytest.xfail('Cube Sphere code in dev')
-
     # the expected dimensions of the dataset
     eshape = expected['shape']
     if len(eshape) == 3:
         nz, ny, nx = eshape
         nface = None
     elif len(eshape) == 4:
-        nz, nface, ny, nx = eshape
+        if expected['geometry'] == 'cs':
+            nz, ny, nface, nx = eshape
+        else:
+            nz, nface, ny, nx = eshape
     else:
         raise ValueError("Invalid expected shape")
     coords = {'i': np.arange(nx),
@@ -115,8 +115,6 @@ def test_values_and_endianness(all_mds_datadirs):
     """Make sure we read all the grid variables."""
     dirname, expected = all_mds_datadirs
 
-    if expected['geometry'] == 'cs':
-        pytest.xfail('Cube Sphere code in dev')
     if expected['geometry']=='llc' and (dask.__version__ < '0.11.2'):
         pytest.xfail("LLC value tests require fixed dask")
 
@@ -142,9 +140,6 @@ def test_open_dataset_no_meta(all_mds_datadirs):
     """Make sure we read  variables with no .meta files."""
     dirname, expected = all_mds_datadirs
 
-    if expected['geometry'] == 'cs':
-        pytest.xfail('Cube Sphere code in dev')
-
     shape = expected['shape']
 
     nz = shape[0]
@@ -156,6 +151,10 @@ def test_open_dataset_no_meta(all_mds_datadirs):
         ny = nx*shape[-3]
     elif expected['geometry'] == 'cs':
         dims_2d = ('j', 'face', 'i')
+        if len(shape) == 4:
+            nz, ny, nface, nx = shape
+        elif len(shape) == 3:
+            ny, nface, nx = shape
 
     dims_3d = dims_2d if nz == 1 else ('k',) + dims_2d
     dims_2d = ('time',) + dims_2d

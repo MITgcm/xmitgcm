@@ -139,7 +139,7 @@ _experiments = {
                         'md5': '209193f4a183307b89337bb18e2e9451',
                         'shape': (15, 32, 6, 32), 'test_iternum': 72020,
                         'dtype': np.dtype('f4'),
-                        'expected_values': {'XC': ((2, 3, 5), -29.9892)},
+                        'expected_values': {'XC': ((2, 3, 5), -29.98921)},
                         'diagnostics': ('oceDiag', ['DRHODR',
                                                     'RHOAnoma',
                                                     'CONVADJ',
