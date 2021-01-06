@@ -766,7 +766,10 @@ def _guess_model_horiz_dims(data_dir, is_llc=False, is_cs=False):
         ny //= nface
     elif is_cs:
         nface = CS_NUM_FACES
-        ny //= nface
+        if ny > nx:
+            ny //= nface
+        else:
+            nx //= nface
     else:
         nface = None
     return nface, ny, nx
