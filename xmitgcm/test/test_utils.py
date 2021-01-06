@@ -974,49 +974,6 @@ def test_get_grid_from_input(all_grid_datadirs, usedask):
                                      use_dask=False,
                                      extra_metadata=None)
             
-            
-            
-@pytest.mark.parametrize("usedask", [True, False])
-def test_get_xg_yg_from_input(all_grid_datadirs, usedask):
-    from xmitgcm.utils import get_xg_yg_from_input, get_extra_metadata
-    from xmitgcm.utils import read_raw_data
-    dirname, expected = all_grid_datadirs
-    md = get_extra_metadata(domain=expected['domain'], nx=expected['nx'])
-    tx=30
-    ty=30
-    bl=[1,2,3]
-    ds = get_xg_yg_from_input(dirname + '/' + expected['gridfile'],
-                             geometry=expected['geometry'],
-                             dtype=np.dtype('d'), endian='>',
-                             use_dask=usedask,
-                             extra_metadata=md,
-                             tilex=tx,tiley=ty,
-                             blankList=bl)
-    # test types
-    assert type(ds) == xarray.Dataset
-    assert type(ds['XG']) == xarray.core.dataarray.DataArray
-
-    if usedask:
-        ds.load()
-
-    # check all variables are in
-    expected_variables = ['XG', 'YG']
-
-    for var in expected_variables:
-        assert type(ds[var]) == xarray.core.dataarray.DataArray
-        assert ds[var].values.shape[1] == tx+1
-        assert ds[var].values.shape[2] ==ty+1
-
-
-    # passing llc without metadata should fail
-    if expected['geometry'] == 'llc':
-        with pytest.raises(ValueError):
-            ds = get_xg_yg_from_input(dirname + '/' + expected['gridfile'],
-                                     geometry=expected['geometry'],
-                                     dtype=np.dtype('d'), endian='>',
-                                     use_dask=False,
-                                     extra_metadata=None)
-
 
 @pytest.mark.parametrize("dtype", [np.dtype('d'), np.dtype('f')])
 def test_write_to_binary(dtype):
