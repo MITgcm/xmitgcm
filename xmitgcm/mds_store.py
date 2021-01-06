@@ -235,8 +235,11 @@ def open_mdsdataset(data_dir, grid_dir=None,
                 # apply chunking
                 if sys.version_info[0] < 3:
                     ds = xr.auto_combine(datasets)
-                else:
+                elif xr.__version__ < '0.15.2':
                     ds = xr.combine_by_coords(datasets)
+                else:
+                    ds = xr.combine_by_coords(datasets, compat='override', coords='minimal', combine_attrs='drop')
+
                 if swap_dims:
                     ds = _swap_dimensions(ds, geometry)
                 if grid_vars_to_coords:
@@ -760,7 +763,7 @@ def _guess_layers(data_dir):
     return all_layers
 
 
-def _get_all_grid_variables(geometry, grid_dir, layers={}):
+def _get_all_grid_variables(geometry, grid_dir=None, layers={}):
     """"Put all the relevant grid metadata into one big dictionary."""
     possible_hcoords = {'cartesian': horizontal_coordinates_cartesian,
                         'llc': horizontal_coordinates_llc,
@@ -769,7 +772,7 @@ def _get_all_grid_variables(geometry, grid_dir, layers={}):
     hcoords = possible_hcoords[geometry]
 
     # look for extra variables, if they exist in grid_dir
-    extravars = _get_extra_grid_variables(grid_dir)
+    extravars = _get_extra_grid_variables(grid_dir) if grid_dir is not None else {}
 
     allvars = [hcoords, vertical_coordinates, horizontal_grid_variables,
                vertical_grid_variables, volume_grid_variables, mask_variables,
@@ -789,12 +792,16 @@ def _get_extra_grid_variables(grid_dir):
        Then return the variable information for each of these"""
     extra_grid = {}
 
+    fnames = dict([[val['filename'],key] for key,val in extra_grid_variables.items() if 'filename' in val])
+
     all_datafiles = listdir_endswith(grid_dir, '.data')
     for f in all_datafiles:
         prefix = os.path.split(f[:-5])[-1]
         # Only consider what we find that matches extra_grid_vars
         if prefix in extra_grid_variables:
             extra_grid[prefix] = extra_grid_variables[prefix]
+        elif prefix in fnames:
+            extra_grid[fnames[prefix]] = extra_grid_variables[fnames[prefix]]
 
     return extra_grid
 

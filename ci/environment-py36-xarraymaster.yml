@@ -9,6 +9,7 @@ dependencies:
   - future
   - zarr
   - cftime
+  - aiohttp
   - pip:
     - cachetools
     - git+https://github.com/pydata/xarray.git

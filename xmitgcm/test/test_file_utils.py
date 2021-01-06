@@ -11,7 +11,7 @@ def directory_with_files(tmpdir_factory):
 
 def test_listdir(directory_with_files):
     path = str(directory_with_files)
-    assert file_utils.listdir(path) == ['bar.0000000001.meta', 'baz.data']
+    assert sorted(file_utils.listdir(path)) == sorted(['bar.0000000001.meta', 'baz.data'])
 
 def test_listdir_startswith(directory_with_files):
     path = str(directory_with_files)
