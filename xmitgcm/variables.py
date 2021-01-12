@@ -699,11 +699,11 @@ package_state_variables = {
         units='dJ/(W m-2)')),
     'ADJlwdown': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJlwdown",
-        long_name='dJ/dswdown: Sensitivity to downward longwave radiation',
+        long_name='dJ/dlwdown: Sensitivity to downward longwave radiation',
         units='dJ/(W m-2)')),
     'ADJhflux': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJhflux",
-        long_name='dJ/dswdown: Sensitivity to upward heat flux',
+        long_name='dJ/dhflux: Sensitivity to upward heat flux',
         units='dJ/(W m-2)')),
     'ADJsflux': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJsflux",
