@@ -660,7 +660,7 @@ package_state_variables = {
     'ADJsss': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJsss",
         long_name='dJ/dsss: Sensitivity to sea surface salinity',
-        units='dJ/pss)')),
+        units='dJ/psu)')),
     'ADJbottomdrag': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADbottomdrag",
         long_name='dJ/dbottomdrag: Sensitivity to linear bottom drag coeff',
