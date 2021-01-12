@@ -50,11 +50,11 @@ dimensions = OrderedDict(
         standard_name="z_grid_index", axis="Z",
         long_name="z-dimension of the t grid", swap_dim='Z')),
     k_u=dict(dims=['k_u'], attrs=dict(
-        standard_name="z_grid_index_at_lower_w_location",
+        standard_name="z_grid_index_at_upper_w_location",
         axis="Z", long_name="z-dimension of the w grid",
         c_grid_axis_shift=0.5, swap_dim='Zu')),
     k_l=dict(dims=['k_l'], attrs=dict(
-        standard_name="z_grid_index_at_upper_w_location",
+        standard_name="z_grid_index_at_lower_w_location",
         axis="Z", long_name="z-dimension of the w grid",
         c_grid_axis_shift=-0.5, swap_dim='Zl')),
     # this is complicated because it is offset in both directions - allowed by comodo?
@@ -138,13 +138,13 @@ vertical_coordinates = OrderedDict(
         units="m", positive="down"),
         filename="RF", slice=(slice(None), 0, 0)),
     Zu=dict(dims=["k_u"], attrs=dict(
-        standard_name="depth_at_lower_w_location",
-        long_name="vertical coordinate of lower cell interface",
+        standard_name="depth_at_upper_w_location",
+        long_name="vertical coordinate of upper cell interface",
         units="m", positive="down"),
         filename="RF", slice=(slice(1, None), 0, 0)),
     Zl=dict(dims=["k_l"], attrs=dict(
-        standard_name="depth_at_upper_w_location",
-        long_name="vertical coordinate of upper cell interface",
+        standard_name="depth_at_lower_w_location",
+        long_name="vertical coordinate of lower cell interface",
         units="m", positive="down"),
         filename="RF", slice=(slice(None, -1), 0, 0))
 )
