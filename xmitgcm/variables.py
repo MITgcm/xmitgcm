@@ -641,7 +641,7 @@ package_state_variables = {
         units='dJ/(m2 s-1)')),
     'ADJkapredi': dict(dims=['k', 'j', 'i'], attrs=dict(
         standard_name="ADJkapredi",
-        long_name='dJ/dkapredi: Sensitivity to meridional surface stress',
+        long_name='dJ/dkapredi: Sensitivity to Redi coefficient',
         units='dJ/(m2 s-1)')),
     'ADJeddypsix': dict(dims=['k', 'j', 'i_g'], attrs=dict(
         standard_name="ADJeddypsix",
