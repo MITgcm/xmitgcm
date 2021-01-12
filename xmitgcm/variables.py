@@ -625,8 +625,8 @@ package_state_variables = {
         units='dJ/(kg m-2 s-1)')),
     'ADJqsw': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJqsw",
-        long_name='dJ/dqsw: Sensitivity to net upward heat flux',
-        units='dJ/(N m-2)')),
+        long_name='dJ/dqsw: Sensitivity to net shortwave radiation',
+        units='dJ/(W m-2)')),
     'ADJggl90tke': dict(dims=['k', 'j', 'i'], attrs=dict(
         standard_name="ADJggl90tke",
         long_name='dJ/dggl90tke: Sensitivity to TKE',
@@ -687,12 +687,12 @@ package_state_variables = {
         units='dJ/(m s-1)')),
     'ADJatemp': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJatemp",
-        long_name='dJ/datemp: Sensitivity to atmosperic surface temperature',
+        long_name='dJ/datemp: Sensitivity to atmospheric surface temperature',
         units='dJ/K')),
     'ADJaqh': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJaqh",
         long_name='dJ/daqh: Sensitivity to specific surface humidity',
-        units='dJ/K')),
+        units='dJ/(kg kg-1)')),
     'ADJswdown': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJswdown",
         long_name='dJ/dswdown: Sensitivity to downward solar radiation',
@@ -712,11 +712,11 @@ package_state_variables = {
     'ADJprecip': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJprecip",
         long_name='dJ/dprecip: Sensitivity to precipitation flux',
-        units='dJ/(kg m-2 s-1)')),
+        units='dJ/(m s-1)')),
     'ADJrunoff': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJrunoff",
         long_name='dJ/drunoff: Sensitivity to runoff',
-        units='dJ/(kg m-2 s-1)')),
+        units='dJ/(m s-1)')),
     'ADJclimsst': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJclimsst",
         long_name='dJ/dclimsst: Sensitivity to restoring surface temperature',
@@ -724,7 +724,7 @@ package_state_variables = {
     'ADJclimsss': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJclimsss",
         long_name='dJ/dclimsss: Sensitivity to restoring surface salinity',
-        units='dJ/pss)')),
+        units='dJ/psu)')),
     'ADJarea': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJarea",
         long_name='dJ/darea: Sensitivity to sea ice concentration',
