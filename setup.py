@@ -25,7 +25,7 @@ CLASSIFIERS = [
     'Topic :: Scientific/Engineering',
 ]
 
-INSTALL_REQUIRES = ['xarray >= 0.10.1', 'dask >= 1.0', 'cachetools']
+INSTALL_REQUIRES = ['xarray >= 0.11.0', 'dask >= 1.0', 'cachetools']
 SETUP_REQUIRES = ['pytest-runner']
 TESTS_REQUIRE = ['pytest >= 4.0', 'coverage']
 
@@ -47,4 +47,5 @@ setup(name=DISTNAME,
       setup_requires=SETUP_REQUIRES,
       tests_require=TESTS_REQUIRE,
       url=URL,
-      packages=find_packages())
+      packages=find_packages(),
+      python_requires='>=3.7')
