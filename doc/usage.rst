@@ -152,9 +152,9 @@ standard names have been assigned according to `CF Conventions`_.
 +----------------------+---------------------------------------+
 | YG                   | latitude_at_f_location                |
 +----------------------+---------------------------------------+
-| Zl                   | depth_at_upper_w_location             |
+| Zl                   | depth_at_lower_w_location             |
 +----------------------+---------------------------------------+
-| Zu                   | depth_at_lower_w_location             |
+| Zu                   | depth_at_upper_w_location             |
 +----------------------+---------------------------------------+
 | Z                    | depth                                 |
 +----------------------+---------------------------------------+
@@ -206,9 +206,9 @@ conventions. These logical spatial dimensions are
 +------+----------------------------------+------+-------------------+
 | k    | z_grid_index                     | Z    |                   |
 +------+----------------------------------+------+-------------------+
-| k_u  | z_grid_index_at_lower_w_location | Z    | -0.5              |
+| k_l  | z_grid_index_at_lower_w_location | Z    | -0.5              |
 +------+----------------------------------+------+-------------------+
-| k_l  | z_grid_index_at_upper_w_location | Z    | 0.5               |
+| k_u  | z_grid_index_at_upper_w_location | Z    | 0.5               |
 +------+----------------------------------+------+-------------------+
 | k_p1 | z_grid_index_at_w_location       | Z    | (-0.5, 0.5)       |
 +------+----------------------------------+------+-------------------+
@@ -232,6 +232,14 @@ xarray_ distinguishes between "coordinates" and "data_vars". By default,
 ``open_mdsdataset`` will promote all grid variables to coordinates. To turn off
 this behavior and treat grid variables as data_vars, use
 ``grid_vars_to_coords=False``.
+
+.. warning::
+   For vertical coordinates (``Zl``, ``k_l``, etc.) the notion of "lower" and
+   "upper" always refers to the *logical* grid position, NOT the *physical* grid position.
+   This can be a major point of confusion. In array index space, the point ``k_l``
+   is indeed lower than ``k_u``; however, in physical space, the point ``k_l`` is
+   physically *above* ``k_u`` MITgcm ocean model configurations, because the Z axis
+   starts from the ocean surface and increases downward.
 
 Time
 ----
