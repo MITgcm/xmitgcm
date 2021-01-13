@@ -237,9 +237,11 @@ this behavior and treat grid variables as data_vars, use
    For vertical coordinates (``Zl``, ``k_l``, etc.) the notion of "lower" and
    "upper" always refers to the *logical* grid position, NOT the *physical* grid position.
    This can be a major point of confusion. In array index space, the point ``k_l``
-   is indeed lower than ``k_u``; however, in physical space, the point ``k_l`` is
-   physically *above* ``k_u``. This is because, for typical MITgcm ocean model configurations,
+   is indeed lower than ``k_u``; however, for typical MITgcm ocean model configurations,
+   in physical space the point ``k_l`` is physically *above* ``k_u``. This is because, 
    the Z axis starts from the ocean surface and increases downward.
+   In contrast, for atmospheric configurations which start from the ground and increase upwards,
+   the logical and physical positions are self-consistent.
 
 Time
 ----
