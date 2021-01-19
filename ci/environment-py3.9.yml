@@ -2,7 +2,7 @@ name: test_env
 channels:
   - conda-forge
 dependencies:
-  - python=3.6
+  - python=3.9
   - xarray
   - dask
   - numpy
@@ -11,8 +11,7 @@ dependencies:
   - zarr
   - cftime
   - aiohttp
-  - pip:
-    - cachetools
-    - fsspec
-    - codecov
-    - pytest-cov
+  - pytest-cov
+  - codecov
+  - fsspec
+  - cachetools
