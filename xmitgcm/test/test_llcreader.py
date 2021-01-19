@@ -120,9 +120,15 @@ def test_vector_mate_error(local_llc90_store, varname):
 @pytest.fixture(scope='module', params=[2160, 4320])
 def ecco_portal_model(request):
     if request.param==2160:
-        return llcreader.ECCOPortalLLC2160Model()
+        try:
+            return llcreader.PleiadesLLC2160Model()
+        except OSError:
+            return llcreader.ECCOPortalLLC2160Model()
     else:
-        return llcreader.ECCOPortalLLC4320Model()
+        try:
+            return llcreader.PleiadesLLC4320Model()
+        except OSError:
+            return llcreader.ECCOPortalLLC4320Model()
 
 def test_ecco_portal_faces(ecco_portal_model):
     # just get three timesteps
