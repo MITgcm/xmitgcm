@@ -787,8 +787,7 @@ class BaseLLCModel:
 
     def get_dataset(self, varnames=None, iter_start=None, iter_stop=None,
                     iter_step=None, iters=None, k_levels=None, k_chunksize=1,
-                    type='faces', read_grid=True, grid_vars_to_coords=True,
-                    grid_path=None):
+                    type='faces', read_grid=True, grid_vars_to_coords=True):
         """
         Create an xarray Dataset object for this model.
 
@@ -818,8 +817,6 @@ class BaseLLCModel:
             Whether to read the grid info
         grid_vars_to_coords : bool, optional
             Whether to promote grid variables to coordinate status
-        grid_path : str, optional
-            override or provide llcmodel's filestore grid_path
 
         Returns
         -------
@@ -884,13 +881,8 @@ class BaseLLCModel:
 
         # grid stuff
         read_grid = read_grid and len(self.grid_varnames)!=0
-        if read_grid and grid_path is not None:
-            if self.store.grid_path is not None:
-                warnings.warn(f'Overriding store.grid_path={self.store.grid_path} with: {grid_path}')
-            self.store.grid_path = grid_path
-
         if read_grid and self.store.grid_path is None:
-            raise TypeError('Cannot read grid if grid_dir is not specified as argument or in filestore (e.g. llcreader.known_models)')
+            raise TypeError('Cannot read grid if grid_path is not specified in filestore (e.g. llcreader.known_models)')
         grid_vars_to_coords = grid_vars_to_coords and read_grid
         grid_varnames = self.grid_varnames if read_grid else []
 
