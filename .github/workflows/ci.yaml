@@ -23,7 +23,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest"]
-        python-version: ["2.7","3.6", "3.7", "3.8"]
+        python-version: ["3.7", "3.8", "3.9"]
     steps:
       - uses: actions/checkout@v2
       - name: Cache conda
@@ -77,7 +77,7 @@ jobs:
         activate-environment: test_env # Defined in ci/environment-*.yml
         auto-update-conda: false
         python-version: 3.6
-        environment-file: ci/environment-py36-xarraymaster.yml
+        environment-file: ci/environment-py37-xarraymaster.yml
         use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
     - name: Set up conda environment
       shell: bash -l {0}
