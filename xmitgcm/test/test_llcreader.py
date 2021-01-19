@@ -187,7 +187,10 @@ def test_ecco_portal_latlon(ecco_portal_model):
 ########### ASTE Portal Tests ##################################################
 @pytest.fixture(scope='module')
 def aste_portal_model():
-    return llcreader.CRIOSPortalASTE270Model()
+    try:
+        return llcreader.SverdrupASTE270Model()
+    except OSError:
+        return llcreader.CRIOSPortalASTE270Model()
 
 def test_aste_portal_faces(aste_portal_model):
     # just get three timesteps
