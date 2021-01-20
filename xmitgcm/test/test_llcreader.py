@@ -120,15 +120,9 @@ def test_vector_mate_error(local_llc90_store, varname):
 @pytest.fixture(scope='module', params=[2160, 4320])
 def ecco_portal_model(request):
     if request.param==2160:
-        try:
-            return llcreader.PleiadesLLC2160Model()
-        except OSError:
-            return llcreader.ECCOPortalLLC2160Model()
+        return llcreader.ECCOPortalLLC2160Model()
     else:
-        try:
-            return llcreader.PleiadesLLC4320Model()
-        except OSError:
-            return llcreader.ECCOPortalLLC4320Model()
+        return llcreader.ECCOPortalLLC4320Model()
 
 def test_ecco_portal_faces(ecco_portal_model):
     # just get three timesteps
@@ -193,10 +187,7 @@ def test_ecco_portal_latlon(ecco_portal_model):
 ########### ASTE Portal Tests ##################################################
 @pytest.fixture(scope='module')
 def aste_portal_model():
-    try:
-        return llcreader.SverdrupASTE270Model()
-    except OSError:
-        return llcreader.CRIOSPortalASTE270Model()
+    return llcreader.CRIOSPortalASTE270Model()
 
 def test_aste_portal_faces(aste_portal_model):
     # just get three timesteps
