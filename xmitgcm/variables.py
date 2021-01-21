@@ -295,7 +295,7 @@ state_variables = OrderedDict(
                 long_name='Potential Temperature', units='degree_Celcius')),
     S = dict(dims=['k','j','i'], attrs=dict(
                 standard_name="sea_water_salinity",
-                long_name='Salinity', units='psu')),
+                long_name='Salinity', units='g kg-1')),
     PH= dict(dims=['k','j','i'], attrs=dict(
                 standard_name="sea_water_dynamic_pressue",
                 long_name='Hydrostatic Pressure Pot.(p/rho) Anomaly',
@@ -322,7 +322,7 @@ state_variables = OrderedDict(
                 long_name='Potential Temperature', units='degree_Celcius')),
     Stave = dict(dims=['k','j','i'], attrs=dict(
                 standard_name="sea_water_salinity",
-                long_name='Salinity', units='psu')),
+                long_name='Salinity', units='g kg-1')),
     PhHytave= dict(dims=['k','j','i'], attrs=dict(
                 standard_name="sea_water_dynamic_pressue",
                 long_name='Hydrostatic Pressure Pot.(p/rho) Anomaly',
@@ -369,7 +369,7 @@ state_variables = OrderedDict(
     UStave=dict(dims=['k','j','i_g'], attrs=dict(
                 standard_name="product_of_sea_water_x_velocity_and_salinity",
                 long_name="Zonal Transport of Salinity",
-                units="psu m s-1", mate='VStave')),
+                units="g kg-1 m s-1", mate='VStave')),
     UTtave=dict(dims=['k','j','i_g'], attrs=dict(
                 standard_name="product_of_sea_water_x_velocity_and_"
                               "potential_temperature",
@@ -392,7 +392,7 @@ state_variables = OrderedDict(
     VStave=dict(dims=['k','j_g','i'], attrs=dict(
                 standard_name="product_of_sea_water_y_velocity_and_salinity",
                 long_name="Meridional Transport of Salinity",
-                units="psu m s-1", mate='UStave')),
+                units="g kg-1 m s-1", mate='UStave')),
     VTtave=dict(dims=['k','j_g','i'], attrs=dict(
                 standard_name="product_of_sea_water_y_velocity_and_"
                               "potential_temperature",
@@ -405,7 +405,7 @@ state_variables = OrderedDict(
     WStave=dict(dims=['k_l','j','i'], attrs=dict(
                 standard_name="product_of_sea_water_z_velocity_and_salinity",
                 long_name="Vertical Transport of Salinity",
-                units="psu m s-1")),
+                units="g kg-1 m s-1")),
     WTtave=dict(dims=['k_l','j','i'], attrs=dict(
                 standard_name="product_of_sea_water_z_velocity_and_"
                               "potential_temperature",
@@ -461,7 +461,7 @@ package_state_variables = {
     'KPPg_SLT': dict(dims=['k_l','j','i'], attrs=dict(
         standard_name='KPP_salt_flux',
         long_name='KPP non-local Flux of Salinity',
-        units='psu m3 s-1')),
+        units='g kg-1 m3 s-1')),
     # pkg/thsice variables
     'ice_fract': dict(dims=['j', 'i'], attrs=dict(
         standard_name="sea_ice_area_fraction",
@@ -625,8 +625,8 @@ package_state_variables = {
         units='dJ/(kg m-2 s-1)')),
     'ADJqsw': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJqsw",
-        long_name='dJ/dqsw: Sensitivity to net upward heat flux',
-        units='dJ/(N m-2)')),
+        long_name='dJ/dqsw: Sensitivity to net shortwave radiation',
+        units='dJ/(W m-2)')),
     'ADJggl90tke': dict(dims=['k', 'j', 'i'], attrs=dict(
         standard_name="ADJggl90tke",
         long_name='dJ/dggl90tke: Sensitivity to TKE',
@@ -637,11 +637,11 @@ package_state_variables = {
         units='dJ/(m2 s-1)')),
     'ADJkapgm': dict(dims=['k', 'j', 'i'], attrs=dict(
         standard_name="ADJkapgm",
-        long_name='dJ/dkapgm: Sensitivity to meridional surface stress',
+        long_name='dJ/dkapgm: Sensitivity to GM Intensity',
         units='dJ/(m2 s-1)')),
     'ADJkapredi': dict(dims=['k', 'j', 'i'], attrs=dict(
         standard_name="ADJkapredi",
-        long_name='dJ/dkapredi: Sensitivity to meridional surface stress',
+        long_name='dJ/dkapredi: Sensitivity to Redi coefficient',
         units='dJ/(m2 s-1)')),
     'ADJeddypsix': dict(dims=['k', 'j', 'i_g'], attrs=dict(
         standard_name="ADJeddypsix",
@@ -660,7 +660,7 @@ package_state_variables = {
     'ADJsss': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJsss",
         long_name='dJ/dsss: Sensitivity to sea surface salinity',
-        units='dJ/pss)')),
+        units='dJ/(g kg-1)')),
     'ADJbottomdrag': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADbottomdrag",
         long_name='dJ/dbottomdrag: Sensitivity to linear bottom drag coeff',
@@ -687,23 +687,23 @@ package_state_variables = {
         units='dJ/(m s-1)')),
     'ADJatemp': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJatemp",
-        long_name='dJ/datemp: Sensitivity to atmosperic surface temperature',
+        long_name='dJ/datemp: Sensitivity to atmospheric surface temperature',
         units='dJ/K')),
     'ADJaqh': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJaqh",
         long_name='dJ/daqh: Sensitivity to specific surface humidity',
-        units='dJ/K')),
+        units='dJ/(kg kg-1)')),
     'ADJswdown': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJswdown",
         long_name='dJ/dswdown: Sensitivity to downward solar radiation',
         units='dJ/(W m-2)')),
     'ADJlwdown': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJlwdown",
-        long_name='dJ/dswdown: Sensitivity to downward longwave radiation',
+        long_name='dJ/dlwdown: Sensitivity to downward longwave radiation',
         units='dJ/(W m-2)')),
     'ADJhflux': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJhflux",
-        long_name='dJ/dswdown: Sensitivity to upward heat flux',
+        long_name='dJ/dhflux: Sensitivity to upward heat flux',
         units='dJ/(W m-2)')),
     'ADJsflux': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJsflux",
@@ -712,11 +712,11 @@ package_state_variables = {
     'ADJprecip': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJprecip",
         long_name='dJ/dprecip: Sensitivity to precipitation flux',
-        units='dJ/(kg m-2 s-1)')),
+        units='dJ/(m s-1)')),
     'ADJrunoff': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJrunoff",
         long_name='dJ/drunoff: Sensitivity to runoff',
-        units='dJ/(kg m-2 s-1)')),
+        units='dJ/(m s-1)')),
     'ADJclimsst': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJclimsst",
         long_name='dJ/dclimsst: Sensitivity to restoring surface temperature',
@@ -724,7 +724,7 @@ package_state_variables = {
     'ADJclimsss': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJclimsss",
         long_name='dJ/dclimsss: Sensitivity to restoring surface salinity',
-        units='dJ/pss)')),
+        units='dJ/(g kg-1)')),
     'ADJarea': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJarea",
         long_name='dJ/darea: Sensitivity to sea ice concentration',
