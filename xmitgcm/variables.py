@@ -295,7 +295,7 @@ state_variables = OrderedDict(
                 long_name='Potential Temperature', units='degree_Celcius')),
     S = dict(dims=['k','j','i'], attrs=dict(
                 standard_name="sea_water_salinity",
-                long_name='Salinity', units='psu')),
+                long_name='Salinity', units='g kg-1')),
     PH= dict(dims=['k','j','i'], attrs=dict(
                 standard_name="sea_water_dynamic_pressue",
                 long_name='Hydrostatic Pressure Pot.(p/rho) Anomaly',
@@ -322,7 +322,7 @@ state_variables = OrderedDict(
                 long_name='Potential Temperature', units='degree_Celcius')),
     Stave = dict(dims=['k','j','i'], attrs=dict(
                 standard_name="sea_water_salinity",
-                long_name='Salinity', units='psu')),
+                long_name='Salinity', units='g kg-1')),
     PhHytave= dict(dims=['k','j','i'], attrs=dict(
                 standard_name="sea_water_dynamic_pressue",
                 long_name='Hydrostatic Pressure Pot.(p/rho) Anomaly',
@@ -369,7 +369,7 @@ state_variables = OrderedDict(
     UStave=dict(dims=['k','j','i_g'], attrs=dict(
                 standard_name="product_of_sea_water_x_velocity_and_salinity",
                 long_name="Zonal Transport of Salinity",
-                units="psu m s-1", mate='VStave')),
+                units="g kg-1 m s-1", mate='VStave')),
     UTtave=dict(dims=['k','j','i_g'], attrs=dict(
                 standard_name="product_of_sea_water_x_velocity_and_"
                               "potential_temperature",
@@ -392,7 +392,7 @@ state_variables = OrderedDict(
     VStave=dict(dims=['k','j_g','i'], attrs=dict(
                 standard_name="product_of_sea_water_y_velocity_and_salinity",
                 long_name="Meridional Transport of Salinity",
-                units="psu m s-1", mate='UStave')),
+                units="g kg-1 m s-1", mate='UStave')),
     VTtave=dict(dims=['k','j_g','i'], attrs=dict(
                 standard_name="product_of_sea_water_y_velocity_and_"
                               "potential_temperature",
@@ -405,7 +405,7 @@ state_variables = OrderedDict(
     WStave=dict(dims=['k_l','j','i'], attrs=dict(
                 standard_name="product_of_sea_water_z_velocity_and_salinity",
                 long_name="Vertical Transport of Salinity",
-                units="psu m s-1")),
+                units="g kg-1 m s-1")),
     WTtave=dict(dims=['k_l','j','i'], attrs=dict(
                 standard_name="product_of_sea_water_z_velocity_and_"
                               "potential_temperature",
@@ -461,7 +461,7 @@ package_state_variables = {
     'KPPg_SLT': dict(dims=['k_l','j','i'], attrs=dict(
         standard_name='KPP_salt_flux',
         long_name='KPP non-local Flux of Salinity',
-        units='psu m3 s-1')),
+        units='g kg-1 m3 s-1')),
     # pkg/thsice variables
     'ice_fract': dict(dims=['j', 'i'], attrs=dict(
         standard_name="sea_ice_area_fraction",
@@ -660,7 +660,7 @@ package_state_variables = {
     'ADJsss': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJsss",
         long_name='dJ/dsss: Sensitivity to sea surface salinity',
-        units='dJ/psu)')),
+        units='dJ/(g kg-1)')),
     'ADJbottomdrag': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADbottomdrag",
         long_name='dJ/dbottomdrag: Sensitivity to linear bottom drag coeff',
@@ -724,7 +724,7 @@ package_state_variables = {
     'ADJclimsss': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJclimsss",
         long_name='dJ/dclimsss: Sensitivity to restoring surface salinity',
-        units='dJ/psu)')),
+        units='dJ/(g kg-1)')),
     'ADJarea': dict(dims=['j', 'i'], attrs=dict(
         standard_name="ADJarea",
         long_name='dJ/darea: Sensitivity to sea ice concentration',
