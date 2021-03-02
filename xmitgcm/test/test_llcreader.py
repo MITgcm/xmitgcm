@@ -1,3 +1,4 @@
+import os
 import re
 import pytest
 from dask.array.core import Array as dsa
@@ -117,18 +118,29 @@ def test_vector_mate_error(local_llc90_store, varname):
 
 ########### ECCO Portal Tests ##################################################
 
-@pytest.fixture(scope='module', params=[2160, 4320])
-def ecco_portal_model(request):
-    if request.param==2160:
-        return llcreader.ECCOPortalLLC2160Model()
+@pytest.fixture(scope='module', params=[('portal',  2160), ('portal',  4320),
+                                        ('pleiades',2160), ('pleiades',4320)])
+def llc_global_model(request):
+    if request.param[0]=='portal':
+        if request.param[1]==2160:
+            return llcreader.ECCOPortalLLC2160Model()
+        else:
+            return llcreader.ECCOPortalLLC4320Model()
     else:
-        return llcreader.ECCOPortalLLC4320Model()
 
-def test_ecco_portal_faces(ecco_portal_model):
+        if not os.path.exists('/home6/dmenemen'):
+            pytest.skip("Not on Pleiades")
+        else:
+            if request.param[1]==2160:
+                return llcreader.PleiadesLLC2160Model()
+            else:
+                return llcreader.PleiadesLLC4320Model()
+
+def test_ecco_portal_faces(llc_global_model):
     # just get three timesteps
-    iter_stop = ecco_portal_model.iter_start + 2 * ecco_portal_model.iter_step + 1
-    ds_faces = ecco_portal_model.get_dataset(iter_stop=iter_stop)
-    nx = ecco_portal_model.nx
+    iter_stop = llc_global_model.iter_start + 2 * llc_global_model.iter_step + 1
+    ds_faces = llc_global_model.get_dataset(iter_stop=iter_stop)
+    nx = llc_global_model.nx
     assert ds_faces.dims == {'face': 13, 'i': nx, 'i_g': nx, 'j': nx,
                               'j_g': nx, 'k': 90, 'k_u': 90, 'k_l': 90,
                               'k_p1': 91, 'time': 3}
@@ -142,35 +154,35 @@ def test_ecco_portal_faces(ecco_portal_model):
             assert (len(ds_faces[fld]),)==ds_faces[fld].data.chunks[0]
 
 
-def test_ecco_portal_iterations(ecco_portal_model):
+def test_ecco_portal_iterations(llc_global_model):
     with pytest.warns(RuntimeWarning, match=r"Iteration .* may not exist, you may need to change 'iter_start'"):
-        ecco_portal_model.get_dataset(varnames=['Eta'], iter_start=ecco_portal_model.iter_start + 1, read_grid=False)
+        llc_global_model.get_dataset(varnames=['Eta'], iter_start=llc_global_model.iter_start + 1, read_grid=False)
 
     with pytest.warns(RuntimeWarning, match=r"'iter_step' is not a multiple of .*, meaning some expected timesteps may not be returned"):
-        ecco_portal_model.get_dataset(varnames=['Eta'], iter_step=ecco_portal_model.iter_step - 1, read_grid=False)
+        llc_global_model.get_dataset(varnames=['Eta'], iter_step=llc_global_model.iter_step - 1, read_grid=False)
 
     with pytest.warns(RuntimeWarning, match=r"Some requested iterations may not exist, you may need to change 'iters'"):
-        iters = [ecco_portal_model.iter_start, ecco_portal_model.iter_start + 1]
-        ecco_portal_model.get_dataset(varnames=['Eta'], iters=iters, read_grid=False)
+        iters = [llc_global_model.iter_start, llc_global_model.iter_start + 1]
+        llc_global_model.get_dataset(varnames=['Eta'], iters=iters, read_grid=False)
 
     with pytest.warns(None) as record:
-        ecco_portal_model.get_dataset(varnames=['Eta'], read_grid=False)
+        llc_global_model.get_dataset(varnames=['Eta'], read_grid=False)
     assert not record
 
 
 @pytest.mark.slow
-def test_ecco_portal_load(ecco_portal_model):
+def test_ecco_portal_load(llc_global_model):
     # an expensive test because it actually loads data
-    iter_stop = ecco_portal_model.iter_start + 2 * ecco_portal_model.iter_step + 1
-    ds_faces = ecco_portal_model.get_dataset(varnames=['Eta'], iter_stop=iter_stop)
+    iter_stop = llc_global_model.iter_start + 2 * llc_global_model.iter_step + 1
+    ds_faces = llc_global_model.get_dataset(varnames=['Eta'], iter_stop=iter_stop)
     # a lookup table
     expected = {2160: -1.3054643869400024, 4320: -1.262018084526062}
-    assert ds_faces.Eta[0, 0, -1, -1].values.item() == expected[ecco_portal_model.nx]
+    assert ds_faces.Eta[0, 0, -1, -1].values.item() == expected[llc_global_model.nx]
 
-def test_ecco_portal_latlon(ecco_portal_model):
-    iter_stop = ecco_portal_model.iter_start + 2 * ecco_portal_model.iter_step + 1
-    ds_ll = ecco_portal_model.get_dataset(iter_stop=iter_stop, type='latlon')
-    nx = ecco_portal_model.nx
+def test_ecco_portal_latlon(llc_global_model):
+    iter_stop = llc_global_model.iter_start + 2 * llc_global_model.iter_step + 1
+    ds_ll = llc_global_model.get_dataset(iter_stop=iter_stop, type='latlon')
+    nx = llc_global_model.nx
     assert ds_ll.dims == {'i': 4*nx, 'k_u': 90, 'k_l': 90, 'time': 3,
                              'k': 90, 'j_g': 3*nx, 'i_g': 4*nx, 'k_p1': 91,
                              'j': 3*nx, 'face': 13}
@@ -185,19 +197,25 @@ def test_ecco_portal_latlon(ecco_portal_model):
 
 
 ########### ASTE Portal Tests ##################################################
-@pytest.fixture(scope='module')
-def aste_portal_model():
-    return llcreader.CRIOSPortalASTE270Model()
+@pytest.fixture(scope='module', params=['portal','sverdrup'])
+def aste_model(request):
+    if request.param == 'portal':
+        return llcreader.CRIOSPortalASTE270Model()
+    else:
+        if not os.path.exists('/scratch2/heimbach'):
+            pytest.skip("Not on Sverdrup")
+        else:
+            return llcreader.SverdrupASTE270Model()
 
-def test_aste_portal_faces(aste_portal_model):
+def test_aste_portal_faces(aste_model):
     # just get three timesteps
-    iters = aste_portal_model.iters[:3]
-    ds_faces = aste_portal_model.get_dataset(iters=iters)
-    nx = aste_portal_model.nx
+    iters = aste_model.iters[:3]
+    ds_faces = aste_model.get_dataset(iters=iters)
+    nx = aste_model.nx
     assert ds_faces.dims == {'face': 6, 'i': nx, 'i_g': nx, 'j': nx,
                               'j_g': nx, 'k': 50, 'k_u': 50, 'k_l': 50,
                               'k_p1': 51, 'time': 3}
-    assert set(aste_portal_model.varnames) == set(ds_faces.data_vars)
+    assert set(aste_model.varnames) == set(ds_faces.data_vars)
     assert set(EXPECTED_COORDS['aste_270']).issubset(set(ds_faces.coords))
 
     # make sure vertical coordinates are in one single chunk
@@ -207,30 +225,29 @@ def test_aste_portal_faces(aste_portal_model):
             assert (len(ds_faces[fld]),)==ds_faces[fld].data.chunks[0]
 
 
-def test_aste_portal_iterations(aste_portal_model):
+def test_aste_portal_iterations(aste_model):
     with pytest.warns(RuntimeWarning, match=r"Some requested iterations may not exist, you may need to change 'iters'"):
-        #iters = [ecco_portal_model.iter_start, ecco_portal_model.iter_start + 1]
-        iters = aste_portal_model.iters[:2]
+        iters = aste_model.iters[:2]
         iters[1] = iters[1] + 1
-        aste_portal_model.get_dataset(varnames=['ETAN'], iters=iters, read_grid=False)
+        aste_model.get_dataset(varnames=['ETAN'], iters=iters, read_grid=False)
 
     with pytest.warns(None) as record:
-        iters = aste_portal_model.iters[:2]
-        aste_portal_model.get_dataset(varnames=['ETAN'], iters=iters, read_grid=False)
+        iters = aste_model.iters[:2]
+        aste_model.get_dataset(varnames=['ETAN'], iters=iters, read_grid=False)
     assert not record
 
 
 @pytest.mark.slow
-def test_aste_portal_load(aste_portal_model):
+def test_aste_portal_load(aste_model):
     # an expensive test because it actually loads data
-    iters = aste_portal_model.iters[:3]
-    ds_faces = aste_portal_model.get_dataset(varnames=['ETAN'], iters=iters)
+    iters = aste_model.iters[:3]
+    ds_faces = aste_model.get_dataset(varnames=['ETAN'], iters=iters)
     expected = 0.641869068145752
     assert ds_faces.ETAN[0, 1, 0, 0].values.item() == expected
 
-def test_aste_portal_latlon(aste_portal_model):
-    iters = aste_portal_model.iters[:3]
+def test_aste_portal_latlon(aste_model):
+    iters = aste_model.iters[:3]
     with pytest.raises(TypeError):
-        ds_ll = aste_portal_model.get_dataset(iters=iters,type='latlon')
+        ds_ll = aste_model.get_dataset(iters=iters,type='latlon')
 
 

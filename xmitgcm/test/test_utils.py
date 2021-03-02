@@ -6,7 +6,7 @@ import dask
 from xmitgcm.test.test_xmitgcm_common import (hide_file, file_md5_checksum,
     all_mds_datadirs, mds_datadirs_with_diagnostics, llc_mds_datadirs,
     layers_mds_datadirs, all_grid_datadirs, mds_datadirs_with_inputfiles,
-    _experiments)
+    _experiments, cs_mds_datadirs)
 from xmitgcm.file_utils import listdir
 
 
@@ -244,7 +244,9 @@ def test_read_mds(all_mds_datadirs):
     if expected['geometry'] == 'llc':
         emeta.update({'ny': 13*270, 'nx': 270})
         with pytest.raises(AssertionError):
-            res = read_mds(basename, iternum=iternum, chunks="2D",
+            res = read_mds(basename, iternum=iternum,
+                           chunks="2D",
+                           llc=True,
                            use_dask=False,
                            use_mmap=False, extra_metadata=emeta)
 
@@ -361,6 +363,16 @@ def test_read_xyz_chunk(all_mds_datadirs, memmap):
         file_metadata.update({'nx': file_metadata['shape'][3],
                               'ny': file_metadata['shape'][2],
                               'nface': file_metadata['shape'][1],
+                              'nz': file_metadata['shape'][0],
+                              'has_faces': True})
+        # function not designed for llc grids, except 1d variables
+        with pytest.raises(ValueError):
+            data = _read_xyz_chunk('T', file_metadata, use_mmap=memmap)
+    elif file_metadata['geometry'] in ['cs']:
+        file_metadata.update({'nx': file_metadata['shape'][3],
+                              'ny': file_metadata['shape'][1] *
+                              file_metadata['shape'][2],
+                              'nface': file_metadata['shape'][2],
                               'nz': file_metadata['shape'][0],
                               'has_faces': True})
         # function not designed for llc grids, except 1d variables
@@ -569,6 +581,15 @@ def test_read_3D_chunks(all_mds_datadirs, memmap, usedask):
                                                  False, False, False, True,
                                                  True, True, True, True,
                                                  True]})
+    elif file_metadata['geometry'] in ['cs']:
+        file_metadata.update({'nx': file_metadata['shape'][3],
+                              'ny': file_metadata['shape'][1] *
+                              file_metadata['shape'][2],
+                              'nface': file_metadata['shape'][2],
+                              'nz': file_metadata['shape'][0],
+                              'nt': 1,
+                              'dims_vars': [('nz', 'nface', 'ny', 'nx')],
+                              'has_faces': True})
     else:
         file_metadata.update({'nx': file_metadata['shape'][2],
                               'ny': file_metadata['shape'][1],
@@ -577,7 +598,7 @@ def test_read_3D_chunks(all_mds_datadirs, memmap, usedask):
                               'dims_vars': [('nz', 'ny', 'nx')],
                               'has_faces': False})
 
-    if file_metadata['geometry'] in ['llc']:
+    if file_metadata['geometry'] in ['llc', 'cs']:
         with pytest.raises(ValueError):
             data = read_3D_chunks('T', file_metadata, use_mmap=memmap,
                                   use_dask=usedask)
@@ -613,6 +634,47 @@ def test_read_3D_chunks(all_mds_datadirs, memmap, usedask):
 
 @pytest.mark.parametrize("memmap", [True, False])
 @pytest.mark.parametrize("usedask", [True, False])
+def test_read_CS_chunks(cs_mds_datadirs, memmap, usedask):
+
+    from xmitgcm.utils import read_CS_chunks
+
+    dirname, expected = cs_mds_datadirs
+    print(expected)
+    nz, ny, nfaces, nx = expected['shape']
+    # 3D array, single variable in file
+    file_metadata = {}
+    file_metadata['nx'] = nx
+    file_metadata['ny'] = ny
+    file_metadata['ny_facets'] = [ny, ny, ny, ny, ny, ny]
+    file_metadata['nz'] = nz
+    file_metadata['nt'] = 1
+    file_metadata['dtype'] = np.dtype('>f4')
+    file_metadata['test_iternum'] = expected['test_iternum']
+    file_metadata.update({'filename': dirname + '/' + 'T.' +
+                          str(file_metadata['test_iternum']).zfill(10) +
+                          '.data', 'vars': ['T'], 'endian': '>'})
+    data = read_CS_chunks('T', file_metadata, use_mmap=memmap, use_dask=usedask)
+    if usedask:
+        assert isinstance(data, dask.array.core.Array)
+    else:
+        assert isinstance(data, np.ndarray)
+    assert data.shape == (1,) + expected['shape']
+    # 1D array, single variable in file
+    file_metadata['nx'] = 1
+    file_metadata['ny'] = 1
+    file_metadata['nz'] = nz
+    file_metadata.update({'filename': dirname + '/' + 'RC.data',
+                          'vars': ['RC'], 'endian': '>'})
+    data = read_CS_chunks('RC', file_metadata, use_mmap=memmap, use_dask=usedask)
+    if usedask:
+        assert isinstance(data, dask.array.core.Array)
+    else:
+        assert isinstance(data, np.ndarray)
+    assert data.shape == (1, nz, 1, 1, 1)
+
+
+@pytest.mark.parametrize("memmap", [True, False])
+@pytest.mark.parametrize("usedask", [True, False])
 def test_read_all_variables(all_mds_datadirs, memmap, usedask):
 
     from xmitgcm.utils import read_all_variables
@@ -644,6 +706,23 @@ def test_read_all_variables(all_mds_datadirs, memmap, usedask):
                                                  False, False, False, True,
                                                  True, True, True, True,
                                                  True]})
+    elif file_metadata['geometry'] in ['cs']:
+        nx = file_metadata['shape'][3]
+        file_metadata.update({'nx': file_metadata['shape'][3],
+                              'ny': file_metadata['shape'][1],
+                              'nface': file_metadata['shape'][2],
+                              'nz': file_metadata['shape'][0],
+                              'nt': 1,
+                              'dims_vars': [('nz', 'nface', 'ny', 'nx')],
+                              'has_faces': True,
+                              'ny_facets': [nx, nx, nx, nx, nx, nx],
+                              'face_facets':
+                              [0, 1, 2, 3, 4, 5],
+                              'facet_orders': ['F', 'F', 'F', 'F', 'F', 'F'],
+                              'face_offsets':
+                              [0, 0, 0, 0, 0, 0],
+                              'transpose_face': [False, False, False, False,
+                                                 False, False]})
     else:
         file_metadata.update({'nx': file_metadata['shape'][2],
                               'ny': file_metadata['shape'][1],
@@ -653,7 +732,7 @@ def test_read_all_variables(all_mds_datadirs, memmap, usedask):
                               'has_faces': False})
 
     # test 3D chunks, fails on llc but not others
-    if file_metadata['geometry'] in ['llc']:
+    if file_metadata['geometry'] in ['llc', 'cs']:
         with pytest.raises(ValueError):
             dataset = read_all_variables(file_metadata['vars'], file_metadata,
                                          use_mmap=memmap, use_dask=usedask,
@@ -676,9 +755,14 @@ def test_read_all_variables(all_mds_datadirs, memmap, usedask):
                 assert isinstance(dataset[0], np.ndarray)
 
     # test 2D chunks
-    dataset = read_all_variables(file_metadata['vars'], file_metadata,
-                                 use_mmap=memmap, use_dask=usedask,
-                                 chunks="2D")
+    if file_metadata['geometry'] not in ['cs']:
+        dataset = read_all_variables(file_metadata['vars'], file_metadata,
+                                     use_mmap=memmap, use_dask=usedask,
+                                     chunks="2D")
+    else:
+        dataset = read_all_variables(file_metadata['vars'], file_metadata,
+                                     use_mmap=memmap, use_dask=usedask,
+                                     chunks="CS")
 
     assert isinstance(dataset, list)
     assert len(dataset) == len(file_metadata['vars'])

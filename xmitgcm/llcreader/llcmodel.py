@@ -881,6 +881,8 @@ class BaseLLCModel:
 
         # grid stuff
         read_grid = read_grid and len(self.grid_varnames)!=0
+        if read_grid and self.store.grid_path is None:
+            raise TypeError('Cannot read grid if grid_path is not specified in filestore (e.g. llcreader.known_models)')
         grid_vars_to_coords = grid_vars_to_coords and read_grid
         grid_varnames = self.grid_varnames if read_grid else []
 
