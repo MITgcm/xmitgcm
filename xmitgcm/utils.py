@@ -161,7 +161,7 @@ def read_mds(fname, iternum=None, use_mmap=None, endian='>', shape=None,
 
         #. transpose_face : transpose the data for this face
 
-    chunks : {'3D', '2D'}
+    chunks : {'3D', '2D', 'CS'}
         Which routine to use for chunking data. '2D' splits the file
         into a individual dask chunk of size (nx x nx) for each face (if llc)
         of each record of each level.
@@ -169,6 +169,7 @@ def read_mds(fname, iternum=None, use_mmap=None, endian='>', shape=None,
         numpy.memmap) and is not suitable for llc configurations.
         The different methods will have different memory and i/o performance
         depending on the details of the system configuration.
+        'CS' loads 2d (nx, ny) chunks for each face of the Cube Sphere model.
 
     obsolete : llc and llc_methods, kept for testing
 
@@ -259,13 +260,14 @@ def read_mds(fname, iternum=None, use_mmap=None, endian='>', shape=None,
                           'has_faces': False})
 
     # extra_metadata contains informations about llc/regional llc grid
-    if extra_metadata is not None:
+    if extra_metadata is not None and llc:
         nhpts_ex = extra_metadata['nx'] * extra_metadata['ny']
         nhpts = metadata['nx'] * metadata['ny']
         # check that nx * ny is consistent between extra_metadata and meta file
         # unless it's a vertical profile nx = ny = 1
         if nhpts > 1:
             assert nhpts_ex == nhpts
+    if extra_metadata is not None:
         file_metadata.update(extra_metadata)
 
     # --------------- LEGACY --------------------------
@@ -763,17 +765,16 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False,
 
     PARAMETERS
     ----------
-    variable_list : list
-        list of MITgcm variables, from fldList in .meta
-    file_metadata : dict
-        internal metadata for binary file
-    use_mmap : bool, optional
-        Whether to read the data using a numpy.memmap
+    variable_list   : list
+                      list of MITgcm variables, from fldList in .meta
+    file_metadata   : dict
+                      internal metadata for binary file
+    use_mmap        : bool, optional
+                      Whether to read the data using a numpy.memmap
     chunks : str, optional
-        Whether to read 2D (default) or 3D chunks
-        2D chunks are reading (x,y) levels and 3D chunks
-        are reading the a (x,y,z) field
-
+                      Whether to read 2D (default) or 3D chunks
+                      2D chunks are reading (x,y) levels and 3D chunks
+                      are reading the a (x,y,z) field
     RETURNS
     -------
     out : list
@@ -791,8 +792,69 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False,
         elif chunks == "3D":
             out.append(read_3D_chunks(variable, file_metadata,
                                       use_mmap=use_mmap, use_dask=use_dask))
+        elif chunks == "CS":
+            out.append(read_CS_chunks(variable, file_metadata,
+                                      use_mmap=use_mmap, use_dask=use_dask))
 
     return out
+
+
+def read_CS_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
+    """
+    Return dask array for variable, from the file described by file_metadata,
+    using the "cube sphere chunks" method.
+
+    Parameters
+    ----------
+    variable : string
+               name of the variable to read
+    file_metadata : dict
+               internal file_metadata for binary file
+    use_mmap : bool, optional
+               Whether to read the data using a numpy.memmap
+    use_dask : bool, optional (not working yet)
+               collect the data lazily or eagerly
+
+    Returns
+    -------
+    dask array for variable, with 2d (ny, nx) chunks
+    or numpy.ndarray or memmap, depending on input args
+
+    """
+
+    if (file_metadata['nx'] == 1) and (file_metadata['ny'] == 1) and \
+       (len(file_metadata['vars']) == 1):
+            # vertical coordinate
+        data_raw = read_raw_data(file_metadata['filename'],
+                                 file_metadata['dtype'],
+                                 (file_metadata['nz'],), use_mmap=use_mmap,
+                                 offset=0, order='C', partial_read=False)
+
+        shape = (file_metadata['nt'], file_metadata['nz'], 1,
+                 file_metadata['ny'], file_metadata['nx'])
+        data_raw = np.reshape(data_raw, shape)  # memmap -> ndarray
+        chunks = (file_metadata['nt'], 1, 1,
+                  file_metadata['ny'], file_metadata['nx'])
+        data = dsa.from_array(data_raw, chunks=chunks)
+
+    else:
+        nfaces = len(file_metadata['ny_facets'])
+        shape = (file_metadata['nt'], file_metadata['nz'],
+                 file_metadata['ny'], nfaces, file_metadata['nx'])
+
+        data_raw = read_raw_data(file_metadata['filename'],
+                                 file_metadata['dtype'],
+                                 shape, use_mmap=use_mmap,
+                                 offset=0, order='C', partial_read=False)
+        # data_raw = np.reshape(data_raw, shape)  # memmap -> ndarray
+        chunks = (file_metadata['nt'], 1,
+                  file_metadata['ny'], 1, file_metadata['nx'])
+        data = dsa.from_array(data_raw, chunks=chunks)
+
+    if not use_dask:
+        data = data.compute()
+
+    return data
 
 
 def read_2D_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
@@ -944,7 +1006,8 @@ def _read_xyz_chunk(variable, file_metadata, rec=0, use_mmap=False):
 
     if file_metadata['has_faces'] and ((file_metadata['nx'] > 1) or
                                        (file_metadata['ny'] > 1)):
-        raise ValueError("_read_xyz_chunk cannot be called with llc type grid")
+        raise ValueError(
+            "_read_xyz_chunk cannot be called with llc or cs type grid")
 
     # size of the data element
     nbytes = file_metadata['dtype'].itemsize
@@ -1306,21 +1369,22 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
     file_metadata['endian'] = endian
     file_metadata['dtype'] = dtype
 
-    if geometry == 'llc':
-        nfacets = 5
+    if geometry in ['llc', 'cs']:
         try:
             nfaces = len(file_metadata['face_facets'])
         except:
             raise ValueError('metadata must contain face_facets')
-    if geometry == 'cs':  # pragma: no cover
-        raise NotImplementedError("'cs' geometry is not supported yet")
+    if geometry == 'llc':
+        nfacets = 5
+    elif geometry == 'cs':
+        nfacets = 6
 
     # create placeholders for data
     gridfields = {}
     for field in file_metadata['fldList']:
         gridfields.update({field: None})
 
-    if geometry == 'llc':
+    if geometry in ['llc', 'cs']:
         for kfacet in range(nfacets):
             # we need to adapt the metadata to the grid file
             grid_metadata = file_metadata.copy()
@@ -1376,12 +1440,8 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                             gridfields[field] = dsa.concatenate(
                                 [gridfields[field], dataface], axis=0)
 
-    elif geometry == 'cs':  # pragma: no cover
-        raise NotImplementedError("'cs' geometry is not supported yet")
-        pass
-
     # create the dataset
-    if geometry in ['llc', 'cs']:
+    if geometry == 'llc':
         grid = xr.Dataset({'XC':  (['face', 'j', 'i'],     gridfields['XC']),
                            'YC':  (['face', 'j', 'i'],     gridfields['YC']),
                            'DXF': (['face', 'j', 'i'],     gridfields['DXF']),
@@ -1398,6 +1458,33 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                            'RAS': (['face', 'j_g', 'i'],   gridfields['RAS']),
                            'DXG': (['face', 'j_g', 'i'],   gridfields['DXG']),
                            'DYG': (['face', 'j', 'i_g'],   gridfields['DYG'])
+                           },
+                          coords={'i': (['i'], np.arange(file_metadata['nx'])),
+                                  'j': (['j'], np.arange(file_metadata['nx'])),
+                                  'i_g': (['i_g'],
+                                          np.arange(file_metadata['nx'])),
+                                  'j_g': (['j_g'],
+                                          np.arange(file_metadata['nx'])),
+                                  'face': (['face'], np.arange(nfaces))
+                                  }
+                          )
+    elif geometry == 'cs':
+        grid = xr.Dataset({'XC':  (['face', 'i', 'j'],     gridfields['XC']),
+                           'YC':  (['face', 'i', 'j'],     gridfields['YC']),
+                           'DXF': (['face', 'i', 'j'],     gridfields['DXF']),
+                           'DYF': (['face', 'i', 'j'],     gridfields['DYF']),
+                           'RAC': (['face', 'i', 'j'],     gridfields['RAC']),
+                           'XG':  (['face', 'i_g', 'j_g'], gridfields['XG']),
+                           'YG':  (['face', 'i_g', 'j_g'], gridfields['YG']),
+                           'DXV': (['face', 'i', 'j'],     gridfields['DXV']),
+                           'DYU': (['face', 'i', 'j'],     gridfields['DYU']),
+                           'RAZ': (['face', 'i_g', 'j_g'], gridfields['RAZ']),
+                           'DXC': (['face', 'i', 'j_g'],   gridfields['DXC']),
+                           'DYC': (['face', 'i_g', 'j'],   gridfields['DYC']),
+                           'RAW': (['face', 'i', 'j_g'],   gridfields['RAW']),
+                           'RAS': (['face', 'i_g', 'j'],   gridfields['RAS']),
+                           'DXG': (['face', 'i_g', 'j'],   gridfields['DXG']),
+                           'DYG': (['face', 'i', 'j_g'],   gridfields['DYG'])
                            },
                           coords={'i': (['i'], np.arange(file_metadata['nx'])),
                                   'j': (['j'], np.arange(file_metadata['nx'])),
