@@ -50,11 +50,11 @@ dimensions = OrderedDict(
         standard_name="z_grid_index", axis="Z",
         long_name="z-dimension of the t grid", swap_dim='Z')),
     k_u=dict(dims=['k_u'], attrs=dict(
-        standard_name="z_grid_index_at_lower_w_location",
+        standard_name="z_grid_index_at_upper_w_location",
         axis="Z", long_name="z-dimension of the w grid",
         c_grid_axis_shift=0.5, swap_dim='Zu')),
     k_l=dict(dims=['k_l'], attrs=dict(
-        standard_name="z_grid_index_at_upper_w_location",
+        standard_name="z_grid_index_at_lower_w_location",
         axis="Z", long_name="z-dimension of the w grid",
         c_grid_axis_shift=-0.5, swap_dim='Zl')),
     # this is complicated because it is offset in both directions - allowed by comodo?
@@ -76,11 +76,22 @@ horizontal_coordinates_spherical = OrderedDict(
         units="degrees_east", coordinate="YG XG")),
     YG=dict(dims=["j_g", "i_g"], attrs=dict(
         standard_name="latitude_at_f_location", long_name="latitude",
-        units="degrees_north", coordinates="YG XG"))
+        units="degrees_north", coordinate="YG XG"))
 )
 
 horizontal_coordinates_llc = horizontal_coordinates_spherical.copy()
 horizontal_coordinates_llc.update(OrderedDict(
+    CS=dict(dims=["j", "i"], attrs=dict(standard_name="Cos of grid orientation angle",
+                                        long_name="AngleCS", units=" ", coordinate="YC XC"),
+            filename='AngleCS'),
+    SN=dict(dims=["j", "i"], attrs=dict(standard_name="Sin of grid orientation angle",
+                                        long_name="AngleSN", units=" ", coordinate="YC XC"),
+            filename='AngleSN')
+)
+)
+
+horizontal_coordinates_cs = horizontal_coordinates_spherical.copy()
+horizontal_coordinates_cs.update(OrderedDict(
     CS=dict(dims=["j", "i"], attrs=dict(standard_name="Cos of grid orientation angle",
                                         long_name="AngleCS", units=" ", coordinate="YC XC"),
             filename='AngleCS'),
@@ -102,7 +113,7 @@ horizontal_coordinates_curvcart = OrderedDict(
         long_name="x coordinate", units="m", coordinate="YG XG")),
     YG=dict(dims=["j_g", "i_g"], attrs=dict(
         standard_name="plane_y_coordinate_at_f_location",
-        long_name="y coordinate", units="m", coordinates="YG XG")),
+        long_name="y coordinate", units="m", coordinate="YG XG")),
     CS=dict(dims=["j", "i"], attrs=dict(standard_name="Cos of grid orientation angle",
                                         long_name="AngleCS", units=" ", coordinate="YC XC"),
             filename='AngleCS'),
@@ -123,7 +134,7 @@ horizontal_coordinates_cartesian = OrderedDict(
         long_name="x coordinate", units="m", coordinate="YG XG")),
     YG=dict(dims=["j_g", "i_g"], attrs=dict(
         standard_name="plane_y_coordinate_at_f_location",
-        long_name="y coordinate", units="m", coordinates="YG XG"))
+        long_name="y coordinate", units="m", coordinate="YG XG"))
 )
 
 vertical_coordinates = OrderedDict(
@@ -138,13 +149,13 @@ vertical_coordinates = OrderedDict(
         units="m", positive="down"),
         filename="RF", slice=(slice(None), 0, 0)),
     Zu=dict(dims=["k_u"], attrs=dict(
-        standard_name="depth_at_lower_w_location",
-        long_name="vertical coordinate of lower cell interface",
+        standard_name="depth_at_upper_w_location",
+        long_name="vertical coordinate of upper cell interface",
         units="m", positive="down"),
         filename="RF", slice=(slice(1, None), 0, 0)),
     Zl=dict(dims=["k_l"], attrs=dict(
-        standard_name="depth_at_upper_w_location",
-        long_name="vertical coordinate of upper cell interface",
+        standard_name="depth_at_lower_w_location",
+        long_name="vertical coordinate of lower cell interface",
         units="m", positive="down"),
         filename="RF", slice=(slice(None, -1), 0, 0))
 )
@@ -186,7 +197,7 @@ horizontal_grid_variables = OrderedDict(
     # v cell
     rAs=dict(dims=["j_g", "i"], attrs=dict(
         standard_name="cell_area_at_v_location",
-        long_name="cell area", units="m2", coordinates="YG XC"),
+        long_name="cell area", units="m2", coordinate="YG XC"),
         filename='RAS'),
 )
 
@@ -295,7 +306,7 @@ state_variables = OrderedDict(
                 long_name='Potential Temperature', units='degree_Celcius')),
     S = dict(dims=['k','j','i'], attrs=dict(
                 standard_name="sea_water_salinity",
-                long_name='Salinity', units='psu')),
+                long_name='Salinity', units='g kg-1')),
     PH= dict(dims=['k','j','i'], attrs=dict(
                 standard_name="sea_water_dynamic_pressue",
                 long_name='Hydrostatic Pressure Pot.(p/rho) Anomaly',
@@ -322,7 +333,7 @@ state_variables = OrderedDict(
                 long_name='Potential Temperature', units='degree_Celcius')),
     Stave = dict(dims=['k','j','i'], attrs=dict(
                 standard_name="sea_water_salinity",
-                long_name='Salinity', units='psu')),
+                long_name='Salinity', units='g kg-1')),
     PhHytave= dict(dims=['k','j','i'], attrs=dict(
                 standard_name="sea_water_dynamic_pressue",
                 long_name='Hydrostatic Pressure Pot.(p/rho) Anomaly',
@@ -369,7 +380,7 @@ state_variables = OrderedDict(
     UStave=dict(dims=['k','j','i_g'], attrs=dict(
                 standard_name="product_of_sea_water_x_velocity_and_salinity",
                 long_name="Zonal Transport of Salinity",
-                units="psu m s-1", mate='VStave')),
+                units="g kg-1 m s-1", mate='VStave')),
     UTtave=dict(dims=['k','j','i_g'], attrs=dict(
                 standard_name="product_of_sea_water_x_velocity_and_"
                               "potential_temperature",
@@ -392,7 +403,7 @@ state_variables = OrderedDict(
     VStave=dict(dims=['k','j_g','i'], attrs=dict(
                 standard_name="product_of_sea_water_y_velocity_and_salinity",
                 long_name="Meridional Transport of Salinity",
-                units="psu m s-1", mate='UStave')),
+                units="g kg-1 m s-1", mate='UStave')),
     VTtave=dict(dims=['k','j_g','i'], attrs=dict(
                 standard_name="product_of_sea_water_y_velocity_and_"
                               "potential_temperature",
@@ -405,7 +416,7 @@ state_variables = OrderedDict(
     WStave=dict(dims=['k_l','j','i'], attrs=dict(
                 standard_name="product_of_sea_water_z_velocity_and_salinity",
                 long_name="Vertical Transport of Salinity",
-                units="psu m s-1")),
+                units="g kg-1 m s-1")),
     WTtave=dict(dims=['k_l','j','i'], attrs=dict(
                 standard_name="product_of_sea_water_z_velocity_and_"
                               "potential_temperature",
@@ -461,7 +472,7 @@ package_state_variables = {
     'KPPg_SLT': dict(dims=['k_l','j','i'], attrs=dict(
         standard_name='KPP_salt_flux',
         long_name='KPP non-local Flux of Salinity',
-        units='psu m3 s-1')),
+        units='g kg-1 m3 s-1')),
     # pkg/thsice variables
     'ice_fract': dict(dims=['j', 'i'], attrs=dict(
         standard_name="sea_ice_area_fraction",
@@ -602,8 +613,151 @@ package_state_variables = {
         units='W m-2')),
     'QSWtave': dict(dims=['j', 'i'], attrs=dict(
         standard_name="surface_net_upward_shortwave_flux",
-        long_name='SEAICE upward freshwater flux (+=up)',
-        units='kg m-2 s-1'))
+        long_name='SEAICE upward shortwave heat flux (+=up)',
+        units='W m-2')),
+    # pkg/autodiff variables
+    'ADJtaux': dict(dims=['j', 'i_g'], attrs=dict(
+        standard_name="ADJtaux",
+        long_name='dJ/dtaux: Sensitivity to zonal surface stress',
+        mate='ADJtauy',
+        units='dJ/(N m-2)')),
+    'ADJtauy': dict(dims=['j_g', 'i'], attrs=dict(
+        standard_name="ADJtaux",
+        long_name='dJ/dtauy: Sensitivity to meridional surface stress',
+        mate='ADJtaux',
+        units='dJ/(N m-2)')),
+    'ADJqnet': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="ADJqnet",
+        long_name='dJ/dqnet: Sensitivity to net upward heat flux',
+        units='dJ/(W m-2)')),
+    'ADJempr': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="ADJempr",
+        long_name='dJ/dempr: Sensitivity to upward freshwater flux',
+        units='dJ/(kg m-2 s-1)')),
+    'ADJqsw': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="ADJqsw",
+        long_name='dJ/dqsw: Sensitivity to net shortwave radiation',
+        units='dJ/(W m-2)')),
+    'ADJggl90tke': dict(dims=['k', 'j', 'i'], attrs=dict(
+        standard_name="ADJggl90tke",
+        long_name='dJ/dggl90tke: Sensitivity to TKE',
+        units='dJ/(m2 s-2)')),
+    'ADJdiffkr': dict(dims=['k', 'j', 'i'], attrs=dict(
+        standard_name="ADJdiffkr",
+        long_name='dJ/ddiffkr: Sensitivity to vertical diffusivity',
+        units='dJ/(m2 s-1)')),
+    'ADJkapgm': dict(dims=['k', 'j', 'i'], attrs=dict(
+        standard_name="ADJkapgm",
+        long_name='dJ/dkapgm: Sensitivity to GM Intensity',
+        units='dJ/(m2 s-1)')),
+    'ADJkapredi': dict(dims=['k', 'j', 'i'], attrs=dict(
+        standard_name="ADJkapredi",
+        long_name='dJ/dkapredi: Sensitivity to Redi coefficient',
+        units='dJ/(m2 s-1)')),
+    'ADJeddypsix': dict(dims=['k', 'j', 'i_g'], attrs=dict(
+        standard_name="ADJeddypsix",
+        long_name='dJ/deddypsix: Sensitivity to zonal eddy streamfunction',
+        mate='ADJeddypsiy',
+        units='dJ/(m2 s-1)')),
+    'ADJeddypsiy': dict(dims=['k', 'j_g', 'i'], attrs=dict(
+        standard_name="ADJtaux",
+        long_name='dJ/deddypsiy: Sensitivity to meridional eddy streamfunction',
+        mate='ADJeddypsix',
+        units='dJ/(m2 s-1)')),
+    'ADJsst': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="ADJsst",
+        long_name='dJ/dsst: Sensitivity to sea surface temperature',
+        units='dJ/K')),
+    'ADJsss': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="ADJsss",
+        long_name='dJ/dsss: Sensitivity to sea surface salinity',
+        units='dJ/(g kg-1)')),
+    'ADJbottomdrag': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="ADbottomdrag",
+        long_name='dJ/dbottomdrag: Sensitivity to linear bottom drag coeff',
+        units='dJ/(m-1)')),
+    'ADJustress': dict(dims=['j', 'i_g'], attrs=dict(
+        standard_name="ADJustress",
+        long_name='dJ/dustress: Sensitivity to zonal wind stress',
+        mate='ADJvstress',
+        units='dJ/(N m-2)')),
+    'ADJvstress': dict(dims=['j_g', 'i'], attrs=dict(
+        standard_name="ADJvstress",
+        long_name='dJ/dvstress: Sensitivity to meridional wind stress',
+        mate='ADJustress',
+        units='dJ/(N m-2)')),
+    'ADJuwind': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="ADJuwind",
+        long_name='dJ/duwind: Sensitivity to zonal wind',
+        mate='ADJvwind',
+        units='dJ/(m s-1)')),
+    'ADJvwind': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="ADJvwind",
+        long_name='dJ/dvwind: Sensitivity to meridional wind',
+        mate='ADJuwind',
+        units='dJ/(m s-1)')),
+    'ADJatemp': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="ADJatemp",
+        long_name='dJ/datemp: Sensitivity to atmospheric surface temperature',
+        units='dJ/K')),
+    'ADJaqh': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="ADJaqh",
+        long_name='dJ/daqh: Sensitivity to specific surface humidity',
+        units='dJ/(kg kg-1)')),
+    'ADJswdown': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="ADJswdown",
+        long_name='dJ/dswdown: Sensitivity to downward solar radiation',
+        units='dJ/(W m-2)')),
+    'ADJlwdown': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="ADJlwdown",
+        long_name='dJ/dlwdown: Sensitivity to downward longwave radiation',
+        units='dJ/(W m-2)')),
+    'ADJhflux': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="ADJhflux",
+        long_name='dJ/dhflux: Sensitivity to upward heat flux',
+        units='dJ/(W m-2)')),
+    'ADJsflux': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="ADJsflux",
+        long_name='dJ/dsflux: Sensitivity to upward fresh water flux',
+        units='dJ/(m s-1)')),
+    'ADJprecip': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="ADJprecip",
+        long_name='dJ/dprecip: Sensitivity to precipitation flux',
+        units='dJ/(m s-1)')),
+    'ADJrunoff': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="ADJrunoff",
+        long_name='dJ/drunoff: Sensitivity to runoff',
+        units='dJ/(m s-1)')),
+    'ADJclimsst': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="ADJclimsst",
+        long_name='dJ/dclimsst: Sensitivity to restoring surface temperature',
+        units='dJ/K')),
+    'ADJclimsss': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="ADJclimsss",
+        long_name='dJ/dclimsss: Sensitivity to restoring surface salinity',
+        units='dJ/(g kg-1)')),
+    'ADJarea': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="ADJarea",
+        long_name='dJ/darea: Sensitivity to sea ice concentration',
+        units='dJ')),
+    'ADJheff': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="ADJheff",
+        long_name='dJ/dheff: Sensitivity to sea ice thickness',
+        units='dJ/m')),
+    'ADJhsnow': dict(dims=['j', 'i'], attrs=dict(
+        standard_name="ADJhsnow",
+        long_name='dJ/dhsnow: Sensitivity to snow thickness',
+        units='dJ/m')),
+    'ADJuice': dict(dims=['j', 'i_g'], attrs=dict(
+        standard_name="ADJuice",
+        long_name='dJ/duice: Sensitivity to zonal ice drift',
+        mate='ADJvice',
+        units='dJ/(m s-1)')),
+    'ADJvice': dict(dims=['j_g', 'i'], attrs=dict(
+        standard_name="ADJvice",
+        long_name='dJ/dvice: Sensitivity to meridional ice drift',
+        mate='ADJuice',
+        units='dJ/(m s-1)'))
 }
 
 extra_grid_variables = OrderedDict(

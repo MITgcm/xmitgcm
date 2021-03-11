@@ -11,23 +11,21 @@ DISTNAME = 'xmitgcm'
 LICENSE = 'Apache'
 AUTHOR = 'Ryan Abernathey'
 AUTHOR_EMAIL = 'rpa@ldeo.columbia.edu'
-URL = 'https://github.com/xgcm/xmitgcm'
+URL = 'https://github.com/MITgcm/xmitgcm'
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
     'License :: OSI Approved :: Apache Software License',
     'Operating System :: OS Independent',
     'Intended Audience :: Science/Research',
     'Programming Language :: Python',
-    'Programming Language :: Python :: 2',
-    'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.6',
     'Programming Language :: Python :: 3.7',
     'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
     'Topic :: Scientific/Engineering',
 ]
 
-INSTALL_REQUIRES = ['xarray >= 0.10.1', 'dask >= 1.0', 'cachetools']
+INSTALL_REQUIRES = ['xarray >= 0.11.0', 'dask >= 1.0', 'cachetools']
 SETUP_REQUIRES = ['pytest-runner']
 TESTS_REQUIRE = ['pytest >= 4.0', 'coverage']
 
@@ -49,4 +47,5 @@ setup(name=DISTNAME,
       setup_requires=SETUP_REQUIRES,
       tests_require=TESTS_REQUIRE,
       url=URL,
-      packages=find_packages())
+      packages=find_packages(),
+      python_requires='>=3.7')

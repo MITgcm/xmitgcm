@@ -219,9 +219,10 @@ class PleiadesLLC2160Model(LLC2160Model):
         from fsspec.implementations.local import LocalFileSystem
         fs = LocalFileSystem()
         base_path = '/home6/dmenemen/llc_2160/compressed'
+        grid_path = '/home6/dmenemen/llc_2160/grid'
         mask_path = '/nobackup/rpaberna/llc/masks/llc_2160_masks.zarr'
         store = stores.NestedStore(fs, base_path=base_path, mask_path=mask_path,
-                                   shrunk=True)
+                                   shrunk=True,grid_path=grid_path)
         super(PleiadesLLC2160Model, self).__init__(store)
 
 
@@ -232,9 +233,10 @@ class PleiadesLLC4320Model(LLC4320Model):
         from fsspec.implementations.local import LocalFileSystem
         fs = LocalFileSystem()
         base_path = '/home6/dmenemen/llc_4320/compressed'
+        grid_path = '/home6/dmenemen/llc_4320/grid'
         mask_path = '/nobackup/rpaberna/llc/masks/llc_4320_masks.zarr'
         store = stores.NestedStore(fs, base_path=base_path, mask_path=mask_path,
-                                   shrunk=True)
+                                   shrunk=True,grid_path=grid_path)
         super(PleiadesLLC4320Model, self).__init__(store)
 
 class CRIOSPortalASTE270Model(ASTE270Model):

@@ -758,6 +758,33 @@ class BaseLLCModel:
         return data_facets
 
 
+    def _check_iter_start(self, iter_start):
+        if self.iter_start is not None and self.iter_step is not None:
+            if (iter_start - self.iter_start) % self.iter_step:
+                msg = "Iteration {} may not exist, you may need to change 'iter_start'".format(iter_start)
+                warnings.warn(msg, RuntimeWarning)
+
+
+    def _check_iter_step(self, iter_step):
+        if self.iter_step is not None:
+            if iter_step % self.iter_step:
+                msg = "'iter_step' is not a multiple of {}, meaning some expected timesteps may not be returned".format(self.iter_step)
+                warnings.warn(msg, RuntimeWarning)
+
+    def _check_iters(self, iters):
+        if self.iters is not None:
+            if not set(iters) <= set(self.iters):
+                msg = "Some requested iterations may not exist, you may need to change 'iters'"
+                warnings.warn(msg, RuntimeWarning)
+        
+        elif self.iter_start is not None and self.iter_step is not None:
+            for iter in iters:
+                if (iter - self.iter_start) % self.iter_step:
+                    msg = "Some requested iterations may not exist, you may need to change 'iters'"
+                    warnings.warn(msg, RuntimeWarning)
+                    break
+            
+
     def get_dataset(self, varnames=None, iter_start=None, iter_stop=None,
                     iter_step=None, iters=None, k_levels=None, k_chunksize=1,
                     type='faces', read_grid=True, grid_vars_to_coords=True):
@@ -802,27 +829,60 @@ class BaseLLCModel:
             else:
                 return a
 
-        iter_start = _if_not_none(iter_start, self.iter_start)
-        iter_stop = _if_not_none(iter_stop, self.iter_stop)
-        iter_step = _if_not_none(iter_step, self.iter_step)
-        iters = _if_not_none(iters, self.iters)
-        iter_params = [iter_start, iter_stop, iter_step]
-        if any([a is None for a in iter_params]):
-            if iters is None:
+        user_iter_params = [iter_start, iter_stop, iter_step]
+        attribute_iter_params = [self.iter_start, self.iter_stop, self.iter_step]
+
+        # If the user has specified some iter params:
+        if any([a is not None for a in user_iter_params]):
+            # If iters is also set we have a problem
+            if iters is not None:
+                raise ValueError("Only `iters` or the parameters `iter_start`, `iters_stop`, "
+                                 "and `iter_step` can be provided. Both were provided")
+            
+            # Otherwise we can override any missing values
+            iter_start = _if_not_none(iter_start, self.iter_start)
+            iter_stop = _if_not_none(iter_stop, self.iter_stop)
+            iter_step = _if_not_none(iter_step, self.iter_step)
+            iter_params = [iter_start, iter_stop, iter_step]
+            if any([a is None for a in iter_params]):
                 raise ValueError("The parameters `iter_start`, `iter_stop`, "
                                  "and `iter_step` must be defined either by the "
                                  "model class or as argument. Instead got %r "
                                  % iter_params)
+        
+        # Otherwise try loading from the user set iters
         elif iters is not None:
-            raise ValueError("Only `iters` or the parameters `iter_start`, `iters_stop`, "
-                             "and `iter_step` can be provided. Both were provided")
-        iters = np.arange(*iter_params) if iters is None else iters
-        iters = np.array(iters) if isinstance(iters,list) else iters
+            pass
+
+        # Now have a go at using the attribute derived iteration parameters 
+        elif all([a is not None for a in attribute_iter_params]):
+            iter_params = attribute_iter_params
+
+        # Now try using the attribute derived iters
+        elif self.iters is not None:
+            iters = self.iters
+
+        # Now give up
+        else:
+            raise ValueError("The parameters `iter_start`, `iter_stop`, "
+                             "and `iter_step`, or `iters` must be defined either by the "
+                             "model class or as argument")
+        
+        # Check the iter_start and iter_step
+        if iters is None:
+            self._check_iter_start(iter_params[0])
+            self._check_iter_step(iter_params[2])
+            iters = np.arange(*iter_params)
+        else:
+            self._check_iters(iters)
+            iters = np.array(iters)
 
         varnames = varnames or self.varnames
 
         # grid stuff
         read_grid = read_grid and len(self.grid_varnames)!=0
+        if read_grid and self.store.grid_path is None:
+            raise TypeError('Cannot read grid if grid_path is not specified in filestore (e.g. llcreader.known_models)')
         grid_vars_to_coords = grid_vars_to_coords and read_grid
         grid_varnames = self.grid_varnames if read_grid else []
 
