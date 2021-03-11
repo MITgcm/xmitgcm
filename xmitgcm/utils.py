@@ -1443,7 +1443,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                     if grid_metadata['face_facets'][face] == kfacet:
                         # get offset of face from facet
                         offset = file_metadata['face_offsets'][face]
-                        if field in outerx_vars or field in outerxy_vars or field in outery_vars:
+                        if field in outerx_vars + outerxy_vars + outery_vars:
                             nx = file_metadata['nx'] + 1
                         else:
                             nx = file_metadata['nx']
@@ -1520,6 +1520,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                                   }
                           )
     else:  # pragma: no cover
+        nyouter = file_metadata['ny'] + 1 if outer else file_metadata['ny']
         grid = xr.Dataset({'XC':  (['j', 'i'],     gridfields['XC']),
                            'YC':  (['j', 'i'],     gridfields['YC']),
                            'DXF': (['j', 'i'],     gridfields['DXF']),
@@ -1542,7 +1543,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                                   'i_g': (['i_g'],
                                           np.arange(nxouter)),
                                   'j_g': (['j_g'],
-                                          np.arange(nxouter))
+                                          np.arange(nyouter))
                                   }
                           )
 
