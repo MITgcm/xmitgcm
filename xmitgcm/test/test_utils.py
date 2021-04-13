@@ -963,26 +963,50 @@ def test_get_grid_from_input(all_grid_datadirs, usedask):
     from xmitgcm.utils import read_raw_data
     dirname, expected = all_grid_datadirs
     md = get_extra_metadata(domain=expected['domain'], nx=expected['nx'])
+
     ds = get_grid_from_input(dirname + '/' + expected['gridfile'],
                              geometry=expected['geometry'],
                              dtype=np.dtype('d'), endian='>',
                              use_dask=usedask,
                              extra_metadata=md)
+
+    ds_outer = get_grid_from_input(dirname + '/' + expected['gridfile'],
+                             geometry=expected['geometry'],
+                             dtype=np.dtype('d'), endian='>',
+                             use_dask=usedask,
+                             extra_metadata=md,
+                             outer=True)
+
     # test types
     assert type(ds) == xarray.Dataset
+    assert type(ds_outer) == xarray.Dataset
     assert type(ds['XC']) == xarray.core.dataarray.DataArray
+    assert type(ds_outer['XC']) == xarray.core.dataarray.DataArray
 
     if usedask:
         ds.load()
+        ds_outer.load()
 
     # check all variables are in
     expected_variables = ['XC', 'YC', 'DXF', 'DYF', 'RAC',
                           'XG', 'YG', 'DXV', 'DYU', 'RAZ',
                           'DXC', 'DYC', 'RAW', 'RAS', 'DXG', 'DYG']
 
+    outerx_vars = ['DXC', 'RAW', 'DYG']
+    outery_vars = ['DYC', 'RAS', 'DXG']
+    outerxy_vars = ['XG', 'YG', 'RAZ']
+
     for var in expected_variables:
+        expected_shape_outer = list(expected['shape'])
+        if var in outerx_vars or var in outerxy_vars:
+            expected_shape_outer[-1] = expected_shape_outer[-1] + 1
+        if var in outery_vars or var in outerxy_vars:
+            expected_shape_outer[-2] = expected_shape_outer[-2] + 1
+
         assert type(ds[var]) == xarray.core.dataarray.DataArray
         assert ds[var].values.shape == expected['shape']
+        assert type(ds_outer[var]) == xarray.core.dataarray.DataArray
+        assert ds_outer[var].values.shape == tuple(expected_shape_outer)
 
     # check we don't leave points behind
     if expected['geometry'] == 'llc':
