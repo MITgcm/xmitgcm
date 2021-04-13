@@ -1432,7 +1432,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                 elif field in outerxy_vars:
                     tmp = rawfields[field][:, :, :, :].squeeze()
                 else:
-                    tmp = rawfields[field][:, :, :-1, :-1].squeeze()
+                    tmp = rawfields[field][..., :-1, :-1].squeeze()
 
                 # transpose
                 if grid_metadata['facet_orders'][kfacet] == 'F':
