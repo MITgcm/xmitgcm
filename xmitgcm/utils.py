@@ -1430,7 +1430,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                 elif field in outery_vars:
                     tmp = rawfields[field][:, :, :-1, :].squeeze()
                 elif field in outerxy_vars:
-                    tmp = rawfields[field][:, :, :, :].squeeze()
+                    tmp = rawfields[field].squeeze()
                 else:
                     tmp = rawfields[field][..., :-1, :-1].squeeze()
 
