@@ -1426,7 +1426,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
             for field in file_metadata['fldList']:
                 # symetrize
                 if field in outerx_vars:
-                    tmp = rawfields[field][:, :, :, :-1].squeeze()
+                    tmp = rawfields[field][..., :-1].squeeze()
                 elif field in outery_vars:
                     tmp = rawfields[field][:, :, :-1, :].squeeze()
                 elif field in outerxy_vars:
