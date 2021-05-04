@@ -757,7 +757,12 @@ package_state_variables = {
         standard_name="ADJvice",
         long_name='dJ/dvice: Sensitivity to meridional ice drift',
         mate='ADJuice',
-        units='dJ/(m s-1)'))
+        units='dJ/(m s-1)')),
+    'EXOBFlux': dict(dims=['k_p1','j', 'i'], attrs=dict(
+        standard_name="EXOBFlux",
+        long_name='bolometric radiative flux from exorad',
+        mate='EXOBFlux',
+        units='W/m2')),
 }
 
 extra_grid_variables = OrderedDict(
