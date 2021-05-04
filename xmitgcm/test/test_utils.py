@@ -1057,13 +1057,13 @@ def test_get_grid_from_input(all_grid_datadirs, usedask):
                             order='F', partial_read=True,
                             offset=nx*ny5*sizeofd)
 
-        xc = np.concatenate([xc1[:-1, :-1].flatten(), xc2[:-1, :-1].flatten(),
-                             xc3[:-1, :-1].flatten(), xc4[:-1, :-1].flatten(),
-                             xc5[:-1, :-1].flatten()])
+        xc = np.concatenate([xc1.flatten(), xc2.flatten(),
+                             xc3.flatten(), xc4.flatten(),
+                             xc5.flatten()])
 
-        yc = np.concatenate([yc1[:-1, :-1].flatten(), yc2[:-1, :-1].flatten(),
-                             yc3[:-1, :-1].flatten(), yc4[:-1, :-1].flatten(),
-                             yc5[:-1, :-1].flatten()])
+        yc = np.concatenate([yc1.flatten(), yc2.flatten(),
+                             yc3.flatten(), yc4.flatten(),
+                             yc5.flatten()])
 
         xc_from_ds = ds['XC'].values.flatten()
         yc_from_ds = ds['YC'].values.flatten()
@@ -1081,7 +1081,7 @@ def test_get_grid_from_input(all_grid_datadirs, usedask):
                                      dtype=np.dtype('d'), endian='>',
                                      use_dask=False,
                                      extra_metadata=None)
-            
+
 
 @pytest.mark.parametrize("dtype", [np.dtype('d'), np.dtype('f')])
 def test_write_to_binary(dtype):
