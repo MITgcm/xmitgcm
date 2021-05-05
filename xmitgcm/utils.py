@@ -1248,7 +1248,7 @@ def _pad_array(data, file_metadata, face=0):
 
 
 def get_extra_metadata(domain='llc', nx=90):
-    """ 
+    """
     Return the extra_metadata dictionay for selected domains
 
     PARAMETERS
@@ -1310,7 +1310,7 @@ def get_extra_metadata(domain='llc', nx=90):
 def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                         dtype=np.dtype('d'), endian='>', use_dask=False, outer=False,
                         extra_metadata=None):
-    """ 
+    """
     Read grid variables from grid input files, this is especially useful
     for llc and cube sphere configurations used with land tiles
     elimination. Reading the input grid files (e.g. tile00[1-5].mitgrid)
@@ -1338,7 +1338,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
         dictionary of extra metadata, needed for llc configurations
 
     RETURNS
-    ------- 
+    -------
     grid : xarray.Dataset
         all grid variables
     """
@@ -1409,7 +1409,7 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
             elif file_metadata['facet_orders'][kfacet] == 'F':
                 nxgrid = file_metadata['ny_facets'][kfacet] + 1
                 nygrid = file_metadata['nx'] + 1
-            
+
 
             grid_metadata.update({'nx': nxgrid, 'ny': nygrid,
                                   'has_faces': False})
@@ -1424,16 +1424,9 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                     {file_metadata['fldList'][kfield]: raw[kfield]})
 
             for field in file_metadata['fldList']:
-                # symetrize
-                if field in outerx_vars:
-                    tmp = rawfields[field][..., :-1].squeeze()
-                elif field in outery_vars:
-                    tmp = rawfields[field][..., :-1, :].squeeze()
-                elif field in outerxy_vars:
-                    tmp = rawfields[field].squeeze()
-                else:
-                    tmp = rawfields[field][..., :-1, :-1].squeeze()
 
+                # get the full array
+                tmp = rawfields[field].squeeze()
                 # transpose
                 if grid_metadata['facet_orders'][kfacet] == 'F':
                     tmp = tmp.transpose()
@@ -1443,18 +1436,30 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                     if grid_metadata['face_facets'][face] == kfacet:
                         # get offset of face from facet
                         offset = file_metadata['face_offsets'][face]
-                        if field in outerx_vars + outerxy_vars + outery_vars:
-                            nx = file_metadata['nx'] + 1
-                        else:
-                            nx = file_metadata['nx']
+
+                        nx = file_metadata['nx'] + 1
+                        nxm1 = file_metadata['nx']
+                        pad_metadata = file_metadata.copy()
+                        pad_metadata['nx'] = file_metadata['nx'] + 1
                         # pad data, if needed (would trigger eager data eval)
                         # needs a new array not to pad multiple times
-                        padded = _pad_array(tmp, file_metadata, face=face)
+                        padded = _pad_array(tmp, pad_metadata, face=face)
                         # extract the data
-                        dataface = padded[offset*nx:(offset+1)*nx, :]
+                        dataface = padded[offset*nxm1:offset*nxm1 + nx, :]
                         # transpose, if needed
                         if file_metadata['transpose_face'][face]:
                             dataface = dataface.transpose()
+
+                        # remove irrelevant data
+                        if field in outerx_vars:
+                            dataface = dataface[..., :-1, :].squeeze()
+                        elif field in outery_vars:
+                            dataface = dataface[..., :-1].squeeze()
+                        elif field in outerxy_vars:
+                            dataface = dataface.squeeze()
+                        else:
+                            dataface = dataface[..., :-1, :-1].squeeze()
+
                         # assign values
                         dataface = dsa.stack([dataface], axis=0)
                         if face == 0:
