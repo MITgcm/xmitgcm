@@ -957,8 +957,9 @@ def test_get_extra_metadata(domain, nx):
         em = get_extra_metadata(domain='notinlist', nx=nx)
 
 
+@pytest.mark.parametrize("outer", [True, False])
 @pytest.mark.parametrize("usedask", [True, False])
-def test_get_grid_from_input(all_grid_datadirs, usedask):
+def test_get_grid_from_input(all_grid_datadirs, usedask, outer):
     from xmitgcm.utils import get_grid_from_input, get_extra_metadata
     from xmitgcm.utils import read_raw_data
     dirname, expected = all_grid_datadirs
@@ -968,24 +969,15 @@ def test_get_grid_from_input(all_grid_datadirs, usedask):
                              geometry=expected['geometry'],
                              dtype=np.dtype('d'), endian='>',
                              use_dask=usedask,
-                             extra_metadata=md)
-
-    ds_outer = get_grid_from_input(dirname + '/' + expected['gridfile'],
-                             geometry=expected['geometry'],
-                             dtype=np.dtype('d'), endian='>',
-                             use_dask=usedask,
                              extra_metadata=md,
-                             outer=True)
+                             outer=outer)
 
     # test types
     assert type(ds) == xarray.Dataset
-    assert type(ds_outer) == xarray.Dataset
     assert type(ds['XC']) == xarray.core.dataarray.DataArray
-    assert type(ds_outer['XC']) == xarray.core.dataarray.DataArray
 
     if usedask:
         ds.load()
-        ds_outer.load()
 
     # check all variables are in
     expected_variables = ['XC', 'YC', 'DXF', 'DYF', 'RAC',
@@ -1003,13 +995,15 @@ def test_get_grid_from_input(all_grid_datadirs, usedask):
         if var in outery_vars or var in outerxy_vars:
             expected_shape_outer[-2] = expected_shape_outer[-2] + 1
 
-        assert type(ds[var]) == xarray.core.dataarray.DataArray
-        assert ds[var].values.shape == expected['shape']
-        assert type(ds_outer[var]) == xarray.core.dataarray.DataArray
-        assert ds_outer[var].values.shape == tuple(expected_shape_outer)
+        if outer:
+            assert type(ds[var]) == xarray.core.dataarray.DataArray
+            assert ds[var].values.shape == tuple(expected_shape_outer)
+        else:
+            assert type(ds[var]) == xarray.core.dataarray.DataArray
+            assert ds[var].values.shape == expected['shape']
 
     # check we don't leave points behind
-    if expected['geometry'] == 'llc':
+    if expected['geometry'] == 'llc' and not outer:
         nx = expected['nx'] + 1
         nvars = len(expected_variables)
         sizeofd = 8
@@ -1074,7 +1068,7 @@ def test_get_grid_from_input(all_grid_datadirs, usedask):
         assert yc.max() == yc_from_ds.max()
 
     # passing llc without metadata should fail
-    if expected['geometry'] == 'llc':
+    if expected['geometry'] == 'llc' and not outer:
         with pytest.raises(ValueError):
             ds = get_grid_from_input(dirname + '/' + expected['gridfile'],
                                      geometry=expected['geometry'],

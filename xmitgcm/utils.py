@@ -1349,14 +1349,9 @@ def get_grid_from_input(gridfile, nx=None, ny=None, geometry='llc',
                                 'XG', 'YG', 'DXV', 'DYU', 'RAZ',
                                 'DXC', 'DYC', 'RAW', 'RAS', 'DXG', 'DYG']
 
-    if outer:
-        outerx_vars = ['DXC', 'RAW', 'DYG']
-        outery_vars = ['DYC', 'RAS', 'DXG']
-        outerxy_vars = ['XG', 'YG', 'RAZ']
-    else:
-        outerx_vars = []
-        outery_vars = []
-        outerxy_vars = []
+    outerx_vars = ['DXC', 'RAW', 'DYG'] if outer else []
+    outery_vars = ['DYC', 'RAS', 'DXG'] if outer else []
+    outerxy_vars = ['XG', 'YG', 'RAZ'] if outer else []
 
     file_metadata['vars'] = file_metadata['fldList']
     dims_vars_list = []
