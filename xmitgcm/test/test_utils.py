@@ -1003,7 +1003,7 @@ def test_get_grid_from_input(all_grid_datadirs, usedask, outer):
             assert ds[var].values.shape == expected['shape']
 
     # check we don't leave points behind
-    if expected['geometry'] == 'llc' and not outer:
+    if expected['geometry'] == 'llc':
         nx = expected['nx'] + 1
         nvars = len(expected_variables)
         sizeofd = 8
@@ -1068,13 +1068,14 @@ def test_get_grid_from_input(all_grid_datadirs, usedask, outer):
         assert yc.max() == yc_from_ds.max()
 
     # passing llc without metadata should fail
-    if expected['geometry'] == 'llc' and not outer:
+    if expected['geometry'] == 'llc':
         with pytest.raises(ValueError):
             ds = get_grid_from_input(dirname + '/' + expected['gridfile'],
                                      geometry=expected['geometry'],
                                      dtype=np.dtype('d'), endian='>',
                                      use_dask=False,
-                                     extra_metadata=None)
+                                     extra_metadata=None,
+                                     outer=outer)
 
 
 @pytest.mark.parametrize("dtype", [np.dtype('d'), np.dtype('f')])
