@@ -516,6 +516,42 @@ def test_drc_length(all_mds_datadirs):
     assert len(ds.drC) == (len(ds.drF)+1)
 
 
+def test_extra_variables(all_mds_datadirs):
+    """Test that open_mdsdataset reads extra_variables correctly"""
+    dirname, expected = all_mds_datadirs
+
+    extra_variable_data = dict(
+        # use U,V to test with attrs (including mate)
+        testdataU=dict(dims=['k','j','i_g'], attrs=dict(
+                standard_name='sea_water_x_velocity', mate='testdataV',
+                long_name='Zonal Component of Velocity', units='m s-1')),
+        testdataV=dict(dims=['k','j_g','i'], attrs=dict(
+                standard_name='sea_water_y_velocity', mate='testdataU',
+                long_name='Meridional Component of Velocity', units='m s-1')),
+        # use T to test without attrs
+        testdataT=dict(dims=['k','j','i'], attrs=dict())
+        )
+
+    for var in ["U","V","T"]:
+        copyfile(os.path.join(dirname, '{}.{:010d}.data'.format(var, expected['test_iternum'])),
+                 os.path.join(dirname, 'testdata{}.{:010d}.data'.format(var, expected['test_iternum'])))
+        copyfile(os.path.join(dirname, '{}.{:010d}.meta'.format(var, expected['test_iternum'])),
+                 os.path.join(dirname, 'testdata{}.{:010d}.meta'.format(var, expected['test_iternum'])))
+
+    ds = xmitgcm.open_mdsdataset(
+        dirname,
+        read_grid=False,
+        iters=expected['test_iternum'],
+        geometry=expected['geometry'],
+        prefix=list(extra_variable_data.keys()),
+        extra_variables=extra_variable_data)
+
+    for var in extra_variable_data.keys():
+        assert var in ds
+        if 'mate' in ds[var].attrs:
+            mate = ds[var].attrs['mate']
+            assert ds[mate].attrs['mate'] == var
+
 def test_mask_values(all_mds_datadirs):
     """Test that open_mdsdataset generates binary masks with correct values"""
 

@@ -135,13 +135,20 @@ def open_mdsdataset(data_dir, grid_dir=None,
     extra_variables : dict, optional
         Allow to pass variables not listed in the variables.py
         or in available_diagnostics.log.
-        The addidtional variables are typically defined like this:
-        extra_variables = OrderedDict(
-        # extra variables
+        extra_variables must be a dict containing the variable names as keys with
+        the corresponging values being a dict with the keys being dims and attrs.
+
+        Syntax:
+        extra_variables = dict(varname = dict(dims=list_of_dims, attrs=dict(optional_attrs)))
+        where optional_attrs can contain standard_name, long_name, units as keys
+
+        Example:
+        extra_variables = dict(
         ADJtheta = dict(dims=['k','j','i'], attrs=dict(
                 standard_name='Sensitivity_to_theta',
                 long_name='Sensitivity of cost function to theta', units='[J]/degC'))
                  )
+
 
     Returns
     -------
