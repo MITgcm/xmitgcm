@@ -984,23 +984,19 @@ def test_get_grid_from_input(all_grid_datadirs, usedask, outer):
                           'XG', 'YG', 'DXV', 'DYU', 'RAZ',
                           'DXC', 'DYC', 'RAW', 'RAS', 'DXG', 'DYG']
 
-    outerx_vars = ['DXC', 'RAW', 'DYG']
-    outery_vars = ['DYC', 'RAS', 'DXG']
-    outerxy_vars = ['XG', 'YG', 'RAZ']
+    outerx_vars = ['DXC', 'RAW', 'DYG'] if outer else []
+    outery_vars = ['DYC', 'RAS', 'DXG'] if outer else []
+    outerxy_vars = ['XG', 'YG', 'RAZ'] if outer else []
 
     for var in expected_variables:
-        expected_shape_outer = list(expected['shape'])
+        expected_shape = list(expected['shape'])
         if var in outerx_vars or var in outerxy_vars:
-            expected_shape_outer[-1] = expected_shape_outer[-1] + 1
+            expected_shape[-1] = expected_shape[-1] + 1
         if var in outery_vars or var in outerxy_vars:
-            expected_shape_outer[-2] = expected_shape_outer[-2] + 1
+            expected_shape[-2] = expected_shape[-2] + 1
 
-        if outer:
-            assert type(ds[var]) == xarray.core.dataarray.DataArray
-            assert ds[var].values.shape == tuple(expected_shape_outer)
-        else:
-            assert type(ds[var]) == xarray.core.dataarray.DataArray
-            assert ds[var].values.shape == expected['shape']
+        assert type(ds[var]) == xarray.core.dataarray.DataArray
+        assert ds[var].values.shape == tuple(expected_shape)
 
     # check we don't leave points behind
     if expected['geometry'] == 'llc':
