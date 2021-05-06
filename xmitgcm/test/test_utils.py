@@ -1063,6 +1063,67 @@ def test_get_grid_from_input(all_grid_datadirs, usedask, outer):
         assert yc.min() == yc_from_ds.min()
         assert yc.max() == yc_from_ds.max()
 
+    if expected['geometry'] == 'cs':
+        nx = expected['nx'] + 1
+        sizeofd = 8
+
+        grid = expected['gridfile']
+        grid1 = dirname + '/' + grid.replace('<NFACET>', '001')
+        grid2 = dirname + '/' + grid.replace('<NFACET>', '002')
+        grid3 = dirname + '/' + grid.replace('<NFACET>', '003')
+        grid4 = dirname + '/' + grid.replace('<NFACET>', '004')
+        grid5 = dirname + '/' + grid.replace('<NFACET>', '005')
+        grid6 = dirname + '/' + grid.replace('<NFACET>', '006')
+
+
+        xc1 = read_raw_data(grid1, dtype=np.dtype('>d'), shape=(nx, nx),
+                            order='F', partial_read=True)
+        xc2 = read_raw_data(grid2, dtype=np.dtype('>d'), shape=(nx, nx),
+                            order='F', partial_read=True)
+        xc3 = read_raw_data(grid3, dtype=np.dtype('>d'), shape=(nx, nx),
+                            order='F', partial_read=True)
+        xc4 = read_raw_data(grid4, dtype=np.dtype('>d'), shape=(nx, nx),
+                            order='F', partial_read=True)
+        xc5 = read_raw_data(grid5, dtype=np.dtype('>d'), shape=(nx, nx),
+                            order='F', partial_read=True)
+        xc6 = read_raw_data(grid6, dtype=np.dtype('>d'), shape=(nx, nx),
+                            order='F', partial_read=True)
+
+        yc1 = read_raw_data(grid1, dtype=np.dtype('>d'), shape=(nx, nx),
+                            order='F', partial_read=True,
+                            offset=nx * nx * sizeofd)
+        yc2 = read_raw_data(grid2, dtype=np.dtype('>d'), shape=(nx, nx),
+                            order='F', partial_read=True,
+                            offset=nx * nx * sizeofd)
+        yc3 = read_raw_data(grid3, dtype=np.dtype('>d'), shape=(nx, nx),
+                            order='F', partial_read=True,
+                            offset=nx * nx * sizeofd)
+        yc4 = read_raw_data(grid4, dtype=np.dtype('>d'), shape=(nx, nx),
+                            order='F', partial_read=True,
+                            offset=nx * nx * sizeofd)
+        yc5 = read_raw_data(grid5, dtype=np.dtype('>d'), shape=(nx, nx),
+                            order='F', partial_read=True,
+                            offset=nx * nx * sizeofd)
+        yc6 = read_raw_data(grid6, dtype=np.dtype('>d'), shape=(nx, nx),
+                            order='F', partial_read=True,
+                            offset=nx * nx * sizeofd)
+
+        xc = np.concatenate([xc1.flatten(), xc2.flatten(),
+                             xc3.flatten(), xc4.flatten(),
+                             xc5.flatten(), xc6.flatten()])
+
+        yc = np.concatenate([yc1.flatten(), yc2.flatten(),
+                             yc3.flatten(), yc4.flatten(),
+                             yc5.flatten(), yc6.flatten()])
+
+        xc_from_ds = ds['XC'].values.flatten()
+        yc_from_ds = ds['YC'].values.flatten()
+
+        assert xc.min() == xc_from_ds.min()
+        assert xc.max() == xc_from_ds.max()
+        assert yc.min() == yc_from_ds.min()
+        assert yc.max() == yc_from_ds.max()
+
     # passing llc without metadata should fail
     if expected['geometry'] == 'llc':
         with pytest.raises(ValueError):
