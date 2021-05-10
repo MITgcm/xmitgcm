@@ -533,10 +533,17 @@ def test_extra_variables(all_mds_datadirs):
         )
 
     for var in ["U","V","T"]:
-        copyfile(os.path.join(dirname, '{}.{:010d}.data'.format(var, expected['test_iternum'])),
-                 os.path.join(dirname, 'testdata{}.{:010d}.data'.format(var, expected['test_iternum'])))
-        copyfile(os.path.join(dirname, '{}.{:010d}.meta'.format(var, expected['test_iternum'])),
-                 os.path.join(dirname, 'testdata{}.{:010d}.meta'.format(var, expected['test_iternum'])))
+        input_dir = os.path.join(dirname, '{}.{:010d}'.format(var, expected['test_iternum']))
+        test_dir = os.path.join(dirname, 'testdata{}.{:010d}'.format(var, expected['test_iternum']))
+
+        if input_dir+".meta" not in os.listdir() or input_dir+".data" not in os.listdir():
+            return
+
+        copyfile(input_dir+".meta",test_dir+".meta")
+        copyfile(input_dir+".data",test_dir+".data")
+
+        assert test_dir + ".meta" not in os.listdir(), f"{var} did not copy meta!"
+        assert test_dir + ".data" not in os.listdir(), f"{var} did not copy data!"
 
     ds = xmitgcm.open_mdsdataset(
         dirname,
