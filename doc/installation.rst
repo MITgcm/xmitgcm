@@ -2,22 +2,6 @@
 Installation
 ------------
 
-Requirements
-^^^^^^^^^^^^
-
-xmitgcm is compatible with python 3 and python 2.7. It requires xarray_
-(>= version 0.8.2) and dask_ (>= version 0.11.2).
-These packages are most reliably installed via the
-`conda <http://conda.pydata.org/docs/>`_ environment management
-system, which is part of the Anaconda_ python distribution. Assuming you have
-conda available on your system, the dependencies can be installed with the
-command::
-
-    conda install xarray dask
-
-If you are using earlier versions of these packages, you should update before
-installing xmitgcm.
-
 Installation via conda
 ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -50,17 +34,6 @@ and install it::
 
 Users are encouraged to `fork <https://help.github.com/articles/fork-a-repo/>`_
 xmitgcm and submit issues_ _ and `pull requests`_.
-
-Running the test suite
-^^^^^^^^^^^^^^^^^^^^^^
-
-To run the unit tests in installation from github, run inside xmitgcm directory::
-
-    py.test -v xmitgcm
-
-The test data is stored on figshare_ and will be downloaded locally. You can choose
-the target directory by setting up the XMITGCM_TESTDATA environment variable in the
-shell, otherwise it will install in $HOME/.xmitgcm-test-data
 
 .. _dask: http://dask.pydata.org
 .. _xarray: http://xarray.pydata.org

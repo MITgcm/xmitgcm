@@ -19,6 +19,7 @@ import sys
 from .variables import dimensions, \
     horizontal_coordinates_spherical, horizontal_coordinates_cartesian, \
     horizontal_coordinates_curvcart, horizontal_coordinates_llc, \
+    horizontal_coordinates_cs, \
     vertical_coordinates, horizontal_grid_variables, vertical_grid_variables, \
     volume_grid_variables, state_variables, aliases, package_state_variables, \
     extra_grid_variables, mask_variables
@@ -45,7 +46,8 @@ except ImportError:
 
 # should we hard code this?
 LLC_NUM_FACES = 13
-LLC_FACE_DIMNAME = 'face'
+CS_NUM_FACES = 6
+FACE_DIMNAME = 'face'
 
 
 def open_mdsdataset(data_dir, grid_dir=None,
@@ -85,7 +87,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
     levels : list or slice, optional
         A list or slice of the indexes of the grid levels to read
         Same syntax as in the data.diagnostics file
-    geometry : {'sphericalpolar', 'cartesian', 'llc', 'curvilinear'}
+    geometry : {'sphericalpolar', 'cartesian', 'llc', 'curvilinear', 'cs'}
         MITgcm grid geometry specifier
     grid_vars_to_coords : boolean, optional
         Whether to promote grid variables to coordinate status
@@ -133,13 +135,20 @@ def open_mdsdataset(data_dir, grid_dir=None,
     extra_variables : dict, optional
         Allow to pass variables not listed in the variables.py
         or in available_diagnostics.log.
-        The addidtional variables are typically defined like this:
-        extra_variables = OrderedDict(
-        # extra variables
+        extra_variables must be a dict containing the variable names as keys with
+        the corresponging values being a dict with the keys being dims and attrs.
+
+        Syntax:
+        extra_variables = dict(varname = dict(dims=list_of_dims, attrs=dict(optional_attrs)))
+        where optional_attrs can contain standard_name, long_name, units as keys
+
+        Example:
+        extra_variables = dict(
         ADJtheta = dict(dims=['k','j','i'], attrs=dict(
                 standard_name='Sensitivity_to_theta',
                 long_name='Sensitivity of cost function to theta', units='[J]/degC'))
                  )
+
 
     Returns
     -------
@@ -162,7 +171,8 @@ def open_mdsdataset(data_dir, grid_dir=None,
         if read_grid == False:
             swap_dims = False
         else:
-            swap_dims = False if geometry in ('llc', 'curvilinear') else True
+            swap_dims = False if geometry in (
+                'llc', 'cs', 'curvilinear') else True
 
     # some checks for argument consistency
     if swap_dims and not read_grid:
@@ -247,8 +257,11 @@ def open_mdsdataset(data_dir, grid_dir=None,
                 # apply chunking
                 if sys.version_info[0] < 3:
                     ds = xr.auto_combine(datasets)
-                else:
+                elif xr.__version__ < '0.15.2':
                     ds = xr.combine_by_coords(datasets)
+                else:
+                    ds = xr.combine_by_coords(datasets, compat='override', coords='minimal', combine_attrs='drop')
+
                 if swap_dims:
                     ds = _swap_dimensions(ds, geometry)
                 if grid_vars_to_coords:
@@ -265,7 +278,6 @@ def open_mdsdataset(data_dir, grid_dir=None,
                          extra_variables=extra_variables)
     
     ds = xr.Dataset.load_store(store)
-
     if swap_dims:
         ds = _swap_dimensions(ds, geometry)
     if grid_vars_to_coords:
@@ -300,15 +312,15 @@ def _set_coords(ds):
 
 
 def _swap_dimensions(ds, geometry, drop_old=True):
-    """Replace logical coordinates with physical ones. Does not work for llc.
+    """Replace logical coordinates with physical ones. Does not work for llc or cs.
     """
     keep_attrs = ['axis', 'c_grid_axis_shift']
 
     # this fixes problems
     ds = ds.reset_coords()
 
-    if geometry.lower() in ('llc', 'curvilinear'):
-        raise ValueError("Can't swap dimensions if `geometry` is `llc`")
+    if geometry.lower() in ('llc', 'cs', 'curvilinear'):
+        raise ValueError("Can't swap dimensions if `geometry` is `llc` or `cs`")
 
     # first squeeze all the coordinates
     for orig_dim in ds.dims:
@@ -362,7 +374,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         """
 
         self.geometry = geometry.lower()
-        allowed_geometries = ['cartesian', 'sphericalpolar', 'llc', 'curvilinear']
+        allowed_geometries = ['cartesian',
+                              'sphericalpolar', 'llc', 'cs', 'curvilinear']
         if self.geometry not in allowed_geometries:
             raise ValueError('Unexpected value for parameter `geometry`. '
                              'It must be one of the following: %s' %
@@ -392,6 +405,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         # the dimensions are theoretically the same for all datasets
         [self._dimensions.append(k) for k in dimensions]
         self.llc = (self.geometry == 'llc')
+        self.cs = (self.geometry == 'cs')
 
         if nz is None:
             self.nz = _guess_model_nz(self.grid_dir)
@@ -415,6 +429,13 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 # and we cannot know nx at this point
                 llc = get_extra_metadata(domain='llc', nx=90)
                 extra_metadata = llc
+        if self.cs:
+            has_faces = True
+            if extra_metadata is None or 'ny_facets' not in extra_metadata:
+                # default to llc90, we only need number of facets
+                # and we cannot know nx at this point
+                cs = get_extra_metadata(domain='cs', nx=32)
+                extra_metadata = cs
         # --------------- /LEGACY ----------------------
 
         # we don't need to know ny if using llc
@@ -432,7 +453,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         else:
             # have to peek at the grid file metadata
             self.nface, self.ny, self.nx = (
-                _guess_model_horiz_dims(self.grid_dir, self.llc))
+                _guess_model_horiz_dims(self.grid_dir, is_llc=self.llc, is_cs=self.cs))
 
         # --------------- LEGACY ----------------------
         if self.llc:
@@ -440,6 +461,11 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 # if user didn't provide metadata, we default to llc
                 llc = get_extra_metadata(domain='llc', nx=self.nx)
                 extra_metadata = llc
+        if self.cs:
+            if not user_metadata:
+                # if user didn't provide metadata, we default to llc
+                cs = get_extra_metadata(domain='cs', nx=self.nx)
+                extra_metadata = cs
         # --------------- /LEGACY ----------------------
 
         self.layers = _guess_layers(data_dir)
@@ -490,11 +516,11 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         # seems sloppy to hard code this here
         # TODO: move this metadata to variables.py
         if has_faces:
-            self._dimensions.append(LLC_FACE_DIMNAME)
+            self._dimensions.append(FACE_DIMNAME)
             data = np.arange(self.nface)
             attrs = {'standard_name': 'face_index'}
-            dims = [LLC_FACE_DIMNAME]
-            self._variables[LLC_FACE_DIMNAME] = xr.Variable(dims, data, attrs)
+            dims = [FACE_DIMNAME]
+            self._variables[FACE_DIMNAME] = xr.Variable(dims, data, attrs)
 
         # do the same for layers
         for layer_name, n_layer in self.layers.items():
@@ -626,10 +652,13 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             ddir = self.data_dir
 
         basename = os.path.join(ddir, fname_base)
+        chunks = "CS" if self.cs else "3D"
+
         try:
             vardata = read_mds(basename, iternum, endian=self.endian,
                                llc=self.llc, llc_method=self.llc_method,
-                               extra_metadata=extra_metadata)
+                               extra_metadata=extra_metadata, chunks=chunks)
+
         except IOError as ioe:
             # that might have failed because there was no meta file present
             # we can try to get around this by specifying the shape and dtype
@@ -641,15 +670,16 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 data_shape = self.default_shape_3D
             elif ndims == 2 or self.nz == 1:
                 data_shape = self.default_shape_2D
+            elif self.cs:
+                data_shape = None  # handle this inside read_mds
             else:
                 raise ValueError("Can't determine shape "
                                  "of variable %s" % prefix)
-
             vardata = read_mds(basename, iternum, endian=self.endian,
                                dtype=self.default_dtype,
                                shape=data_shape, llc=self.llc,
                                llc_method=self.llc_method,
-                               extra_metadata=extra_metadata)
+                               extra_metadata=extra_metadata, chunks=chunks)
 
         for vname, data in vardata.items():
             # we now have to revert to the original prefix once the file is read
@@ -693,7 +723,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             # or add an extra axis to the data. Let's try the former, on the
             # grounds that it is simpler for the user.
             if ((len(dims) == 3 and data.ndim == 2) or
-                (self.llc and (len(dims) == 3 and data.ndim == 3))):
+                    ((self.llc or self.cs) and (len(dims) == 3 and data.ndim == 3))):
                 # Deleting the first dimension (z) assumes that 2D data always
                 # corresponds to x,y horizontal data. Is this really true?
                 # The answer appears to be yes: 2D (x|y,z) data retains the
@@ -709,6 +739,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
 
             if self.llc:
                 dims, data = _reshape_for_llc(dims, data)
+            if self.cs:
+                dims, data = _reshape_for_cs(dims, data)
 
             # need to add an extra dimension at the beginning if we have a time
             # variable
@@ -731,7 +763,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
 
     def close(self):
         for var in list(self._variables):
-            del self._variables['var']
+            del self._variables[var]
 
 
 def _guess_model_nz(data_dir):
@@ -746,7 +778,7 @@ def _guess_model_nz(data_dir):
     return nz
 
 
-def _guess_model_horiz_dims(data_dir, is_llc=False):
+def _guess_model_horiz_dims(data_dir, is_llc=False, is_cs=False):
     try:
         xc_meta = parse_meta_file(os.path.join(data_dir, 'XC.meta'))
         nx = int(xc_meta['dimList'][0][0])
@@ -756,6 +788,12 @@ def _guess_model_horiz_dims(data_dir, is_llc=False):
     if is_llc:
         nface = LLC_NUM_FACES
         ny //= nface
+    elif is_cs:
+        nface = CS_NUM_FACES
+        if ny > nx:
+            ny //= nface
+        else:
+            nx //= nface
     else:
         nface = None
     return nface, ny, nx
@@ -777,16 +815,17 @@ def _guess_layers(data_dir):
     return all_layers
 
 
-def _get_all_grid_variables(geometry, grid_dir, layers={}):
+def _get_all_grid_variables(geometry, grid_dir=None, layers={}):
     """"Put all the relevant grid metadata into one big dictionary."""
     possible_hcoords = {'cartesian': horizontal_coordinates_cartesian,
                         'llc': horizontal_coordinates_llc,
+                        'cs': horizontal_coordinates_cs,
                         'curvilinear': horizontal_coordinates_curvcart,
                         'sphericalpolar': horizontal_coordinates_spherical}
     hcoords = possible_hcoords[geometry]
 
     # look for extra variables, if they exist in grid_dir
-    extravars = _get_extra_grid_variables(grid_dir)
+    extravars = _get_extra_grid_variables(grid_dir) if grid_dir is not None else {}
 
     allvars = [hcoords, vertical_coordinates, horizontal_grid_variables,
                vertical_grid_variables, volume_grid_variables, mask_variables,
@@ -806,12 +845,16 @@ def _get_extra_grid_variables(grid_dir):
        Then return the variable information for each of these"""
     extra_grid = {}
 
+    fnames = dict([[val['filename'],key] for key,val in extra_grid_variables.items() if 'filename' in val])
+
     all_datafiles = listdir_endswith(grid_dir, '.data')
     for f in all_datafiles:
         prefix = os.path.split(f[:-5])[-1]
         # Only consider what we find that matches extra_grid_vars
         if prefix in extra_grid_variables:
             extra_grid[prefix] = extra_grid_variables[prefix]
+        elif prefix in fnames:
+            extra_grid[fnames[prefix]] = extra_grid_variables[fnames[prefix]]
 
     return extra_grid
 
@@ -971,6 +1014,23 @@ def _reshape_for_llc(dims, data):
         if dim in dims:
             # add face dimension to dims
             jdim = dims.index(dim)
-            dims.insert(jdim, LLC_FACE_DIMNAME)
+            dims.insert(jdim, FACE_DIMNAME)
     assert data.ndim==len(dims), '%r %r' % (data.shape, dims)
+    return dims, data
+
+def _reshape_for_cs(dims, data):
+    """Take dims and data and return modified / reshaped dims and data for
+    cs geometry."""
+
+    # the data should already come shaped correctly for cs
+    # but the dims are not yet correct
+
+    # the only dimensions that get expanded into faces
+    expand_dims = ['j', 'j_g']
+    for dim in expand_dims:
+        if dim in dims:
+            # add face dimension to dims
+            jdim = dims.index(dim)
+            dims.insert(jdim+1, FACE_DIMNAME)
+    assert data.ndim == len(dims), '%r %r' % (data.shape, dims)
     return dims, data

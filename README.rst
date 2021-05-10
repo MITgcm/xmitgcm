@@ -20,8 +20,8 @@ Installation
 Requirements
 ^^^^^^^^^^^^
 
-xmitgcm is compatible with python 3 and python 2.7. It requires xarray_
-(>= version 0.8.2) and dask_ (>= version 0.11.2).
+xmitgcm is compatible with python >=3.7. It requires xarray_
+(>= version 0.11.0) and dask_ (>= version 1.0).
 These packages are most reliably installed via the
 `conda <https://conda.pydata.org/docs/>`_ environment management
 system, which is part of the Anaconda_ python distribution. Assuming you have
@@ -73,7 +73,7 @@ This will create a directory called ``global_oce_latlon`` which we will use
 for the rest of these examples. If you have your own data, replace this with
 the path to your mitgcm files.
 
-To opean MITgcm MDS data as an xarray.Dataset, do the following in python::
+To open MITgcm MDS data as an xarray.Dataset, do the following in python::
 
     from xmitgcm import open_mdsdataset
     data_dir = './global_oce_latlon'

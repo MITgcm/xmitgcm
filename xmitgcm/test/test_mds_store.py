@@ -47,7 +47,10 @@ def test_open_mdsdataset_minimal(all_mds_datadirs):
         nz, ny, nx = eshape
         nface = None
     elif len(eshape) == 4:
-        nz, nface, ny, nx = eshape
+        if expected['geometry'] == 'cs':
+            nz, ny, nface, nx = eshape
+        else:
+            nz, nface, ny, nx = eshape
     else:
         raise ValueError("Invalid expected shape")
     coords = {'i': np.arange(nx),
@@ -143,10 +146,17 @@ def test_open_dataset_no_meta(all_mds_datadirs):
     ny, nx = shape[-2:]
     shape_2d = shape[1:]
     dims_2d = ('j', 'i')
-    if expected['geometry']=='llc':
+    if expected['geometry'] == 'llc':
         dims_2d = ('face',) + dims_2d
         ny = nx*shape[-3]
-    dims_3d = dims_2d if nz==1 else ('k',) + dims_2d
+    elif expected['geometry'] == 'cs':
+        dims_2d = ('j', 'face', 'i')
+        if len(shape) == 4:
+            nz, ny, nface, nx = shape
+        elif len(shape) == 3:
+            ny, nface, nx = shape
+
+    dims_3d = dims_2d if nz == 1 else ('k',) + dims_2d
     dims_2d = ('time',) + dims_2d
     dims_3d = ('time',) + dims_3d
 
@@ -158,6 +168,8 @@ def test_open_dataset_no_meta(all_mds_datadirs):
     to_hide = ['T.%010d.meta' % it, 'Eta.%010d.meta' % it]
     with hide_file(dirname, *to_hide):
         ds = xmitgcm.open_mdsdataset(dirname, prefix=['T', 'Eta'], **kwargs)
+        print(ds['T'].dims)
+        print(dims_3d)
         assert ds['T'].dims == dims_3d
         assert ds['T'].values.ndim == len(dims_3d)
         assert ds['Eta'].dims == dims_2d
@@ -241,7 +253,7 @@ def test_swap_dims(all_mds_datadirs):
     # make sure we never swap if not reading grid
     assert 'i' in xmitgcm.open_mdsdataset(dirname,
         iters=None, read_grid=False, geometry=expected['geometry'])
-    if expected['geometry'] in ('llc', 'curvilinear'):
+    if expected['geometry'] in ('llc', 'cs', 'curvilinear'):
         # make sure swapping is not the default
         ds = xmitgcm.open_mdsdataset(dirname, **kwargs)
         assert 'i' in ds
@@ -503,6 +515,49 @@ def test_drc_length(all_mds_datadirs):
         geometry=expected['geometry'])
     assert len(ds.drC) == (len(ds.drF)+1)
 
+
+def test_extra_variables(all_mds_datadirs):
+    """Test that open_mdsdataset reads extra_variables correctly"""
+    dirname, expected = all_mds_datadirs
+
+    extra_variable_data = dict(
+        # use U,V to test with attrs (including mate)
+        testdataU=dict(dims=['k','j','i_g'], attrs=dict(
+                standard_name='sea_water_x_velocity', mate='testdataV',
+                long_name='Zonal Component of Velocity', units='m s-1')),
+        testdataV=dict(dims=['k','j_g','i'], attrs=dict(
+                standard_name='sea_water_y_velocity', mate='testdataU',
+                long_name='Meridional Component of Velocity', units='m s-1')),
+        # use T to test without attrs
+        testdataT=dict(dims=['k','j','i'], attrs=dict())
+        )
+
+    for var in ["U","V","T"]:
+        input_dir = os.path.join(dirname, '{}.{:010d}'.format(var, expected['test_iternum']))
+        test_dir = os.path.join(dirname, 'testdata{}.{:010d}'.format(var, expected['test_iternum']))
+
+        if input_dir+".meta" not in os.listdir() or input_dir+".data" not in os.listdir():
+            return
+
+        copyfile(input_dir+".meta",test_dir+".meta")
+        copyfile(input_dir+".data",test_dir+".data")
+
+        assert test_dir + ".meta" not in os.listdir(), f"{var} did not copy meta!"
+        assert test_dir + ".data" not in os.listdir(), f"{var} did not copy data!"
+
+    ds = xmitgcm.open_mdsdataset(
+        dirname,
+        read_grid=False,
+        iters=expected['test_iternum'],
+        geometry=expected['geometry'],
+        prefix=list(extra_variable_data.keys()),
+        extra_variables=extra_variable_data)
+
+    for var in extra_variable_data.keys():
+        assert var in ds
+        if 'mate' in ds[var].attrs:
+            mate = ds[var].attrs['mate']
+            assert ds[mate].attrs['mate'] == var
 
 def test_mask_values(all_mds_datadirs):
     """Test that open_mdsdataset generates binary masks with correct values"""
