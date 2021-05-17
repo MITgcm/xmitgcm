@@ -58,7 +58,8 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     endian=">", chunks=None,
                     ignore_unknown_vars=False, default_dtype=None,
                     nx=None, ny=None, nz=None,
-                    llc_method="smallchunks", extra_metadata=None):
+                    llc_method="smallchunks", extra_metadata=None, 
+                    extra_variables=None):
     """Open MITgcm-style mds (.data / .meta) file output as xarray datset.
 
     Parameters
@@ -131,6 +132,23 @@ def open_mdsdataset(data_dir, grid_dir=None,
 
         For global llc grids, no extra metadata is required and code
         will set up to global llc default configuration.
+    extra_variables : dict, optional
+        Allow to pass variables not listed in the variables.py
+        or in available_diagnostics.log.
+        extra_variables must be a dict containing the variable names as keys with
+        the corresponging values being a dict with the keys being dims and attrs.
+
+        Syntax:
+        extra_variables = dict(varname = dict(dims=list_of_dims, attrs=dict(optional_attrs)))
+        where optional_attrs can contain standard_name, long_name, units as keys
+
+        Example:
+        extra_variables = dict(
+        ADJtheta = dict(dims=['k','j','i'], attrs=dict(
+                standard_name='Sensitivity_to_theta',
+                long_name='Sensitivity of cost function to theta', units='[J]/degC'))
+                 )
+
 
     Returns
     -------
@@ -141,7 +159,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
     ----------
     .. [1] http://cfconventions.org/Data/cf-conventions/cf-conventions-1.7/build/ch04s04.html
     """
-
+    
     # get frame info for history
     frame = inspect.currentframe()
     _, _, _, arg_values = inspect.getargvalues(frame)
@@ -216,7 +234,8 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     ignore_unknown_vars=ignore_unknown_vars,
                     default_dtype=default_dtype,
                     nx=nx, ny=ny, nz=nz, llc_method=llc_method,
-                    levels=levels, extra_metadata=extra_metadata)
+                    levels=levels, extra_metadata=extra_metadata,
+                    extra_variables=extra_variables)
                 datasets = [open_mdsdataset(
                         data_dir, iters=iternum, read_grid=False, **kwargs)
                     for iternum in iters]
@@ -255,7 +274,9 @@ def open_mdsdataset(data_dir, grid_dir=None,
                           ignore_unknown_vars=ignore_unknown_vars,
                           default_dtype=default_dtype,
                           nx=nx, ny=ny, nz=nz, llc_method=llc_method,
-                          levels=levels, extra_metadata=extra_metadata)
+                          levels=levels, extra_metadata=extra_metadata,
+                         extra_variables=extra_variables)
+    
     ds = xr.Dataset.load_store(store)
     if swap_dims:
         ds = _swap_dimensions(ds, geometry)
@@ -338,7 +359,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                  endian='>', ignore_unknown_vars=False,
                  default_dtype=np.dtype('f4'),
                  nx=None, ny=None, nz=None, llc_method="smallchunks",
-                 levels=None, extra_metadata=None):
+                 levels=None, extra_metadata=None,
+                 extra_variables=None):
         """
         This is not a user-facing class. See open_mdsdataset for argument
         documentation. The only ones which are distinct are.
@@ -362,6 +384,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         # the directory where the files live
         self.data_dir = data_dir
         self.grid_dir = grid_dir if (grid_dir is not None) else data_dir
+        self.extra_variables = extra_variables
         self._ignore_unknown_vars = ignore_unknown_vars
 
         # The endianness of the files
@@ -537,7 +560,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                                                            self.layers)
         self._all_data_variables = _get_all_data_variables(self.data_dir,
                                                            self.grid_dir,
-                                                           self.layers)
+                                                           self.layers,
+                                                           self.extra_variables)
 
         # The rest of the data has to be read from disk.
         # The list `prefixes` specifies file prefixes from which to infer
@@ -866,11 +890,12 @@ def _recursively_replace(item, search, replace):
         return item
 
 
-def _get_all_data_variables(data_dir, grid_dir, layers):
+def _get_all_data_variables(data_dir, grid_dir, layers, extra_variables):
     """"Put all the relevant data metadata into one big dictionary."""
     allvars = [state_variables]
     allvars.append(package_state_variables)
-
+    if extra_variables is not None:
+        allvars.append(extra_variables)
     # add others from available_diagnostics.log
     # search in the data dir
     fnameD = os.path.join(data_dir, 'available_diagnostics.log')
