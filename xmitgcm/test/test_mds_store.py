@@ -288,7 +288,7 @@ def test_swap_dims(all_mds_datadirs):
                               ['_bounds', '_center', '_interface']]
                 expected_dims += extra_dims
 
-        assert list(ds.dims.keys()) == expected_dims
+        assert set(ds.dims.keys()) == set(expected_dims)
 
         # make sure swapping works with multiple iters
         ds = xmitgcm.open_mdsdataset(dirname, geometry=expected['geometry'],
