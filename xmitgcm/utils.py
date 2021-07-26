@@ -206,8 +206,8 @@ def read_mds(fname, iternum=None, bi=None, bj=None, use_mmap=None, endian='>',
         bistr = '.%03d' % bi
         bjstr = '.%03d' % bj
 
-    datafile = fname + istr + bistr + '.data'
-    metafile = fname + istr + bjstr + '.meta'
+    datafile = fname + istr + bistr + bjstr + '.data'
+    metafile = fname + istr + bistr + bjstr + '.meta'
 
     if use_mmap and use_dask:
         raise TypeError('nope')
