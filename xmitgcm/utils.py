@@ -199,7 +199,7 @@ def read_mds(fname, iternum=None, bi=None, bj=None, use_mmap=None, endian='>',
         bistr = ''
         bjstr = ''
     elif bi is None or bj is None:
-        raise ValueError('bi and bj must both be None or both be integers. bi is {} and bj is'.format(bi, bj))
+        raise ValueError('bi and bj must both be None or both be integers. bi is {} and bj is {}'.format(bi, bj))
     else:
         assert isinstance(bi, int)
         assert isinstance(bj, int)
