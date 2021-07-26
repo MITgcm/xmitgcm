@@ -84,9 +84,9 @@ def _get_useful_info_from_meta_file(metafile):
     return nrecs, shape, name, dtype, fldlist
 
 
-def read_mds(fname, iternum=None, use_mmap=None, endian='>', shape=None,
-             dtype=None, use_dask=True, extra_metadata=None, chunks="3D",
-             llc=False, llc_method="smallchunks", legacy=True):
+def read_mds(fname, iternum=None, bi=None, bj=None, use_mmap=None, endian='>',
+             shape=None, dtype=None, use_dask=True, extra_metadata=None,
+             chunks="3D", llc=False, llc_method="smallchunks", legacy=True):
     """Read an MITgcm .meta / .data file pair
 
 
@@ -194,8 +194,20 @@ def read_mds(fname, iternum=None, use_mmap=None, endian='>', shape=None,
     else:
         assert isinstance(iternum, int)
         istr = '.%010d' % iternum
-    datafile = fname + istr + '.data'
-    metafile = fname + istr + '.meta'
+
+    if bi is None and bj is None:
+        bistr = ''
+        bjstr = ''
+    elif bi is None or bj is None:
+        raise ValueError('bi and bj must both be None or both be integers. bi is {} and bj is'.format(bi, bj))
+    else:
+        assert isinstance(bi, int)
+        assert isinstance(bj, int)
+        bistr = '.%03d' % bi
+        bjstr = '.%03d' % bj
+
+    datafile = fname + istr + bistr + '.data'
+    metafile = fname + istr + bjstr + '.meta'
 
     if use_mmap and use_dask:
         raise TypeError('nope')
