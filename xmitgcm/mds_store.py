@@ -210,10 +210,10 @@ def open_mdsdataset(data_dir, grid_dir=None,
                 # We have to check to make sure we have the same prefixes at
                 # each timestep...otherwise we can't combine the datasets.
                 first_prefixes = prefix or _get_all_matching_prefixes(
-                                                        data_dir, iters[0])
+                                                        data_dir, iters[0], bi=bi, bj=bj)
                 for iternum in iters:
                     these_prefixes = _get_all_matching_prefixes(
-                        data_dir, iternum, prefix
+                        data_dir, iternum, prefix, bi=bi, bj=bj
                     )
                     # don't care about order
                     if set(these_prefixes) != set(first_prefixes):
@@ -597,7 +597,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                           _get_all_matching_prefixes(
                                                     data_dir,
                                                     iternum,
-                                                    file_prefixes))
+                                                    file_prefixes, bi=bi, bj=bj))
 #        print(untiled_prefixes)
 #        print(tiled_prefixes)
         for p in tiled_prefixes:
@@ -858,7 +858,6 @@ def _guess_model_horiz_dims(data_dir, is_llc=False, is_cs=False, is_tiled=False)
         xc_meta = parse_meta_file(xc_meta_path)
         nx = int(xc_meta['dimList'][0][-1])
         ny = int(xc_meta['dimList'][1][-1])
-        print(nx, ny)
     except IOError:
         raise IOError("Couldn't find XC.meta or XC.001.001.meta file to infer nx and ny.")
     
@@ -1044,16 +1043,27 @@ def _is_pickup_prefix(prefix):
 
 
 def _get_all_matching_prefixes(data_dir, iternum, file_prefixes=None,
-                               ignore_pickup=True):
+                               ignore_pickup=True, bi=None, bj=None):
     """Scan a directory and return all file prefixes matching a certain
     iteration number."""
     if iternum is None:
         return []
     prefixes = set()
-    all_datafiles = listdir_endswith(data_dir, '.%010d.data' % iternum)
+    
+    if bi is not None and bj is not None:
+        list_end = '{:010d}.{:03d}.{:03d}.data'.format(iternum, bi, bj)
+        all_datafiles = listdir_endswith(data_dir, list_end)
+        iternum_slice = slice(-23, -13)
+        prefix_slice = slice(-24)
+
+    else:
+        all_datafiles = listdir_endswith(data_dir, '.%010d.data' % iternum)
+        iternum_slice = slice(-15, -5)
+        prefix_slice = slice(-16)
+
     for f in all_datafiles:
-        iternum = int(f[-15:-5])
-        prefix = os.path.split(f[:-16])[-1]
+        iternum = int(f[iternum_slice])
+        prefix = os.path.split(f[prefix_slice])[-1]
         if file_prefixes is None:
             if not (ignore_pickup and _is_pickup_prefix(prefix)):
                 prefixes.add(prefix)
