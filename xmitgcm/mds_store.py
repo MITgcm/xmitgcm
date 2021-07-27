@@ -355,7 +355,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
     """Representation of MITgcm mds binary file storage format for a specific
     model instance and a specific timestep iteration number."""
     def __init__(self, data_dir, grid_dir=None,
-                 iternum=None, delta_t=1, read_grid=True,
+                 iternum=None, bi=None, bj=None, delta_t=1, read_grid=True,
                  file_prefixes=None, ref_date=None, calendar=None,
                  geometry='sphericalpolar',
                  endian='>', ignore_unknown_vars=False,
@@ -484,8 +484,17 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         # Rather than assuming the dimension names, we use Comodo conventions
         # to parse the dimension metdata.
         # http://pycomodo.forge.imag.fr/norm.html
-        irange = np.arange(self.nx)
-        jrange = np.arange(self.ny)
+        if bi is None and bj is None:
+            irange = np.arange(self.nx)
+            jrange = np.arange(self.ny)
+        elif bi is None or bj is None:
+            raise ValueError('bi and bj must both be None or both be integers. bi is {} and bj is {}'.format(bi, bj))
+        else:
+            warnings.warn('Need to test this functionality still')
+            irange = np.arange((bi - 1) * self.nx , bi * self.nx)
+            jrange = np.arange((bj - 1) * self.ny , by * self.ny)
+
+
         if levels is None:
             krange = np.arange(self.nz)
             krange_p1 = np.arange(self.nz+1)
@@ -617,7 +626,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
 
         return data
 
-    def load_from_prefix(self, prefix, iternum=None, extra_metadata=None):
+    def load_from_prefix(self, prefix, iternum=None, bi=None, bj=None, extra_metadata=None):
         """Read data and look up metadata for grid variable `name`.
 
         Parameters
@@ -657,7 +666,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         chunks = "CS" if self.cs else "3D"
 
         try:
-            vardata = read_mds(basename, iternum, endian=self.endian,
+            vardata = read_mds(basename, iternum, bi=bi, bj=bj, endian=self.endian,
                                llc=self.llc, llc_method=self.llc_method,
                                extra_metadata=extra_metadata, chunks=chunks)
 
@@ -677,7 +686,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             else:
                 raise ValueError("Can't determine shape "
                                  "of variable %s" % prefix)
-            vardata = read_mds(basename, iternum, endian=self.endian,
+            vardata = read_mds(basename, iternum, bi=bi, bj=bj, endian=self.endian,
                                dtype=self.default_dtype,
                                shape=data_shape, llc=self.llc,
                                llc_method=self.llc_method,
@@ -778,6 +787,33 @@ def _guess_model_nz(data_dir):
     except IOError:
         raise IOError("Couldn't find RC.meta file to infer nz.")
     return nz
+
+def _guess_tile_dims(data_dir, is_llc=False, is_cs=False):
+    if is_llc or is_cs:
+        warnings.warn("Tiled llc and cs datasets have not been tested. Proceed with caution.")
+    #raise NotImplementedError
+
+    # bi and bj have a max value of 999 so can hard code this number in
+    for bi in range(1, 1000):
+        if not os.path.exists(os.path.join(data_dir, 'XC.{:03d}.001.meta'.format(bi))):
+            bi -= 1
+            break
+    
+    for bj in range(1, 1000):
+        if not os.path.exists(os.path.join(data_dir, 'XC.001.{:03d}.meta'.format(bj))):
+            bj -= 1
+            break
+
+    return bi, bj
+
+def _is_tiled_dataset(data_dir):
+    if os.path.exists(os.path.join(data_dir, 'XC.meta')):
+        is_tiled = False
+    elif os.path.exists(os.path.join(data_dir, 'XC.001.001.meta')):
+        is_tiled = True
+    else:
+        raise IOError("Couldn't find XC.meta or XC.001.001.meta file to determine whether dataset is tiled.")
+    return is_tiled
 
 
 def _guess_model_horiz_dims(data_dir, is_llc=False, is_cs=False):
