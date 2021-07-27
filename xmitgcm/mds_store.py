@@ -57,6 +57,8 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     grid_vars_to_coords=True, swap_dims=None,
                     endian=">", chunks=None,
                     ignore_unknown_vars=False, default_dtype=None,
+                    bi=None, bj=None,
+                    ntilex=None, ntiley=None,
                     nx=None, ny=None, nz=None,
                     llc_method="smallchunks", extra_metadata=None, 
                     extra_variables=None):
@@ -270,14 +272,14 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     ds = _set_coords(ds)
                 return ds
 
-    store = _MDSDataStore(data_dir, grid_dir, iternum, delta_t, read_grid,
-                          prefix, ref_date, calendar,
+    store = _MDSDataStore(data_dir, grid_dir, iternum, bi, bj, delta_t,
+                          read_grid, prefix, ref_date, calendar,
                           geometry, endian,
                           ignore_unknown_vars=ignore_unknown_vars,
                           default_dtype=default_dtype,
                           nx=nx, ny=ny, nz=nz, llc_method=llc_method,
                           levels=levels, extra_metadata=extra_metadata,
-                         extra_variables=extra_variables)
+                          extra_variables=extra_variables)
     
     ds = xr.Dataset.load_store(store)
     if swap_dims:
@@ -408,6 +410,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         [self._dimensions.append(k) for k in dimensions]
         self.llc = (self.geometry == 'llc')
         self.cs = (self.geometry == 'cs')
+        
+        self.tiled = _is_tiled_dataset(self.grid_dir, bi, bj)
 
         if nz is None:
             self.nz = _guess_model_nz(self.grid_dir)
@@ -455,7 +459,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         else:
             # have to peek at the grid file metadata
             self.nface, self.ny, self.nx = (
-                _guess_model_horiz_dims(self.grid_dir, is_llc=self.llc, is_cs=self.cs))
+                _guess_model_horiz_dims(self.grid_dir, is_llc=self.llc, is_cs=self.cs, is_tiled=self.tiled))
 
         # --------------- LEGACY ----------------------
         if self.llc:
@@ -490,10 +494,11 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         elif bi is None or bj is None:
             raise ValueError('bi and bj must both be None or both be integers. bi is {} and bj is {}'.format(bi, bj))
         else:
-            warnings.warn('Need to test this functionality still')
+            #warnings.warn('Need to test this functionality still')
             irange = np.arange((bi - 1) * self.nx , bi * self.nx)
-            jrange = np.arange((bj - 1) * self.ny , by * self.ny)
-
+            jrange = np.arange((bj - 1) * self.ny , bj * self.ny)
+            #irange = np.arange(self.nx)
+            #jrange = np.arange(self.ny)
 
         if levels is None:
             krange = np.arange(self.nz)
@@ -578,21 +583,27 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         # The list `prefixes` specifies file prefixes from which to infer
         # The problem with this is that some prefixes are single variables
         # while some are multi-variable diagnostics files.
-        prefixes = []
+        untiled_prefixes = []
+        tiled_prefixes = []
         if read_grid:
-            prefixes = prefixes + list(self._all_grid_variables.keys())
+            for key in self._all_grid_variables:
+                if len(self._all_grid_variables[key]['dims']) == 1:
+                    untiled_prefixes += [key]
+                else:
+                    tiled_prefixes += [key]
 
         # add data files
-        prefixes = (prefixes +
-                    _get_all_matching_prefixes(
-                        data_dir,
-                        iternum,
-                        file_prefixes))
-
-        for p in prefixes:
+        tiled_prefixes = (tiled_prefixes +
+                          _get_all_matching_prefixes(
+                                                    data_dir,
+                                                    iternum,
+                                                    file_prefixes))
+#        print(untiled_prefixes)
+#        print(tiled_prefixes)
+        for p in tiled_prefixes:
             # use a generator to loop through the variables in each file
             for (vname, dims, data, attrs) in \
-                    self.load_from_prefix(p, iternum, extra_metadata):
+                    self.load_from_prefix(p, iternum, extra_metadata=extra_metadata, bi=bi, bj=bj):
                 # print(vname, dims, data.shape)
                 # Sizes of grid variables can vary between mitgcm versions.
                 # Check for such inconsistency and correct if so
@@ -605,7 +616,24 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 thisvar = xr.Variable(dims, data, attrs)
                 self._variables[vname] = thisvar
                 # print(type(data), type(thisvar._data), thisvar._in_memory)
+        
+        for p in untiled_prefixes:
+            # use a generator to loop through the variables in each file
+            for (vname, dims, data, attrs) in \
+                    self.load_from_prefix(p, iternum, extra_metadata=extra_metadata):
+                # print(vname, dims, data.shape)
+                # Sizes of grid variables can vary between mitgcm versions.
+                # Check for such inconsistency and correct if so
+                (vname, dims, data, attrs) = self.fix_inconsistent_variables(
+                    vname, dims, data, attrs)
 
+                # Create masks from hFac variables
+                data = self.calc_masks(vname, data)
+
+                thisvar = xr.Variable(dims, data, attrs)
+                self._variables[vname] = thisvar
+                # print(type(data), type(thisvar._data), thisvar._in_memory)
+    
     def fix_inconsistent_variables(self, vname, dims, data, attrs):
         if vname == 'drC':
             #check to see if the drC variable has the wrong length
@@ -806,23 +834,34 @@ def _guess_tile_dims(data_dir, is_llc=False, is_cs=False):
 
     return bi, bj
 
-def _is_tiled_dataset(data_dir):
-    if os.path.exists(os.path.join(data_dir, 'XC.meta')):
-        is_tiled = False
+def _is_tiled_dataset(data_dir, bi, bj):
+    """ determines whether a dataset is tiled or not.
+    """
+    if bi is not None and bj is not None:
+        is_tiled = True
     elif os.path.exists(os.path.join(data_dir, 'XC.001.001.meta')):
         is_tiled = True
+    elif bi is not None or bj is not None:
+        raise ValueError("bi and bj must both be None or both be int. bi is {} and bj is {}".format(bi, bj))
     else:
-        raise IOError("Couldn't find XC.meta or XC.001.001.meta file to determine whether dataset is tiled.")
+        is_tiled = False
     return is_tiled
 
 
-def _guess_model_horiz_dims(data_dir, is_llc=False, is_cs=False):
+def _guess_model_horiz_dims(data_dir, is_llc=False, is_cs=False, is_tiled=False):
+    if is_tiled:
+        xc_meta_path = os.path.join(data_dir, 'XC.001.001.meta')
+    else:
+        xc_meta_path = os.path.join(data_dir, 'XC.meta')
+
     try:
-        xc_meta = parse_meta_file(os.path.join(data_dir, 'XC.meta'))
-        nx = int(xc_meta['dimList'][0][0])
-        ny = int(xc_meta['dimList'][1][0])
+        xc_meta = parse_meta_file(xc_meta_path)
+        nx = int(xc_meta['dimList'][0][-1])
+        ny = int(xc_meta['dimList'][1][-1])
+        print(nx, ny)
     except IOError:
-        raise IOError("Couldn't find XC.meta file to infer nx and ny.")
+        raise IOError("Couldn't find XC.meta or XC.001.001.meta file to infer nx and ny.")
+    
     if is_llc:
         nface = LLC_NUM_FACES
         ny //= nface

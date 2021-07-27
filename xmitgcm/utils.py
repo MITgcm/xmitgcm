@@ -68,7 +68,7 @@ def _get_useful_info_from_meta_file(metafile):
     # Here we just get the part we need
     # and reverse order (numpy uses C order, mds is fortran)
     meta = parse_meta_file(metafile)
-    shape = [g[0] for g in meta['dimList']][::-1]
+    shape = [g[2] - g[1] + 1 for g in meta['dimList']][::-1]
     assert len(shape) == meta['nDims']
     # now add an extra for number of recs
     nrecs = meta['nrecords']
