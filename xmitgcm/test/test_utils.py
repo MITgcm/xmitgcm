@@ -964,10 +964,11 @@ def test_get_grid_from_input(all_grid_datadirs, usedask, outer):
     from xmitgcm.utils import read_raw_data
     dirname, expected = all_grid_datadirs
     md = get_extra_metadata(domain=expected['domain'], nx=expected['nx'])
-
+    dtype = np.dtype('{}{}'.format(expected['endianness'], expected['precision']))
     ds = get_grid_from_input(dirname + '/' + expected['gridfile'],
                              geometry=expected['geometry'],
-                             dtype=np.dtype('d'), endian='>',
+                             dtype=np.dtype(expected['precision']),
+                             endian=expected['endianness'],
                              use_dask=usedask,
                              extra_metadata=md,
                              outer=outer)
@@ -1023,27 +1024,27 @@ def test_get_grid_from_input(all_grid_datadirs, usedask, outer):
         ny4 = int(size4 / sizeofd / nvars / nx)
         ny5 = int(size5 / sizeofd / nvars / nx)
 
-        xc1 = read_raw_data(grid1, dtype=np.dtype('>d'), shape=(ny1, nx),
+        xc1 = read_raw_data(grid1, dtype=dtype, shape=(ny1, nx),
                             partial_read=True)
-        xc2 = read_raw_data(grid2, dtype=np.dtype('>d'), shape=(ny2, nx),
+        xc2 = read_raw_data(grid2, dtype=dtype, shape=(ny2, nx),
                             partial_read=True)
-        xc3 = read_raw_data(grid3, dtype=np.dtype('>d'), shape=(ny3, nx),
+        xc3 = read_raw_data(grid3, dtype=dtype, shape=(ny3, nx),
                             partial_read=True)
-        xc4 = read_raw_data(grid4, dtype=np.dtype('>d'), shape=(ny4, nx),
+        xc4 = read_raw_data(grid4, dtype=dtype, shape=(ny4, nx),
                             order='F', partial_read=True)
-        xc5 = read_raw_data(grid5, dtype=np.dtype('>d'), shape=(ny5, nx),
+        xc5 = read_raw_data(grid5, dtype=dtype, shape=(ny5, nx),
                             order='F', partial_read=True)
 
-        yc1 = read_raw_data(grid1, dtype=np.dtype('>d'), shape=(ny1, nx),
+        yc1 = read_raw_data(grid1, dtype=dtype, shape=(ny1, nx),
                             partial_read=True, offset=nx*ny1*sizeofd)
-        yc2 = read_raw_data(grid2, dtype=np.dtype('>d'), shape=(ny2, nx),
+        yc2 = read_raw_data(grid2, dtype=dtype, shape=(ny2, nx),
                             partial_read=True, offset=nx*ny2*sizeofd)
-        yc3 = read_raw_data(grid3, dtype=np.dtype('>d'), shape=(ny3, nx),
+        yc3 = read_raw_data(grid3, dtype=dtype, shape=(ny3, nx),
                             partial_read=True, offset=nx*ny3*sizeofd)
-        yc4 = read_raw_data(grid4, dtype=np.dtype('>d'), shape=(ny4, nx),
+        yc4 = read_raw_data(grid4, dtype=dtype, shape=(ny4, nx),
                             order='F', partial_read=True,
                             offset=nx*ny4*sizeofd)
-        yc5 = read_raw_data(grid5, dtype=np.dtype('>d'), shape=(ny5, nx),
+        yc5 = read_raw_data(grid5, dtype=dtype, shape=(ny5, nx),
                             order='F', partial_read=True,
                             offset=nx*ny5*sizeofd)
 
@@ -1076,35 +1077,35 @@ def test_get_grid_from_input(all_grid_datadirs, usedask, outer):
         grid6 = dirname + '/' + grid.replace('<NFACET>', '006')
 
 
-        xc1 = read_raw_data(grid1, dtype=np.dtype('>d'), shape=(nx, nx),
+        xc1 = read_raw_data(grid1, dtype=dtype, shape=(nx, nx),
                             order='F', partial_read=True)
-        xc2 = read_raw_data(grid2, dtype=np.dtype('>d'), shape=(nx, nx),
+        xc2 = read_raw_data(grid2, dtype=dtype, shape=(nx, nx),
                             order='F', partial_read=True)
-        xc3 = read_raw_data(grid3, dtype=np.dtype('>d'), shape=(nx, nx),
+        xc3 = read_raw_data(grid3, dtype=dtype, shape=(nx, nx),
                             order='F', partial_read=True)
-        xc4 = read_raw_data(grid4, dtype=np.dtype('>d'), shape=(nx, nx),
+        xc4 = read_raw_data(grid4, dtype=dtype, shape=(nx, nx),
                             order='F', partial_read=True)
-        xc5 = read_raw_data(grid5, dtype=np.dtype('>d'), shape=(nx, nx),
+        xc5 = read_raw_data(grid5, dtype=dtype, shape=(nx, nx),
                             order='F', partial_read=True)
-        xc6 = read_raw_data(grid6, dtype=np.dtype('>d'), shape=(nx, nx),
+        xc6 = read_raw_data(grid6, dtype=dtype, shape=(nx, nx),
                             order='F', partial_read=True)
 
-        yc1 = read_raw_data(grid1, dtype=np.dtype('>d'), shape=(nx, nx),
+        yc1 = read_raw_data(grid1, dtype=dtype, shape=(nx, nx),
                             order='F', partial_read=True,
                             offset=nx * nx * sizeofd)
-        yc2 = read_raw_data(grid2, dtype=np.dtype('>d'), shape=(nx, nx),
+        yc2 = read_raw_data(grid2, dtype=dtype, shape=(nx, nx),
                             order='F', partial_read=True,
                             offset=nx * nx * sizeofd)
-        yc3 = read_raw_data(grid3, dtype=np.dtype('>d'), shape=(nx, nx),
+        yc3 = read_raw_data(grid3, dtype=dtype, shape=(nx, nx),
                             order='F', partial_read=True,
                             offset=nx * nx * sizeofd)
-        yc4 = read_raw_data(grid4, dtype=np.dtype('>d'), shape=(nx, nx),
+        yc4 = read_raw_data(grid4, dtype=dtype, shape=(nx, nx),
                             order='F', partial_read=True,
                             offset=nx * nx * sizeofd)
-        yc5 = read_raw_data(grid5, dtype=np.dtype('>d'), shape=(nx, nx),
+        yc5 = read_raw_data(grid5, dtype=dtype, shape=(nx, nx),
                             order='F', partial_read=True,
                             offset=nx * nx * sizeofd)
-        yc6 = read_raw_data(grid6, dtype=np.dtype('>d'), shape=(nx, nx),
+        yc6 = read_raw_data(grid6, dtype=dtype, shape=(nx, nx),
                             order='F', partial_read=True,
                             offset=nx * nx * sizeofd)
 
@@ -1129,7 +1130,8 @@ def test_get_grid_from_input(all_grid_datadirs, usedask, outer):
         with pytest.raises(ValueError):
             ds = get_grid_from_input(dirname + '/' + expected['gridfile'],
                                      geometry=expected['geometry'],
-                                     dtype=np.dtype('d'), endian='>',
+                                     dtype=np.dtype(expected['precision']),
+                                     endian=expected['endianness'],
                                      use_dask=False,
                                      extra_metadata=None,
                                      outer=outer)
