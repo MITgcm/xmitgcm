@@ -1559,7 +1559,8 @@ def find_concat_dim_facet(da, facet, extra_metadata):
     # we also need to other horizontal dimension for vector indexing
     all_dims = list(da.dims)
     # discard face
-    all_dims.remove('face')
+    if 'face' in all_dims:
+        all_dims.remove('face')
     # remove the concat_dim to find horizontal non_concat dimension
     all_dims.remove(concat_dim)
     non_concat_dim = all_dims[0]
@@ -1624,10 +1625,10 @@ def rebuild_llc_facets(da, extra_metadata):
             if extra_metadata['face_facets'][kface] == kfacet:
                 if extra_metadata['face_offsets'][kface] == 0:
                     # first face of facet
-                    tmp = da.sel(face=kface)
+                    tmp = da.isel(face=kface)
                 else:
                     # any other face needs to be concatenated
-                    newface = da.sel(face=kface)
+                    newface = da.isel(face=kface)
                     tmp = xr.concat([facets['facet' + str(kfacet)],
                                      newface], dim=concat_dim)
 
@@ -1635,7 +1636,6 @@ def rebuild_llc_facets(da, extra_metadata):
 
     # if present, remove padding from facets
     for kfacet in range(nfacets):
-
         concat_dim, non_concat_dim = find_concat_dim_facet(
             da, kfacet, extra_metadata)
 
