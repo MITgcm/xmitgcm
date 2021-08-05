@@ -59,7 +59,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     ignore_unknown_vars=False, default_dtype=None,
                     nx=None, ny=None, nz=None,
                     llc_method="smallchunks", extra_metadata=None, 
-                    extra_variables=None):
+                    extra_variables=None, tiled=False):
     """Open MITgcm-style mds (.data / .meta) file output as xarray datset.
 
     Parameters
@@ -208,10 +208,10 @@ def open_mdsdataset(data_dir, grid_dir=None,
                 # We have to check to make sure we have the same prefixes at
                 # each timestep...otherwise we can't combine the datasets.
                 first_prefixes = prefix or _get_all_matching_prefixes(
-                                                        data_dir, iters[0])
+                                                        data_dir, iters[0], tiled=tiled)
                 for iternum in iters:
                     these_prefixes = _get_all_matching_prefixes(
-                        data_dir, iternum, prefix
+                        data_dir, iternum, prefix, tiled=tiled
                     )
                     # don't care about order
                     if set(these_prefixes) != set(first_prefixes):
@@ -235,7 +235,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     default_dtype=default_dtype,
                     nx=nx, ny=ny, nz=nz, llc_method=llc_method,
                     levels=levels, extra_metadata=extra_metadata,
-                    extra_variables=extra_variables)
+                    extra_variables=extra_variables, tiled=tiled)
                 datasets = [open_mdsdataset(
                         data_dir, iters=iternum, read_grid=False, **kwargs)
                     for iternum in iters]
@@ -277,7 +277,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
                           default_dtype=default_dtype,
                           nx=nx, ny=ny, nz=nz, llc_method=llc_method,
                           levels=levels, extra_metadata=extra_metadata,
-                         extra_variables=extra_variables)
+                         extra_variables=extra_variables, tiled=tiled)
     
     ds = xr.Dataset.load_store(store)
     if swap_dims:
@@ -584,12 +584,12 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                           _get_all_matching_prefixes(
                               data_dir,
                               iternum,
-                              file_prefixes, tiled=True))
+                              file_prefixes, tiled=tiled))
 
         for p in tiled_prefixes:
             # use a generator to loop through the variables in each file
             for (vname, dims, data, attrs) in \
-                    self.load_from_prefix(p, iternum, extra_metadata=extra_metadata, tiled=True):
+                    self.load_from_prefix(p, iternum, extra_metadata=extra_metadata, tiled=tiled):
                 # print(vname, dims, data.shape)
                 # Sizes of grid variables can vary between mitgcm versions.
                 # Check for such inconsistency and correct if so
