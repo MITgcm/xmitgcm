@@ -105,8 +105,9 @@ def open_mdsdataset(data_dir, grid_dir=None,
         A datatype to fall back on if the metadata can't be read.
     nx, ny, nz : int, optional
         The numerical dimensions of the model. These will be inferred from
-        ``XC.meta`` and ``RC.meta`` if they are not specified. If
-        ``geometry==llc``, ``ny`` does not have to specified.
+        ``XC.meta`` (or ``XC.001.001.meta`` if the dataset is tiled) and 
+        ``RC.meta`` if they are not specified. If ``geometry==llc``, ``ny``
+        does not have to specified.
     llc_method : {"smallchunks", "bigchunks"}, optional
         Which routine to use for reading LLC data. "smallchunks" splits the file
         into a individual dask chunk of size (nx x nx) for each face of each
@@ -148,6 +149,9 @@ def open_mdsdataset(data_dir, grid_dir=None,
                 standard_name='Sensitivity_to_theta',
                 long_name='Sensitivity of cost function to theta', units='[J]/degC'))
                  )
+    tiled  : boolean, optional
+        Whether the dataset is tiled or not. In future this could be
+        automagically inferred.
 
 
     Returns
@@ -373,6 +377,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             The iteration timestep number to read.
         file_prefixes : list
             The prefixes of the data files to be read.
+        tiled  : boolean, optional
+            Whether the dataset is tiled or not.
         """
 
         self.geometry = geometry.lower()
@@ -568,8 +574,11 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
 
         # The rest of the data has to be read from disk.
         # The list `prefixes` specifies file prefixes from which to infer
-        # The problem with this is that some prefixes are single variables
-        # while some are multi-variable diagnostics files.
+        # Some prefixes represent 1D files and other 2D or 3D. The 1D files
+        # can be treated the same when the dataset is tiled whereas the 
+        # 2D and 3D will need to be treated differently. This is why we
+        # differentiate between tiled and untiled prefixes (even if the dataset
+        # itself is untiled)
         untiled_prefixes = []
         tiled_prefixes = []
         if read_grid:
@@ -580,6 +589,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                     tiled_prefixes += [key]
 
         # add data files
+        # The following could do with a tidy up to avoid duplication.
         tiled_prefixes = (tiled_prefixes +
                           _get_all_matching_prefixes(
                               data_dir,
@@ -648,6 +658,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             The name of the grid variable.
         iternume : int (optional)
             MITgcm iteration number
+        tiled  : boolean (optional)
+            Whether the dataset AND prefix are tiled or not.
 
         Yields
         -------
