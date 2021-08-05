@@ -65,6 +65,8 @@ def parse_meta_file(fname):
 
 def _get_useful_info_from_meta_file(metafile, tiled=False):
     # why does the .meta file contain so much repeated info?
+    # Much of it isn't repeated but related to the tiling. It only appears to
+    # repeat itself when looking at a single tile.
     # Here we just get the part we need
     # and reverse order (numpy uses C order, mds is fortran)
     meta = parse_meta_file(metafile)
@@ -473,6 +475,11 @@ def read_tiled_mds(fname, iternum=None, use_mmap=None, endian='>', shape=None,
        the data file. The values are the data itself, either as an
        ``numpy.ndarray``, ``numpy.memmap``, or ``dask.array.Array`` depending
        on the options selected.
+
+    NOTE
+    ----
+        This function could do with refactoring and possibly be merged with
+        ``read_mds`` in a future release.
     """
 
     if use_mmap and use_dask:
@@ -1009,15 +1016,17 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False,
     PARAMETERS
     ----------
     variable_list   : list
-                      list of MITgcm variables, from fldList in .meta
+        List of MITgcm variables, from fldList in .meta
     file_metadata   : dict
-                      internal metadata for binary file
+        Internal metadata for binary file
     use_mmap        : bool, optional
-                      Whether to read the data using a numpy.memmap
+        Whether to read the data using a numpy.memmap
     chunks : str, optional
-                      Whether to read 2D (default) or 3D chunks
-                      2D chunks are reading (x,y) levels and 3D chunks
-                      are reading the a (x,y,z) field
+        Whether to read 2D (default) or 3D chunks
+        2D chunks are reading (x,y) levels and 3D chunks
+        are reading the a (x,y,z) field
+    tiled  : boolean, optional
+        Whether the variables' data are stored in tiled files or not.
     RETURNS
     -------
     out : list
@@ -1122,7 +1131,8 @@ def read_2D_chunks(variable, file_metadata, use_mmap=False, use_dask=False, tile
     or numpy.ndarray or memmap, depending on input args
 
     """
-
+    if tiled:
+        raise NotImplementedError('This method has not been implemented for tiled datasets yet.')
     if (file_metadata['nx'] == 1) and (file_metadata['ny'] == 1) and \
        (len(file_metadata['vars']) == 1):
             # vertical coordinate
@@ -1189,13 +1199,15 @@ def read_3D_chunks(variable, file_metadata, use_mmap=False, use_dask=False, tile
     Parameters
     ----------
     variable : string
-               name of the variable to read
+        Name of the variable to read.
     file_metadata : dict
-               internal file_metadata for binary file
+        Internal file_metadata for binary file.
     use_mmap : bool, optional
-               Whether to read the data using a numpy.memmap
-    use_dask : bool, optional
-               collect the data lazily or eagerly
+        Whether to read the data using a ``numpy.memmap``.
+    use_dask : boolean, optional
+        Collect the data lazily or eagerly.
+    tiled  : boolean, optional
+        Whhether the files are tiled or not.
 
     Returns
     -------
@@ -1214,7 +1226,7 @@ def read_3D_chunks(variable, file_metadata, use_mmap=False, use_dask=False, tile
     #              file_metadata['len_tiley'], file_metadata['len_tilex'])
     #else:
     #    chunks = (1, file_metadata['nz'], file_metadata['ny'], file_metadata['nx'])
-    # Above code doesn't work as expected. This is hacky but works
+    # Above code doesn't work as expected. This following is hacky but works
     chunks = (1, file_metadata['nz'], file_metadata['ny'], file_metadata['nx'])
 
     shape = (file_metadata['nt'], file_metadata['nz'],
@@ -1223,12 +1235,12 @@ def read_3D_chunks(variable, file_metadata, use_mmap=False, use_dask=False, tile
     name = 'mds-' + tokenize(file_metadata, variable)
 
     dsk = {(name, rec, 0, 0, 0): (load_chunk, rec)
-        for rec in range(file_metadata['nt'])}
+           for rec in range(file_metadata['nt'])}
 
     data = dsa.Array(dsk, name, chunks,
-                    dtype=file_metadata['dtype'], shape=shape)
+                     dtype=file_metadata['dtype'], shape=shape)
 
-    # Hacky but gets the job done.
+    # Reallll hacky but gets the job done.
     if tiled:
         data = data.compute()
 
@@ -1246,13 +1258,15 @@ def _read_xyz_chunk(variable, file_metadata, rec=0, use_mmap=False, tiled=False)
     Parameters
     ----------
     variable : string
-               name of the variable to read
+        Name of the variable to read.
     file_metadata : dict
-               file_metadata for binary file
-    rec      : integer, optional
-               time record to read (default=0)
+        ``file_metadata`` for binary file.
+    rec : integer, optional
+        time record to read (default=0)
     use_mmap : bool, optional
-               Whether to read the data using a numpy.memmap
+        Whether to read the data using a ``numpy.memmap``.
+    tiled : boolean, optional
+        Whether the files are tiled or not.
 
     Returns
     -------
