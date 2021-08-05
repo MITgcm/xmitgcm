@@ -589,7 +589,7 @@ def read_tiled_mds(fname, iternum=None, use_mmap=None, endian='>', shape=None,
     # This line will fail as we have removed the key 'file_name' from file_metadata.
     # This key isn't needed in read_all_variables.
     # It also isn't needed in read_3D_chunks but is in read_2D_chunks.
-    #
+
     # read all variables from file into the list d
     d = read_all_variables(file_metadata['fldList'], file_metadata,
                            use_mmap=use_mmap, use_dask=use_dask,
@@ -1031,7 +1031,7 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False,
     for variable in variable_list:
         if chunks == "2D":
             out.append(read_2D_chunks(variable, file_metadata,
-                                      use_mmap=use_mmap, use_dask=use_dask))
+                                      use_mmap=use_mmap, use_dask=use_dask, tiled=tiled))
         elif chunks == "3D":
             out.append(read_3D_chunks(variable, file_metadata,
                                       use_mmap=use_mmap, use_dask=use_dask, tiled=tiled))
@@ -1100,7 +1100,7 @@ def read_CS_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
     return data
 
 
-def read_2D_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
+def read_2D_chunks(variable, file_metadata, use_mmap=False, use_dask=False, tiled=False):
     """
     Return dask array for variable, from the file described by file_metadata,
     reading 2D chunks.
@@ -1207,14 +1207,16 @@ def read_3D_chunks(variable, file_metadata, use_mmap=False, use_dask=False, tile
     def load_chunk(rec):
         return _read_xyz_chunk(variable, file_metadata,
                                rec=rec,
-                               use_mmap=use_mmap)[None]
+                               use_mmap=use_mmap, tiled=tiled)[None]
 
-    if tiled:
-        chunks = (1, file_metadata['nz'],
-                  file_metadata['len_tiley'], file_metadata['len_tilex'])
-    else:
-        chunks = (1, file_metadata['nz'], file_metadata['ny'], file_metadata['nx'])
-    
+    #if tiled:
+    #    chunks = (1, file_metadata['nz'],
+    #              file_metadata['len_tiley'], file_metadata['len_tilex'])
+    #else:
+    #    chunks = (1, file_metadata['nz'], file_metadata['ny'], file_metadata['nx'])
+    # Above code doesn't work as expected. This is hacky but works
+    chunks = (1, file_metadata['nz'], file_metadata['ny'], file_metadata['nx'])
+
     shape = (file_metadata['nt'], file_metadata['nz'],
             file_metadata['ny'], file_metadata['nx'])
     
@@ -1226,6 +1228,9 @@ def read_3D_chunks(variable, file_metadata, use_mmap=False, use_dask=False, tile
     data = dsa.Array(dsk, name, chunks,
                     dtype=file_metadata['dtype'], shape=shape)
 
+    # Hacky but gets the job done.
+    if tiled:
+        data = data.compute()
 
     if not use_dask:
         data = data.compute()
@@ -1233,7 +1238,7 @@ def read_3D_chunks(variable, file_metadata, use_mmap=False, use_dask=False, tile
     return data
 
 
-def _read_xyz_chunk(variable, file_metadata, rec=0, use_mmap=False):
+def _read_xyz_chunk(variable, file_metadata, rec=0, use_mmap=False, tiled=False):
     """
     Read a 3d chunk (x,y,z) of variable from file described in
     file_metadata.
@@ -1283,8 +1288,8 @@ def _read_xyz_chunk(variable, file_metadata, rec=0, use_mmap=False):
     # 2. get dimensions of desired variable
     dims = file_metadata['dims_vars'][idx_var]
     # inquire for values of dimensions, else return 1
-    nt, nz, ny, nx = [file_metadata.get(dimname, 1)
-                      for dimname in ('nt', 'nz', 'ny', 'nx')]
+    nt, nz, ny, nx, len_tiley, len_tilex = [file_metadata.get(dimname, 1)
+                      for dimname in ('nt', 'nz', 'ny', 'nx', 'len_tiley', 'len_tilex')]
 
     # 3. compute offset from previous records of current variable
     if (rec > nt-1):
@@ -1295,7 +1300,10 @@ def _read_xyz_chunk(variable, file_metadata, rec=0, use_mmap=False):
 
     # 4. compute the offset of the previous variables, records and levels
     offset = offset_vars + offset_timerecords
-    shape = (nz, ny, nx,)
+    if tiled:
+        shape = (nz, len_tiley, len_tilex)
+    else:
+        shape = (nz, ny, nx,)
 
     # check if we do a partial read of the file
     if (nt > 1) or (len(file_metadata['vars']) > 1):
@@ -1308,10 +1316,38 @@ def _read_xyz_chunk(variable, file_metadata, rec=0, use_mmap=False):
     order = 'C'
 
     # 5. Do the actual read
-    data = read_raw_data(file_metadata['filename'],
-                         file_metadata['datatype'],
-                         shape, use_mmap=use_mmap, offset=offset,
-                         order=order, partial_read=partial_read)
+    if tiled:
+        bi_max = file_metadata['nx'] // file_metadata['len_tilex']
+        bj_max = file_metadata['ny'] // file_metadata['len_tiley']
+        
+        block_data_list = []
+        
+        for bj in range(1, bj_max + 1):
+            block_data_sublist = []
+            for bi in range(1, bi_max + 1):
+                bistr, bjstr = '{:03d}'.format(bi), '{:03d}'.format(bj)
+                full_file_path = file_metadata['filename_prefix'] + '.' + bistr + '.' + bjstr + '.data'
+                tile_metadata = file_metadata.copy()
+                tile_metadata.update({'filename': full_file_path,
+                                      'nx': tile_metadata['len_tilex'],
+                                      'ny': tile_metadata['len_tiley']})
+                
+                tile_data = read_raw_data(tile_metadata['filename'],
+                                          tile_metadata['datatype'],
+                                          shape, use_mmap=use_mmap, offset=offset,
+                                          order=order, partial_read=partial_read)
+                
+                block_data_sublist += [tile_data]
+            
+            block_data_list += [block_data_sublist]
+        
+        data = dsa.block(block_data_list)
+
+    else:
+        data = read_raw_data(file_metadata['filename'],
+                            file_metadata['datatype'],
+                            shape, use_mmap=use_mmap, offset=offset,
+                            order=order, partial_read=partial_read)
 
     return data
 
