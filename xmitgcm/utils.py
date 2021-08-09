@@ -1289,6 +1289,16 @@ def get_extra_metadata(domain='llc', nx=90):
             'transpose_face': [False, False, False,
                                True, True, True]}
 
+    pioneer = {'has_faces': True, 
+            'ny': 270, 'nx': 270,
+            'ny_facets': [270],
+            'pad_before_y': [0, 0, 0, 0, 0],
+            'pad_after_y': [0, 0, 0, 0, 0],
+            'face_facets': [4],
+            'facet_orders': ['C', 'C', 'C', 'F', 'F'],
+            'face_offsets': [0],
+            'transpose_face': [True]}
+
     cs = {'has_faces': True, 'ny': nx, 'nx': nx,
           'ny_facets': [nx, nx, nx, nx, nx, nx],
           'face_facets': [0, 1, 2, 3, 4, 5],
@@ -1301,6 +1311,8 @@ def get_extra_metadata(domain='llc', nx=90):
         extra_metadata = llc
     elif domain == 'aste':
         extra_metadata = aste
+    elif domain =='pioneer':
+        extra_metadata = pioneer
     elif domain == 'cs':
         extra_metadata = cs
 
