@@ -1264,7 +1264,7 @@ def get_extra_metadata(domain='llc', nx=90):
         all extra_metadata to handle multi-faceted grids
     """
 
-    available_domains = ['llc', 'aste', 'cs']
+    available_domains = ['llc', 'aste', 'nesba', 'cs']
     if domain not in available_domains:
         raise ValueError('not an available domain')
 
