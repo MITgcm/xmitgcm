@@ -1289,7 +1289,7 @@ def get_extra_metadata(domain='llc', nx=90):
             'transpose_face': [False, False, False,
                                True, True, True]}
 
-    pioneer = {'has_faces': True, 
+    nesba = {'has_faces': True, 
             'ny': 270, 'nx': 270,
             'ny_facets': [270],
             'pad_before_y': [0, 0, 0, 0, 0],
@@ -1311,8 +1311,8 @@ def get_extra_metadata(domain='llc', nx=90):
         extra_metadata = llc
     elif domain == 'aste':
         extra_metadata = aste
-    elif domain =='pioneer':
-        extra_metadata = pioneer
+    elif domain =='nesba':
+        extra_metadata = nesba
     elif domain == 'cs':
         extra_metadata = cs
 
