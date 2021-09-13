@@ -56,8 +56,8 @@ class LLC2160Model(BaseLLCModel):
                      'RC','RF','RhoRef','rLowC','rLowS','rLowW',
                      'rSurfC','rSurfS','rSurfW','XC','YC',
                      'RAZ','XG','YG','DXV','DYU']
-    mask_override = {'oceTAUX': 'c', 'oceTAUY': 'c'}
-
+    mask_override = {'oceTAUX': 'c', 'oceTAUY': 'c',
+                     'SIuice':  'c', 'SIvice':  'c'}
 
 class LLC4320Model(BaseLLCModel):
     nx = 4320
@@ -80,7 +80,8 @@ class LLC4320Model(BaseLLCModel):
                      'hFacC','hFacS','hFacW','PHrefC','PHrefF',
                      'RAC','RAS','RAW','RC','RF',
                      'RhoRef','XC','YC','RAZ','XG','YG','DXV','DYU']
-    mask_override = {'oceTAUX': 'c', 'oceTAUY': 'c'}
+    mask_override = {'oceTAUX': 'c', 'oceTAUY': 'c',
+                     'SIuice':  'c', 'SIvice':  'c'}
 
 class ASTE270Model(BaseLLCModel):
     nface = 6
