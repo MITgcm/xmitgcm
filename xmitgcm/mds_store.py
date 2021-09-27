@@ -289,6 +289,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
                           geometry, endian,
                           ignore_unknown_vars=ignore_unknown_vars,
                           default_dtype=default_dtype,
+                          chunks=chunks,
                           nx=nx, ny=ny, nz=nz, llc_method=llc_method,
                           levels=levels, extra_metadata=extra_metadata,
                          extra_variables=extra_variables)
@@ -303,7 +304,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
         ds['time'] = xr.decode_cf(ds[['time']])['time']
 
     # do we need more fancy logic (like open_dataset), or is this enough
-    if chunks is not None:
+    if chunks is not None and chunks != "2D":
         ds = ds.chunk(chunks)
 
     # set attributes for CF conventions
@@ -374,6 +375,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                  geometry='sphericalpolar',
                  endian='>', ignore_unknown_vars=False,
                  default_dtype=np.dtype('f4'),
+                 chunks=None,
                  nx=None, ny=None, nz=None, llc_method="smallchunks",
                  levels=None, extra_metadata=None,
                  extra_variables=None):
@@ -597,7 +599,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         for p in prefixes:
             # use a generator to loop through the variables in each file
             for (vname, dims, data, attrs) in \
-                    self.load_from_prefix(p, iternum, extra_metadata):
+                    self.load_from_prefix(p, iternum=iternum, extra_metadata=extra_metadata, chunks=chunks):
                 # print(vname, dims, data.shape)
                 # Sizes of grid variables can vary between mitgcm versions.
                 # Check for such inconsistency and correct if so
@@ -631,7 +633,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
 
         return data
 
-    def load_from_prefix(self, prefix, iternum=None, extra_metadata=None):
+    def load_from_prefix(self, prefix, chunks=None, iternum=None, extra_metadata=None):
         """Read data and look up metadata for grid variable `name`.
 
         Parameters
@@ -668,7 +670,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             ddir = self.data_dir
 
         basename = os.path.join(ddir, fname_base)
-        chunks = "CS" if self.cs else "3D"
+        if chunks is None:
+            chunks = "CS" if self.cs else "3D"
 
         try:
             vardata = read_mds(basename, iternum, endian=self.endian,
