@@ -283,7 +283,6 @@ def open_mdsdataset(data_dir, grid_dir=None,
                 if grid_vars_to_coords:
                     ds = _set_coords(ds)
                 return ds
-
     store = _MDSDataStore(data_dir, grid_dir, iternum, delta_t, read_grid,
                           prefix, ref_date, calendar,
                           geometry, endian,
@@ -670,7 +669,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             ddir = self.data_dir
 
         basename = os.path.join(ddir, fname_base)
-        if chunks is None:
+        if chunks is None or isinstance(chunks, dict):
             chunks = "CS" if self.cs else "3D"
 
         try:
