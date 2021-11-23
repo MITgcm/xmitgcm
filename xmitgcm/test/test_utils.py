@@ -1,3 +1,4 @@
+from mmap import mmap
 import pytest
 import os
 import numpy as np
@@ -6,7 +7,7 @@ import dask
 from xmitgcm.test.test_xmitgcm_common import (hide_file, file_md5_checksum,
     all_mds_datadirs, mds_datadirs_with_diagnostics, llc_mds_datadirs,
     layers_mds_datadirs, all_grid_datadirs, mds_datadirs_with_inputfiles,
-    _experiments, cs_mds_datadirs)
+    _experiments, cs_mds_datadirs, tiled_mds_datadirs, untiled_mds_datadirs)
 from xmitgcm.file_utils import listdir
 
 
@@ -19,6 +20,10 @@ _xc_meta_content = """ simulation = { 'global_oce_latlon' };
  dataprec = [ 'float32' ];
  nrecords = [     1 ];
 """
+
+def test_tiled_test(tiled_mds_datadirs):
+    assert True
+
 
 
 def test_parse_meta(tmpdir):
@@ -120,7 +125,10 @@ def test_read_raw_data(tmpdir, dtype):
 # a meta test of our own utitity funcion
 def test_file_hiding(all_mds_datadirs):
     dirname, _ = all_mds_datadirs
-    basenames = ['XC.data', 'XC.meta']
+    if _['tiled']:
+        basenames = ['XC.001.001.data', 'XC.001.001.meta']
+    else:
+        basenames = ['XC.data', 'XC.meta']
     listed_files = listdir(dirname)
     for basename in basenames:
         assert os.path.exists(os.path.join(dirname, basename))
@@ -134,10 +142,10 @@ def test_file_hiding(all_mds_datadirs):
         assert os.path.exists(os.path.join(dirname, basename))
 
 
-def test_read_mds(all_mds_datadirs):
+def test_read_mds(untiled_mds_datadirs):
     """Check that we can read mds data from .meta / .data pairs"""
 
-    dirname, expected = all_mds_datadirs
+    dirname, expected = untiled_mds_datadirs
 
     from xmitgcm.utils import read_mds
 
@@ -195,8 +203,8 @@ def test_read_mds(all_mds_datadirs):
     assert isinstance(res[prefix], np.ndarray)
 
     # make sure endianness works
-    res = read_mds(basename, use_dask=False, use_mmap=False)
-    testval = res[prefix].newbyteorder('<')[0, 0]
+    res = read_mds(basename, use_dask=False, use_mmap=False, endian='>')
+    testval = res[prefix].newbyteorder('S')[0, 0]
     res_endian = read_mds(basename, use_mmap=False,
                           endian='<', use_dask=False)
     val_endian = res_endian[prefix][0, 0]
@@ -251,6 +259,70 @@ def test_read_mds(all_mds_datadirs):
                            use_mmap=False, extra_metadata=emeta)
 
 
+def test_read_tiled_mds(tiled_mds_datadirs):
+    """Check that we can read mds data from .meta / .data pairs"""
+
+    dirname, expected = tiled_mds_datadirs
+
+    from xmitgcm.utils import read_tiled_mds
+
+    prefix = 'XC'
+    basename = os.path.join(dirname, prefix)
+    # should be dask by default
+    res = read_tiled_mds(basename)
+    assert isinstance(res, dict)
+    assert prefix in res
+    assert isinstance(res[prefix], dask.array.core.Array)
+
+    # try some options
+    with pytest.raises(NotImplementedError):
+        res = read_tiled_mds(basename, use_dask=False)
+
+    res = read_tiled_mds(basename, use_dask=False, use_mmap=False)
+    assert isinstance(res, dict)
+    assert prefix in res
+    assert isinstance(res[prefix], np.ndarray)
+
+    with pytest.raises(NotImplementedError):
+        res = read_tiled_mds(basename, chunks="2D")
+
+    # test the extra_metadata
+    if expected['geometry'] == 'llc':
+        emeta = {'has_faces': True, 'ny': 13*90, 'nx': 90,
+                 'ny_facets': [3*90, 3*90, 90, 3*90, 3*90],
+                 'face_facets': [0, 0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 4, 4],
+                 'facet_orders': ['C', 'C', 'C', 'F', 'F'],
+                 'face_offsets': [0, 1, 2, 0, 1, 2, 0, 0, 1, 2, 0, 1, 2],
+                 'transpose_face': [False, False, False,
+                                    False, False, False, False,
+                                    True, True, True, True, True, True]}
+    else:
+        emeta = None
+    
+    # make sure endianness works
+    res = read_tiled_mds(basename, use_dask=False, use_mmap=False, endian='>')
+    testval = res[prefix].newbyteorder('S')[0, 0]
+    res_endian = read_tiled_mds(basename, use_mmap=False,
+                          endian='<', use_dask=False)
+    val_endian = res_endian[prefix][0, 0]
+    np.testing.assert_allclose(testval, val_endian)
+
+    # try reading with iteration number
+    prefix = 'T'
+    basename = os.path.join(dirname, prefix)
+    iternum = expected['test_iternum']
+    res = read_tiled_mds(basename, iternum=iternum)
+    assert prefix in res
+    assert isinstance(res[prefix], dask.array.core.Array)
+
+    res = read_tiled_mds(basename, iternum=iternum, use_dask=False,
+                   use_mmap=False)
+    assert isinstance(res, dict)
+    assert prefix in res
+    assert isinstance(res[prefix], np.ndarray)
+
+
+
 def test_read_mds_tokens(mds_datadirs_with_diagnostics):
     from xmitgcm.utils import read_mds
     dirname, expected = mds_datadirs_with_diagnostics
@@ -270,8 +342,12 @@ def test_read_mds_tokens(mds_datadirs_with_diagnostics):
 
 
 def test_read_mds_no_meta(all_mds_datadirs):
-    from xmitgcm.utils import read_mds
     dirname, expected = all_mds_datadirs
+    if expected['tiled']:
+        from xmitgcm.utils import read_tiled_mds as read_mds
+    else:
+        from xmitgcm.utils import read_mds
+
     shape = expected['shape']
     ny, nx = shape[-2:]
     if len(shape) == 4:
@@ -285,7 +361,10 @@ def test_read_mds_no_meta(all_mds_datadirs):
     shape_2d = (ny, nx)
     shape_3d = shape_2d if nz == 1 else (nz,) + shape_2d
 
-    prefixes = {'XC': shape_2d, 'hFacC': shape_3d}
+    if expected['tiled']:
+        prefixes = {'XC.001.001': shape_2d, 'hFacC.001.001': shape_3d}
+    else:
+        prefixes = {'XC': shape_2d, 'hFacC': shape_3d}
 
     for prefix, shape in prefixes.items():
         basename = os.path.join(dirname, prefix)
@@ -293,19 +372,25 @@ def test_read_mds_no_meta(all_mds_datadirs):
             # can't read without specifying shape and dtype
             with pytest.raises(IOError):
                 res = read_mds(basename)
-            res = read_mds(basename, shape=shape, dtype=dtype, legacy=True)
-            assert isinstance(res, dict)
-            assert prefix in res
-            # should be dask by default
-            assert isinstance(res[prefix], dask.array.core.Array)
-            assert res[prefix].shape == shape
+            
+            if expected['tiled']:
+                with pytest.raises(IOError):
+                    res = read_mds(basename, shape=shape,
+                                   dtype=dtype, legacy=True)
+            else:
+                res = read_mds(basename, shape=shape, dtype=dtype, legacy=True)
+                assert isinstance(res, dict)
+                assert prefix in res
+                # should be dask by default
+                assert isinstance(res[prefix], dask.array.core.Array)
+                assert res[prefix].shape == shape
 
-            res = read_mds(basename, shape=shape, dtype=dtype, legacy=False)
-            assert isinstance(res, dict)
-            assert prefix in res
-            # should be dask by default
-            assert isinstance(res[prefix], dask.array.core.Array)
-            assert res[prefix].shape == (1,) + shape
+                res = read_mds(basename, shape=shape, dtype=dtype, legacy=False)
+                assert isinstance(res, dict)
+                assert prefix in res
+                # should be dask by default
+                assert isinstance(res[prefix], dask.array.core.Array)
+                assert res[prefix].shape == (1,) + shape
 
 
 @pytest.mark.parametrize("method", ["smallchunks", "bigchunks"])
@@ -378,6 +463,22 @@ def test_read_xyz_chunk(all_mds_datadirs, memmap):
         # function not designed for llc grids, except 1d variables
         with pytest.raises(ValueError):
             data = _read_xyz_chunk('T', file_metadata, use_mmap=memmap)
+    
+    elif expected['tiled']:
+        tiled = expected['tiled']
+        file_metadata.update({'filename_prefix': dirname + '/' + 'T.' +
+                              str(file_metadata['test_iternum']).zfill(10),
+                              'vars': ['T'], 'endian': '>',
+                              'has_faces': False, 'dims_vars': [('nz', 'ny', 'nx')],
+                              'nz': 2, 'nx': 60, 'ny': 60})
+
+        if memmap:
+            with pytest.raises(NotImplementedError):
+                _read_xyz_chunk('T', file_metadata, use_mmap=memmap, tiled=tiled)
+        else:
+            data = _read_xyz_chunk('T', file_metadata, use_mmap=memmap, tiled=tiled)
+            assert isinstance(data, dask.array.core.Array)
+    
     else:
         file_metadata.update({'nx': file_metadata['shape'][2],
                               'ny': file_metadata['shape'][1],
@@ -401,7 +502,7 @@ def test_read_xyz_chunk(all_mds_datadirs, memmap):
                           'vars': ['RC'], 'nx': 1, 'ny': 1,
                           'dims_vars': [('nz', 'ny', 'nx')]})
 
-    data = _read_xyz_chunk('RC', file_metadata, use_mmap=memmap)
+    data = _read_xyz_chunk('RC', file_metadata, use_mmap=memmap, tiled=False)
     if memmap:
         assert isinstance(data, np.memmap)
     else:
@@ -409,11 +510,11 @@ def test_read_xyz_chunk(all_mds_datadirs, memmap):
 
 
 @pytest.mark.parametrize("memmap", [True, False])
-def test_read_xy_chunk(all_mds_datadirs, memmap):
+def test_read_xy_chunk(untiled_mds_datadirs, memmap):
 
     from xmitgcm.utils import _read_xy_chunk
 
-    dirname, expected = all_mds_datadirs
+    dirname, expected = untiled_mds_datadirs
 
     file_metadata = expected
     file_metadata.update({'filename': dirname + '/' + 'T.' +
@@ -490,11 +591,30 @@ def test_read_2D_chunks(all_mds_datadirs, memmap, usedask):
 
     dirname, expected = all_mds_datadirs
 
+    try:
+        tiled = expected['tiled']
+    except KeyError:
+        tiled = False
+
     file_metadata = expected
     file_metadata.update({'filename': dirname + '/' + 'T.' +
                           str(file_metadata['test_iternum']).zfill(10) +
                           '.data', 'vars': ['T'], 'endian': '>'})
     # set the size of dimensions (could be changed in _experiments)
+    if tiled:
+        file_metadata.update({'filename': dirname + '/' + 'T.' +
+                              str(file_metadata['test_iternum']).zfill(10) + '.001.001'
+                              '.data', 'vars': ['T'], 'endian': '>',
+                              'filename_prefix': dirname + '/' + 'T.0000000001'})
+
+        # Check we get the NotImplementedError and continue with our day.
+        with pytest.raises(NotImplementedError):
+            data = read_2D_chunks('T', file_metadata, use_mmap=memmap,
+                          use_dask=usedask, tiled=tiled)
+        
+        return
+
+
     if file_metadata['geometry'] in ['llc']:
         nx = file_metadata['shape'][3]
         file_metadata.update({'nx': file_metadata['shape'][3],
@@ -557,11 +677,26 @@ def test_read_3D_chunks(all_mds_datadirs, memmap, usedask):
 
     dirname, expected = all_mds_datadirs
 
+    try:
+        tiled = expected['tiled']
+    except KeyError:
+        tiled = False
+
+    if tiled and memmap:
+        # Tiled functions don't currently support memmap so no point testing.
+        return
+
     file_metadata = expected
     file_metadata.update({'filename': dirname + '/' + 'T.' +
                           str(file_metadata['test_iternum']).zfill(10) +
                           '.data', 'vars': ['T'], 'endian': '>'})
     # set the size of dimensions (could be changed in _experiments)
+    if tiled:
+        file_metadata.update({'filename': dirname + '/' + 'T.' +
+                              str(file_metadata['test_iternum']).zfill(10) + '.001.001'
+                              '.data', 'vars': ['T'], 'endian': '>',
+                              'filename_prefix': dirname + '/' + 'T.0000000001'})
+
     if file_metadata['geometry'] in ['llc']:
         nx = file_metadata['shape'][3]
         file_metadata.update({'nx': file_metadata['shape'][3],
@@ -601,12 +736,12 @@ def test_read_3D_chunks(all_mds_datadirs, memmap, usedask):
     if file_metadata['geometry'] in ['llc', 'cs']:
         with pytest.raises(ValueError):
             data = read_3D_chunks('T', file_metadata, use_mmap=memmap,
-                                  use_dask=usedask)
+                                  use_dask=usedask, tiled=tiled)
             if usedask:
                 data.compute()
     else:
         data = read_3D_chunks('T', file_metadata, use_mmap=memmap,
-                              use_dask=usedask)
+                              use_dask=usedask, tiled=tiled)
         if usedask:
             assert isinstance(data, dask.array.core.Array)
             data.compute()
@@ -621,7 +756,7 @@ def test_read_3D_chunks(all_mds_datadirs, memmap, usedask):
                           'vars': ['RC'], 'nx': 1, 'ny': 1})
 
     data = read_3D_chunks('RC', file_metadata, use_mmap=memmap,
-                          use_dask=usedask)
+                          use_dask=usedask, tiled=False)
     if usedask:
         assert isinstance(data, dask.array.core.Array)
         data.compute()
@@ -682,10 +817,13 @@ def test_read_all_variables(all_mds_datadirs, memmap, usedask):
     dirname, expected = all_mds_datadirs
 
     file_metadata = expected
+
+    tiled = expected['tiled']
     # test single variable in file
     file_metadata.update({'filename': dirname + '/' + 'T.' +
                           str(file_metadata['test_iternum']).zfill(10) +
                           '.data', 'vars': ['T'], 'endian': '>'})
+
     # set the size of dimensions (could be changed in _experiments)
     if file_metadata['geometry'] in ['llc']:
         nx = file_metadata['shape'][3]
@@ -723,6 +861,14 @@ def test_read_all_variables(all_mds_datadirs, memmap, usedask):
                               [0, 0, 0, 0, 0, 0],
                               'transpose_face': [False, False, False, False,
                                                  False, False]})
+    elif file_metadata['tiled']:
+            file_metadata.update({'filename_prefix': dirname + '/' + 'T.' +
+                                   str(file_metadata['test_iternum']).zfill(10),
+                                  'vars': ['T'], 'endian': '>',
+                                  'has_faces': False, 'dims_vars': [('nz', 'ny', 'nx')],
+                                  'nt': 1, 'nz': 2, 'nx': 60, 'ny': 60})
+
+            file_metadata.pop('filename')
     else:
         file_metadata.update({'nx': file_metadata['shape'][2],
                               'ny': file_metadata['shape'][1],
@@ -739,6 +885,16 @@ def test_read_all_variables(all_mds_datadirs, memmap, usedask):
                                          chunks="3D")
             if usedask:
                 dataset[0].compute()
+    elif tiled:
+        if memmap:
+            with pytest.raises(NotImplementedError):
+                dataset = read_all_variables(file_metadata['vars'], file_metadata,
+                                            use_mmap=memmap, use_dask=usedask,
+                                            chunks="3D", tiled=tiled)
+        else:
+            dataset = read_all_variables(file_metadata['vars'], file_metadata,
+                                         use_mmap=memmap, use_dask=usedask,
+                                         chunks="3D", tiled=tiled)
     else:
         dataset = read_all_variables(file_metadata['vars'], file_metadata,
                                      use_mmap=memmap, use_dask=usedask,
@@ -755,25 +911,31 @@ def test_read_all_variables(all_mds_datadirs, memmap, usedask):
                 assert isinstance(dataset[0], np.ndarray)
 
     # test 2D chunks
-    if file_metadata['geometry'] not in ['cs']:
-        dataset = read_all_variables(file_metadata['vars'], file_metadata,
-                                     use_mmap=memmap, use_dask=usedask,
-                                     chunks="2D")
+    if file_metadata['tiled']:
+        with pytest.raises(NotImplementedError):
+            dataset = read_all_variables(file_metadata['vars'], file_metadata,
+                                         use_mmap=memmap, use_dask=usedask,
+                                         chunks="2D", tiled=tiled)
     else:
-        dataset = read_all_variables(file_metadata['vars'], file_metadata,
-                                     use_mmap=memmap, use_dask=usedask,
-                                     chunks="CS")
-
-    assert isinstance(dataset, list)
-    assert len(dataset) == len(file_metadata['vars'])
-    if usedask:
-        assert isinstance(dataset[0], dask.array.core.Array)
-    else:
-        if memmap:
-            # should be memmap, needs fix
-            assert isinstance(dataset[0], np.ndarray)
+        if file_metadata['geometry'] not in ['cs']:
+            dataset = read_all_variables(file_metadata['vars'], file_metadata,
+                                        use_mmap=memmap, use_dask=usedask,
+                                        chunks="2D")
         else:
-            assert isinstance(dataset[0], np.ndarray)
+            dataset = read_all_variables(file_metadata['vars'], file_metadata,
+                                        use_mmap=memmap, use_dask=usedask,
+                                        chunks="CS")
+
+        assert isinstance(dataset, list)
+        assert len(dataset) == len(file_metadata['vars'])
+        if usedask:
+            assert isinstance(dataset[0], dask.array.core.Array)
+        else:
+            if memmap:
+                # should be memmap, needs fix
+                assert isinstance(dataset[0], np.ndarray)
+            else:
+                assert isinstance(dataset[0], np.ndarray)
 
     # test multiple variables in file
     # those tests are only available for llc experiment:
@@ -789,20 +951,26 @@ def test_read_all_variables(all_mds_datadirs, memmap, usedask):
                               'vars': expected['diagnostics'][1],
                               'dims_vars': dimsvar})
 
-    dataset = read_all_variables(file_metadata['vars'], file_metadata,
-                                 use_mmap=memmap, use_dask=usedask,
-                                 chunks="2D")
+    if not expected['tiled']:
+        dataset = read_all_variables(file_metadata['vars'], file_metadata,
+                                    use_mmap=memmap, use_dask=usedask,
+                                    chunks="2D")
+    elif expected['tiled'] and not memmap:
+        dataset = read_all_variables(file_metadata['vars'], file_metadata,
+                                     use_mmap=memmap, use_dask=usedask,
+                                     chunks="3D", tiled=tiled)
 
-    assert isinstance(dataset, list)
-    assert len(dataset) == len(file_metadata['vars'])
-    if usedask:
-        assert isinstance(dataset[0], dask.array.core.Array)
-    else:
-        if memmap:
-            # should be memmap, needs fix
-            assert isinstance(dataset[0], np.ndarray)
+    if not (expected['tiled'] and memmap):
+        assert isinstance(dataset, list)
+        assert len(dataset) == len(file_metadata['vars'])
+        if usedask:
+            assert isinstance(dataset[0], dask.array.core.Array)
         else:
-            assert isinstance(dataset[0], np.ndarray)
+            if memmap:
+                # should be memmap, needs fix
+                assert isinstance(dataset[0], np.ndarray)
+            else:
+                assert isinstance(dataset[0], np.ndarray)
 
 
 @pytest.mark.parametrize("dtype", ['>d', '>f', '>i'])
@@ -905,10 +1073,10 @@ def test_pad_array(tmpdir, memmap, dtype):
     assert data_padded[1, 1] == 4
 
 
-def test_parse_diagnostics(all_mds_datadirs, layers_mds_datadirs):
+def test_parse_diagnostics(untiled_mds_datadirs, layers_mds_datadirs):
     """Make sure we can parse the available_diagnostics.log file."""
     from xmitgcm.utils import parse_available_diagnostics
-    dirname, expected = all_mds_datadirs
+    dirname, expected = untiled_mds_datadirs
     diagnostics_fname = os.path.join(dirname, 'available_diagnostics.log')
     ad = parse_available_diagnostics(diagnostics_fname)
 
