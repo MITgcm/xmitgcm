@@ -49,6 +49,7 @@ _experiments = {
                           'dlink': dlroot + '14066630',
                           'md5': '0a846023d01cbcc16bed4963431968cf',
                           'shape': (15, 40, 90), 'test_iternum': 39600,
+                          'tiled': False,
                           'expected_values': {'XC': ((0, 0), 2)},
                           'dtype': np.dtype('f4'),
                           'layers': {'1RHO': 31},
@@ -62,6 +63,7 @@ _experiments = {
                         'dlink': dlroot + '14066618',
                         'md5': '5200149791bfd24989ad8b98c18937dc',
                         'shape': (1, 60, 60), 'test_iternum': 10,
+                        'tiled': False,
                         'dtype': np.dtype('f4'),
                         'expected_values': {'XC': ((0, 0), 10000.0)},
                         'all_iters': [0, 10],
@@ -71,6 +73,7 @@ _experiments = {
                       'dlink': dlroot + '14066642',
                       'md5': 'eedfab1aec365fd8c17d3bc0f86a1431',
                       'shape': (20, 1, 30), 'test_iternum': 100,
+                      'tiled': False,
                       'dtype': np.dtype('f8'),
                       'expected_values': {'XC': ((0, 0), 109.01639344262296)},
                       'all_iters': [0, 100, 200],
@@ -92,6 +95,7 @@ _experiments = {
                              (0, np.datetime64('1948-01-01T12:00:00.000000000')),
                              (1, np.datetime64('1948-01-01T20:00:00.000000000'))],
                          'shape': (50, 13, 90, 90), 'test_iternum': 8,
+                         'tiled': False,
                          'dtype': np.dtype('f4'),
                          'expected_values': {'XC': ((2, 3, 5), -32.5)},
                          'diagnostics': ('state_2d_set1', ['ETAN',
@@ -125,6 +129,7 @@ _experiments = {
                           'delta_t': 20,
                           'ref_date': "2013-11-12 12:00",
                           'shape': (35, 64, 340),
+                          'tiled': False,
                           'test_iternum': 6,
                           'dtype': np.dtype('f4'),
                           'expected_values': {'XC': ((0, 0), 501919.21875)},
@@ -138,6 +143,7 @@ _experiments = {
                         'dlink': dlroot + '14066390',
                         'md5': '209193f4a183307b89337bb18e2e9451',
                         'shape': (15, 32, 6, 32), 'test_iternum': 72020,
+                        'tiled': False,
                         'dtype': np.dtype('f4'),
                         'expected_values': {'XC': ((2, 3, 5), -29.98921)},
                         'diagnostics': ('oceDiag', ['DRHODR',
@@ -167,8 +173,23 @@ _experiments = {
                                      'oceDiag': (slice(2, 14), (0, -122.5))},
                      'expected_values': {'XC': ((0, 0), 1.5)},
                      'shape': (15, 56, 1),
+                     'tiled': False,
                      'test_iternum': 36020,
-                     'dtype': np.dtype('f4')}
+                     'dtype': np.dtype('f4')},
+
+    'tiled_gyre': {'geometry': 'cartesian',
+                   'dlink': None, #dlroot + '14066618',
+                   'md5': None, #'5200149791bfd24989ad8b98c18937dc',
+                   'shape': (2, 60, 60),
+                   'test_iternum': 1,
+                   'dtype': np.dtype('f4'),
+                   'expected_values': {'XC': ((0, 0), -10000.0)},
+                   'all_iters': [0, 1, 2],
+                   'delta_t': 1200,
+                   'prefixes': ['T', 'S', 'Eta', 'U', 'V', 'W'],
+                   'tiled': True,
+                   'len_tilex': 20,
+                   'len_tiley': 30}
 }
 
 
@@ -212,6 +233,7 @@ def setup_mds_dir(tmpdir_factory, request, db):
     # download if does not exist locally
     if not os.path.exists(datafile):
         print('File does not exist locally, downloading...')
+        print(datafile)
         download_archive(expected_results['dlink'], datafile)
         localmd5 = file_md5_checksum(datafile)
         if localmd5 != expected_results['md5']:
@@ -283,6 +305,16 @@ def all_mds_datadirs(tmpdir_factory, request):
 @pytest.fixture(scope='module', params=['barotropic_gyre', 'internal_wave'])
 def multidim_mds_datadirs(tmpdir_factory, request):
     return setup_mds_dir(tmpdir_factory, request, _experiments)
+
+@pytest.fixture(scope='module', params=['tiled_gyre'])
+def tiled_mds_datadirs(tmpdir_factory, request):
+    return setup_mds_dir(tmpdir_factory, request, _experiments)
+
+
+@pytest.fixture(scope='module', params=[key for key in _experiments.keys() if key != 'tiled_gyre'])
+def untiled_mds_datadirs(tmpdir_factory, request):
+    return setup_mds_dir(tmpdir_factory, request, _experiments)
+
 
 
 @pytest.fixture(scope='module', params=['global_oce_latlon',
