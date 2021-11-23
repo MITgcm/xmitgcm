@@ -198,7 +198,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
     # We either have a single iter, in which case we create a fresh store,
     # or a list of iters, in which case we combine.
     if iters == 'all':
-        iters = _get_all_iternums(data_dir, file_prefixes=prefix)
+        iters = _get_all_iternums(data_dir, file_prefixes=prefix, tiled=tiled)
     if iters is None:
         iternum = None
     else:
@@ -996,13 +996,23 @@ def _concat_dicts(list_of_dicts):
     return result
 
 
-def _get_all_iternums(data_dir, file_prefixes=None,
-                      file_format='*.??????????.data'):
+def _get_all_iternums(data_dir, file_prefixes=None, tiled=False, file_format=None):
     """Scan a directory for all iteration number suffixes."""
+    if not tiled and file_format == None:
+        file_format = '*.??????????.data'
+
+    elif tiled and file_format == None:
+        file_format = '*.??????????.???.???.data'
+
     iternums = set()
     all_datafiles = listdir_fnmatch(data_dir, file_format)
+
     istart = file_format.find('?')-len(file_format)
-    iend = file_format.rfind('?')-len(file_format)+1
+    if not tiled:
+        iend = file_format.rfind('?')-len(file_format) + 1
+    else:
+        iend = file_format.rfind('?')-len(file_format) - 7
+    
     for f in all_datafiles:
         iternum = int(f[istart:iend])
         prefix = os.path.split(f[:istart-1])[-1]

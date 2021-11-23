@@ -510,26 +510,28 @@ def read_tiled_mds(fname, iternum=None, use_mmap=None, endian='>', shape=None,
             _get_useful_info_from_meta_file(metafile, tiled=True)
         dtype = dtype.newbyteorder(endian)
     except IOError:
+        raise IOError("Cannotfind the shape associated to %s in the \
+                       metadata." % fname)
         # we can recover from not having a .meta file if dtype and shape have
         # been specified already
-        if tile_shape is None:
-            raise IOError("Cannot find the shape associated to %s in the \
-                          metadata." % fname)
-        elif dtype is None:
-            raise IOError("Cannot find the dtype associated to %s in the \
-                          metadata, please specify the default dtype to \
-                          avoid this error." % fname)
-        else:
-            # add time dimensions
-            domain_shape = (1,) + domain_shape
-            domain_shape = list(domain_shape)
+        #if tile_shape is None:
+        #    raise IOError("Cannot find the shape associated to %s in the \
+        #                  metadata." % fname)
+        #elif dtype is None:
+        #    raise IOError("Cannot find the dtype associated to %s in the \
+        #                  metadata, please specify the default dtype to \
+        #                  avoid this error." % fname)
+        #else:
+        #    # add time dimensions
+        #    domain_shape = (1,) + domain_shape
+        #    domain_shape = list(domain_shape)
 
-            tile_shape = (1,) + tile_shape
-            tile_shape = list(tile_shape)
-            name = os.path.basename(fname)
+        #    tile_shape = (1,) + tile_shape
+        #    tile_shape = list(tile_shape)
+        #    name = os.path.basename(fname)
 
-            metadata = {'basename': name, 'domain_shape': domain_shape,
-                        'tile_shape': tile_shape}
+        #    metadata = {'basename': name, 'domain_shape': domain_shape,
+        #                'tile_shape': tile_shape}
 
     # figure out dimensions
     ndims = len(domain_shape)-1
@@ -1035,6 +1037,9 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False,
         described by file_metadata
 
     """
+    if tiled and chunks == "2D":
+        raise NotImplementedError("2D chunking is not supported for tiled datasets")
+
 
     out = []
     for variable in variable_list:
@@ -1215,7 +1220,9 @@ def read_3D_chunks(variable, file_metadata, use_mmap=False, use_dask=False, tile
     or numpy.ndarray or memmap, depending on input args
 
     """
-
+    if tiled and use_mmap:
+        raise NotImplementedError(
+            "tiled data cannot be read using numpy.memmap")
     def load_chunk(rec):
         return _read_xyz_chunk(variable, file_metadata,
                                rec=rec,
@@ -1272,6 +1279,8 @@ def _read_xyz_chunk(variable, file_metadata, rec=0, use_mmap=False, tiled=False)
     -------
     numpy array or memmap
     """
+    if tiled and use_mmap:
+        raise NotImplementedError("tiled data cannot be read using numpy.memmap")
 
     if file_metadata['has_faces'] and ((file_metadata['nx'] > 1) or
                                        (file_metadata['ny'] > 1)):
