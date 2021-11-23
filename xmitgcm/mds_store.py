@@ -26,7 +26,7 @@ from .variables import dimensions, \
 # would it be better to import mitgcm_variables and then automate the search
 # for variable dictionaries
 
-from .utils import parse_meta_file, read_mds, parse_available_diagnostics,\
+from .utils import parse_meta_file, read_mds, read_tiled_mds, parse_available_diagnostics,\
     get_extra_metadata
 
 from .file_utils import listdir, listdir_startswith, listdir_endswith, \
@@ -57,11 +57,9 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     grid_vars_to_coords=True, swap_dims=None,
                     endian=">", chunks=None,
                     ignore_unknown_vars=False, default_dtype=None,
-                    bi=None, bj=None,
-                    ntilex=None, ntiley=None,
                     nx=None, ny=None, nz=None,
                     llc_method="smallchunks", extra_metadata=None, 
-                    extra_variables=None):
+                    extra_variables=None, tiled=False):
     """Open MITgcm-style mds (.data / .meta) file output as xarray datset.
 
     Parameters
@@ -107,8 +105,9 @@ def open_mdsdataset(data_dir, grid_dir=None,
         A datatype to fall back on if the metadata can't be read.
     nx, ny, nz : int, optional
         The numerical dimensions of the model. These will be inferred from
-        ``XC.meta`` and ``RC.meta`` if they are not specified. If
-        ``geometry==llc``, ``ny`` does not have to specified.
+        ``XC.meta`` (or ``XC.001.001.meta`` if the dataset is tiled) and 
+        ``RC.meta`` if they are not specified. If ``geometry==llc``, ``ny``
+        does not have to specified.
     llc_method : {"smallchunks", "bigchunks"}, optional
         Which routine to use for reading LLC data. "smallchunks" splits the file
         into a individual dask chunk of size (nx x nx) for each face of each
@@ -150,6 +149,9 @@ def open_mdsdataset(data_dir, grid_dir=None,
                 standard_name='Sensitivity_to_theta',
                 long_name='Sensitivity of cost function to theta', units='[J]/degC'))
                  )
+    tiled  : boolean, optional
+        Whether the dataset is tiled or not. In future this could be
+        automagically inferred.
 
 
     Returns
@@ -196,7 +198,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
     # We either have a single iter, in which case we create a fresh store,
     # or a list of iters, in which case we combine.
     if iters == 'all':
-        iters = _get_all_iternums(data_dir, file_prefixes=prefix)
+        iters = _get_all_iternums(data_dir, file_prefixes=prefix, tiled=tiled)
     if iters is None:
         iternum = None
     else:
@@ -210,10 +212,10 @@ def open_mdsdataset(data_dir, grid_dir=None,
                 # We have to check to make sure we have the same prefixes at
                 # each timestep...otherwise we can't combine the datasets.
                 first_prefixes = prefix or _get_all_matching_prefixes(
-                                                        data_dir, iters[0], bi=bi, bj=bj)
+                                                        data_dir, iters[0], tiled=tiled)
                 for iternum in iters:
                     these_prefixes = _get_all_matching_prefixes(
-                        data_dir, iternum, prefix, bi=bi, bj=bj
+                        data_dir, iternum, prefix, tiled=tiled
                     )
                     # don't care about order
                     if set(these_prefixes) != set(first_prefixes):
@@ -237,7 +239,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     default_dtype=default_dtype,
                     nx=nx, ny=ny, nz=nz, llc_method=llc_method,
                     levels=levels, extra_metadata=extra_metadata,
-                    extra_variables=extra_variables)
+                    extra_variables=extra_variables, tiled=tiled)
                 datasets = [open_mdsdataset(
                         data_dir, iters=iternum, read_grid=False, **kwargs)
                     for iternum in iters]
@@ -272,14 +274,14 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     ds = _set_coords(ds)
                 return ds
 
-    store = _MDSDataStore(data_dir, grid_dir, iternum, bi, bj, delta_t,
-                          read_grid, prefix, ref_date, calendar,
+    store = _MDSDataStore(data_dir, grid_dir, iternum, delta_t, read_grid,
+                          prefix, ref_date, calendar,
                           geometry, endian,
                           ignore_unknown_vars=ignore_unknown_vars,
                           default_dtype=default_dtype,
                           nx=nx, ny=ny, nz=nz, llc_method=llc_method,
                           levels=levels, extra_metadata=extra_metadata,
-                          extra_variables=extra_variables)
+                         extra_variables=extra_variables, tiled=tiled)
     
     ds = xr.Dataset.load_store(store)
     if swap_dims:
@@ -357,14 +359,14 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
     """Representation of MITgcm mds binary file storage format for a specific
     model instance and a specific timestep iteration number."""
     def __init__(self, data_dir, grid_dir=None,
-                 iternum=None, bi=None, bj=None, delta_t=1, read_grid=True,
+                 iternum=None, delta_t=1, read_grid=True,
                  file_prefixes=None, ref_date=None, calendar=None,
                  geometry='sphericalpolar',
                  endian='>', ignore_unknown_vars=False,
                  default_dtype=np.dtype('f4'),
                  nx=None, ny=None, nz=None, llc_method="smallchunks",
                  levels=None, extra_metadata=None,
-                 extra_variables=None):
+                 extra_variables=None, tiled=False):
         """
         This is not a user-facing class. See open_mdsdataset for argument
         documentation. The only ones which are distinct are.
@@ -375,6 +377,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             The iteration timestep number to read.
         file_prefixes : list
             The prefixes of the data files to be read.
+        tiled  : boolean, optional
+            Whether the dataset is tiled or not.
         """
 
         self.geometry = geometry.lower()
@@ -410,8 +414,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         [self._dimensions.append(k) for k in dimensions]
         self.llc = (self.geometry == 'llc')
         self.cs = (self.geometry == 'cs')
-        
-        self.tiled = _is_tiled_dataset(self.grid_dir, bi, bj)
+        self.tiled = tiled
 
         if nz is None:
             self.nz = _guess_model_nz(self.grid_dir)
@@ -459,7 +462,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         else:
             # have to peek at the grid file metadata
             self.nface, self.ny, self.nx = (
-                _guess_model_horiz_dims(self.grid_dir, is_llc=self.llc, is_cs=self.cs, is_tiled=self.tiled))
+                _guess_model_horiz_dims(self.grid_dir, is_llc=self.llc, is_cs=self.cs, tiled=self.tiled))
 
         # --------------- LEGACY ----------------------
         if self.llc:
@@ -488,18 +491,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         # Rather than assuming the dimension names, we use Comodo conventions
         # to parse the dimension metdata.
         # http://pycomodo.forge.imag.fr/norm.html
-        if bi is None and bj is None:
-            irange = np.arange(self.nx)
-            jrange = np.arange(self.ny)
-        elif bi is None or bj is None:
-            raise ValueError('bi and bj must both be None or both be integers. bi is {} and bj is {}'.format(bi, bj))
-        else:
-            #warnings.warn('Need to test this functionality still')
-            irange = np.arange((bi - 1) * self.nx , bi * self.nx)
-            jrange = np.arange((bj - 1) * self.ny , bj * self.ny)
-            #irange = np.arange(self.nx)
-            #jrange = np.arange(self.ny)
-
+        irange = np.arange(self.nx)
+        jrange = np.arange(self.ny)
         if levels is None:
             krange = np.arange(self.nz)
             krange_p1 = np.arange(self.nz+1)
@@ -581,8 +574,11 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
 
         # The rest of the data has to be read from disk.
         # The list `prefixes` specifies file prefixes from which to infer
-        # The problem with this is that some prefixes are single variables
-        # while some are multi-variable diagnostics files.
+        # Some prefixes represent 1D files and other 2D or 3D. The 1D files
+        # can be treated the same when the dataset is tiled whereas the 
+        # 2D and 3D will need to be treated differently. This is why we
+        # differentiate between tiled and untiled prefixes (even if the dataset
+        # itself is untiled)
         untiled_prefixes = []
         tiled_prefixes = []
         if read_grid:
@@ -593,17 +589,17 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                     tiled_prefixes += [key]
 
         # add data files
+        # The following could do with a tidy up to avoid duplication.
         tiled_prefixes = (tiled_prefixes +
                           _get_all_matching_prefixes(
-                                                    data_dir,
-                                                    iternum,
-                                                    file_prefixes, bi=bi, bj=bj))
-#        print(untiled_prefixes)
-#        print(tiled_prefixes)
+                              data_dir,
+                              iternum,
+                              file_prefixes, tiled=tiled))
+
         for p in tiled_prefixes:
             # use a generator to loop through the variables in each file
             for (vname, dims, data, attrs) in \
-                    self.load_from_prefix(p, iternum, extra_metadata=extra_metadata, bi=bi, bj=bj):
+                    self.load_from_prefix(p, iternum, extra_metadata=extra_metadata, tiled=tiled):
                 # print(vname, dims, data.shape)
                 # Sizes of grid variables can vary between mitgcm versions.
                 # Check for such inconsistency and correct if so
@@ -615,12 +611,11 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
 
                 thisvar = xr.Variable(dims, data, attrs)
                 self._variables[vname] = thisvar
-                # print(type(data), type(thisvar._data), thisvar._in_memory)
-        
+
         for p in untiled_prefixes:
             # use a generator to loop through the variables in each file
             for (vname, dims, data, attrs) in \
-                    self.load_from_prefix(p, iternum, extra_metadata=extra_metadata):
+                    self.load_from_prefix(p, iternum, extra_metadata):
                 # print(vname, dims, data.shape)
                 # Sizes of grid variables can vary between mitgcm versions.
                 # Check for such inconsistency and correct if so
@@ -633,7 +628,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                 thisvar = xr.Variable(dims, data, attrs)
                 self._variables[vname] = thisvar
                 # print(type(data), type(thisvar._data), thisvar._in_memory)
-    
+
     def fix_inconsistent_variables(self, vname, dims, data, attrs):
         if vname == 'drC':
             #check to see if the drC variable has the wrong length
@@ -654,7 +649,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
 
         return data
 
-    def load_from_prefix(self, prefix, iternum=None, bi=None, bj=None, extra_metadata=None):
+    def load_from_prefix(self, prefix, iternum=None, extra_metadata=None, tiled=False):
         """Read data and look up metadata for grid variable `name`.
 
         Parameters
@@ -663,6 +658,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             The name of the grid variable.
         iternume : int (optional)
             MITgcm iteration number
+        tiled  : boolean (optional)
+            Whether the dataset AND prefix are tiled or not.
 
         Yields
         -------
@@ -694,9 +691,14 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         chunks = "CS" if self.cs else "3D"
 
         try:
-            vardata = read_mds(basename, iternum, bi=bi, bj=bj, endian=self.endian,
-                               llc=self.llc, llc_method=self.llc_method,
-                               extra_metadata=extra_metadata, chunks=chunks)
+            if tiled:
+                vardata = read_tiled_mds(basename, iternum, endian=self.endian,
+                                         llc=self.llc, llc_method=self.llc_method,
+                                         extra_metadata=extra_metadata, chunks=chunks)
+            else:
+                vardata = read_mds(basename, iternum, endian=self.endian,
+                                llc=self.llc, llc_method=self.llc_method,
+                                extra_metadata=extra_metadata, chunks=chunks)
 
         except IOError as ioe:
             # that might have failed because there was no meta file present
@@ -714,11 +716,19 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
             else:
                 raise ValueError("Can't determine shape "
                                  "of variable %s" % prefix)
-            vardata = read_mds(basename, iternum, bi=bi, bj=bj, endian=self.endian,
-                               dtype=self.default_dtype,
-                               shape=data_shape, llc=self.llc,
-                               llc_method=self.llc_method,
-                               extra_metadata=extra_metadata, chunks=chunks)
+            
+            if tiled:
+                vardata = read_tiled_mds(basename, iternum, endian=self.endian,
+                                         dtype=self.default_dtype,
+                                         shape=data_shape, llc=self.llc,
+                                         llc_method=self.llc_method,
+                                         extra_metadata=extra_metadata, chunks=chunks)
+            else:
+                vardata = read_mds(basename, iternum, endian=self.endian,
+                                dtype=self.default_dtype,
+                                shape=data_shape, llc=self.llc,
+                                llc_method=self.llc_method,
+                                extra_metadata=extra_metadata, chunks=chunks)
 
         for vname, data in vardata.items():
             # we now have to revert to the original prefix once the file is read
@@ -816,51 +826,21 @@ def _guess_model_nz(data_dir):
         raise IOError("Couldn't find RC.meta file to infer nz.")
     return nz
 
-def _guess_tile_dims(data_dir, is_llc=False, is_cs=False):
-    if is_llc or is_cs:
-        warnings.warn("Tiled llc and cs datasets have not been tested. Proceed with caution.")
-    #raise NotImplementedError
 
-    # bi and bj have a max value of 999 so can hard code this number in
-    for bi in range(1, 1000):
-        if not os.path.exists(os.path.join(data_dir, 'XC.{:03d}.001.meta'.format(bi))):
-            bi -= 1
-            break
-    
-    for bj in range(1, 1000):
-        if not os.path.exists(os.path.join(data_dir, 'XC.001.{:03d}.meta'.format(bj))):
-            bj -= 1
-            break
-
-    return bi, bj
-
-def _is_tiled_dataset(data_dir, bi, bj):
-    """ determines whether a dataset is tiled or not.
-    """
-    if bi is not None and bj is not None:
-        is_tiled = True
-    elif os.path.exists(os.path.join(data_dir, 'XC.001.001.meta')):
-        is_tiled = True
-    elif bi is not None or bj is not None:
-        raise ValueError("bi and bj must both be None or both be int. bi is {} and bj is {}".format(bi, bj))
-    else:
-        is_tiled = False
-    return is_tiled
-
-
-def _guess_model_horiz_dims(data_dir, is_llc=False, is_cs=False, is_tiled=False):
-    if is_tiled:
+def _guess_model_horiz_dims(data_dir, is_llc=False, is_cs=False, tiled=False):
+    if tiled:
         xc_meta_path = os.path.join(data_dir, 'XC.001.001.meta')
     else:
         xc_meta_path = os.path.join(data_dir, 'XC.meta')
 
     try:
         xc_meta = parse_meta_file(xc_meta_path)
-        nx = int(xc_meta['dimList'][0][-1])
-        ny = int(xc_meta['dimList'][1][-1])
+        nx = int(xc_meta['dimList'][0][0])
+        ny = int(xc_meta['dimList'][1][0])
     except IOError:
-        raise IOError("Couldn't find XC.meta or XC.001.001.meta file to infer nx and ny.")
-    
+        raise IOError(
+            "Couldn't find XC.meta or XC.001.001.meta file to infer nx and ny.")
+
     if is_llc:
         nface = LLC_NUM_FACES
         ny //= nface
@@ -1016,13 +996,23 @@ def _concat_dicts(list_of_dicts):
     return result
 
 
-def _get_all_iternums(data_dir, file_prefixes=None,
-                      file_format='*.??????????.data'):
+def _get_all_iternums(data_dir, file_prefixes=None, tiled=False, file_format=None):
     """Scan a directory for all iteration number suffixes."""
+    if not tiled and file_format == None:
+        file_format = '*.??????????.data'
+
+    elif tiled and file_format == None:
+        file_format = '*.??????????.???.???.data'
+
     iternums = set()
     all_datafiles = listdir_fnmatch(data_dir, file_format)
+
     istart = file_format.find('?')-len(file_format)
-    iend = file_format.rfind('?')-len(file_format)+1
+    if not tiled:
+        iend = file_format.rfind('?')-len(file_format) + 1
+    else:
+        iend = file_format.rfind('?')-len(file_format) - 7
+    
     for f in all_datafiles:
         iternum = int(f[istart:iend])
         prefix = os.path.split(f[:istart-1])[-1]
@@ -1043,15 +1033,15 @@ def _is_pickup_prefix(prefix):
 
 
 def _get_all_matching_prefixes(data_dir, iternum, file_prefixes=None,
-                               ignore_pickup=True, bi=None, bj=None):
+                               ignore_pickup=True, tiled=False):
     """Scan a directory and return all file prefixes matching a certain
     iteration number."""
     if iternum is None:
         return []
     prefixes = set()
-    
-    if bi is not None and bj is not None:
-        list_end = '{:010d}.{:03d}.{:03d}.data'.format(iternum, bi, bj)
+
+    if tiled:
+        list_end = '{:010d}.001.001.data'.format(iternum)
         all_datafiles = listdir_endswith(data_dir, list_end)
         iternum_slice = slice(-23, -13)
         prefix_slice = slice(-24)

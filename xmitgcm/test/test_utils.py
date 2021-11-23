@@ -1,3 +1,4 @@
+from mmap import mmap
 import pytest
 import os
 import numpy as np
@@ -6,7 +7,7 @@ import dask
 from xmitgcm.test.test_xmitgcm_common import (hide_file, file_md5_checksum,
     all_mds_datadirs, mds_datadirs_with_diagnostics, llc_mds_datadirs,
     layers_mds_datadirs, all_grid_datadirs, mds_datadirs_with_inputfiles,
-    _experiments, cs_mds_datadirs)
+    _experiments, cs_mds_datadirs, tiled_mds_datadirs, untiled_mds_datadirs)
 from xmitgcm.file_utils import listdir
 
 
@@ -19,7 +20,6 @@ _xc_meta_content = """ simulation = { 'global_oce_latlon' };
  dataprec = [ 'float32' ];
  nrecords = [     1 ];
 """
-
 
 def test_parse_meta(tmpdir):
     """Check the parsing of MITgcm .meta into python dictionary."""
@@ -120,7 +120,10 @@ def test_read_raw_data(tmpdir, dtype):
 # a meta test of our own utitity funcion
 def test_file_hiding(all_mds_datadirs):
     dirname, _ = all_mds_datadirs
-    basenames = ['XC.data', 'XC.meta']
+    if _['tiled']:
+        basenames = ['XC.001.001.data', 'XC.001.001.meta']
+    else:
+        basenames = ['XC.data', 'XC.meta']
     listed_files = listdir(dirname)
     for basename in basenames:
         assert os.path.exists(os.path.join(dirname, basename))
@@ -134,10 +137,10 @@ def test_file_hiding(all_mds_datadirs):
         assert os.path.exists(os.path.join(dirname, basename))
 
 
-def test_read_mds(all_mds_datadirs):
+def test_read_mds(untiled_mds_datadirs):
     """Check that we can read mds data from .meta / .data pairs"""
 
-    dirname, expected = all_mds_datadirs
+    dirname, expected = untiled_mds_datadirs
 
     from xmitgcm.utils import read_mds
 
@@ -195,8 +198,8 @@ def test_read_mds(all_mds_datadirs):
     assert isinstance(res[prefix], np.ndarray)
 
     # make sure endianness works
-    res = read_mds(basename, use_dask=False, use_mmap=False)
-    testval = res[prefix].newbyteorder('<')[0, 0]
+    res = read_mds(basename, use_dask=False, use_mmap=False, endian='>')
+    testval = res[prefix].newbyteorder('S')[0, 0]
     res_endian = read_mds(basename, use_mmap=False,
                           endian='<', use_dask=False)
     val_endian = res_endian[prefix][0, 0]
@@ -251,6 +254,70 @@ def test_read_mds(all_mds_datadirs):
                            use_mmap=False, extra_metadata=emeta)
 
 
+def test_read_tiled_mds(tiled_mds_datadirs):
+    """Check that we can read mds data from .meta / .data pairs"""
+
+    dirname, expected = tiled_mds_datadirs
+
+    from xmitgcm.utils import read_tiled_mds
+
+    prefix = 'XC'
+    basename = os.path.join(dirname, prefix)
+    # should be dask by default
+    res = read_tiled_mds(basename)
+    assert isinstance(res, dict)
+    assert prefix in res
+    assert isinstance(res[prefix], dask.array.core.Array)
+
+    # try some options
+    with pytest.raises(NotImplementedError):
+        res = read_tiled_mds(basename, use_dask=False)
+
+    res = read_tiled_mds(basename, use_dask=False, use_mmap=False)
+    assert isinstance(res, dict)
+    assert prefix in res
+    assert isinstance(res[prefix], np.ndarray)
+
+    with pytest.raises(NotImplementedError):
+        res = read_tiled_mds(basename, chunks="2D")
+
+    # test the extra_metadata
+    if expected['geometry'] == 'llc':
+        emeta = {'has_faces': True, 'ny': 13*90, 'nx': 90,
+                 'ny_facets': [3*90, 3*90, 90, 3*90, 3*90],
+                 'face_facets': [0, 0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 4, 4],
+                 'facet_orders': ['C', 'C', 'C', 'F', 'F'],
+                 'face_offsets': [0, 1, 2, 0, 1, 2, 0, 0, 1, 2, 0, 1, 2],
+                 'transpose_face': [False, False, False,
+                                    False, False, False, False,
+                                    True, True, True, True, True, True]}
+    else:
+        emeta = None
+    
+    # make sure endianness works
+    res = read_tiled_mds(basename, use_dask=False, use_mmap=False, endian='>')
+    testval = res[prefix].newbyteorder('S')[0, 0]
+    res_endian = read_tiled_mds(basename, use_mmap=False,
+                          endian='<', use_dask=False)
+    val_endian = res_endian[prefix][0, 0]
+    np.testing.assert_allclose(testval, val_endian)
+
+    # try reading with iteration number
+    prefix = 'T'
+    basename = os.path.join(dirname, prefix)
+    iternum = expected['test_iternum']
+    res = read_tiled_mds(basename, iternum=iternum)
+    assert prefix in res
+    assert isinstance(res[prefix], dask.array.core.Array)
+
+    res = read_tiled_mds(basename, iternum=iternum, use_dask=False,
+                   use_mmap=False)
+    assert isinstance(res, dict)
+    assert prefix in res
+    assert isinstance(res[prefix], np.ndarray)
+
+
+
 def test_read_mds_tokens(mds_datadirs_with_diagnostics):
     from xmitgcm.utils import read_mds
     dirname, expected = mds_datadirs_with_diagnostics
@@ -270,8 +337,12 @@ def test_read_mds_tokens(mds_datadirs_with_diagnostics):
 
 
 def test_read_mds_no_meta(all_mds_datadirs):
-    from xmitgcm.utils import read_mds
     dirname, expected = all_mds_datadirs
+    if expected['tiled']:
+        from xmitgcm.utils import read_tiled_mds as read_mds
+    else:
+        from xmitgcm.utils import read_mds
+
     shape = expected['shape']
     ny, nx = shape[-2:]
     if len(shape) == 4:
@@ -285,7 +356,10 @@ def test_read_mds_no_meta(all_mds_datadirs):
     shape_2d = (ny, nx)
     shape_3d = shape_2d if nz == 1 else (nz,) + shape_2d
 
-    prefixes = {'XC': shape_2d, 'hFacC': shape_3d}
+    if expected['tiled']:
+        prefixes = {'XC.001.001': shape_2d, 'hFacC.001.001': shape_3d}
+    else:
+        prefixes = {'XC': shape_2d, 'hFacC': shape_3d}
 
     for prefix, shape in prefixes.items():
         basename = os.path.join(dirname, prefix)
@@ -293,19 +367,25 @@ def test_read_mds_no_meta(all_mds_datadirs):
             # can't read without specifying shape and dtype
             with pytest.raises(IOError):
                 res = read_mds(basename)
-            res = read_mds(basename, shape=shape, dtype=dtype, legacy=True)
-            assert isinstance(res, dict)
-            assert prefix in res
-            # should be dask by default
-            assert isinstance(res[prefix], dask.array.core.Array)
-            assert res[prefix].shape == shape
+            
+            if expected['tiled']:
+                with pytest.raises(IOError):
+                    res = read_mds(basename, shape=shape,
+                                   dtype=dtype, legacy=True)
+            else:
+                res = read_mds(basename, shape=shape, dtype=dtype, legacy=True)
+                assert isinstance(res, dict)
+                assert prefix in res
+                # should be dask by default
+                assert isinstance(res[prefix], dask.array.core.Array)
+                assert res[prefix].shape == shape
 
-            res = read_mds(basename, shape=shape, dtype=dtype, legacy=False)
-            assert isinstance(res, dict)
-            assert prefix in res
-            # should be dask by default
-            assert isinstance(res[prefix], dask.array.core.Array)
-            assert res[prefix].shape == (1,) + shape
+                res = read_mds(basename, shape=shape, dtype=dtype, legacy=False)
+                assert isinstance(res, dict)
+                assert prefix in res
+                # should be dask by default
+                assert isinstance(res[prefix], dask.array.core.Array)
+                assert res[prefix].shape == (1,) + shape
 
 
 @pytest.mark.parametrize("method", ["smallchunks", "bigchunks"])
@@ -378,6 +458,22 @@ def test_read_xyz_chunk(all_mds_datadirs, memmap):
         # function not designed for llc grids, except 1d variables
         with pytest.raises(ValueError):
             data = _read_xyz_chunk('T', file_metadata, use_mmap=memmap)
+    
+    elif expected['tiled']:
+        tiled = expected['tiled']
+        file_metadata.update({'filename_prefix': dirname + '/' + 'T.' +
+                              str(file_metadata['test_iternum']).zfill(10),
+                              'vars': ['T'], 'endian': '>',
+                              'has_faces': False, 'dims_vars': [('nz', 'ny', 'nx')],
+                              'nz': 2, 'nx': 60, 'ny': 60})
+
+        if memmap:
+            with pytest.raises(NotImplementedError):
+                _read_xyz_chunk('T', file_metadata, use_mmap=memmap, tiled=tiled)
+        else:
+            data = _read_xyz_chunk('T', file_metadata, use_mmap=memmap, tiled=tiled)
+            assert isinstance(data, dask.array.core.Array)
+    
     else:
         file_metadata.update({'nx': file_metadata['shape'][2],
                               'ny': file_metadata['shape'][1],
@@ -401,7 +497,7 @@ def test_read_xyz_chunk(all_mds_datadirs, memmap):
                           'vars': ['RC'], 'nx': 1, 'ny': 1,
                           'dims_vars': [('nz', 'ny', 'nx')]})
 
-    data = _read_xyz_chunk('RC', file_metadata, use_mmap=memmap)
+    data = _read_xyz_chunk('RC', file_metadata, use_mmap=memmap, tiled=False)
     if memmap:
         assert isinstance(data, np.memmap)
     else:
@@ -409,11 +505,11 @@ def test_read_xyz_chunk(all_mds_datadirs, memmap):
 
 
 @pytest.mark.parametrize("memmap", [True, False])
-def test_read_xy_chunk(all_mds_datadirs, memmap):
+def test_read_xy_chunk(untiled_mds_datadirs, memmap):
 
     from xmitgcm.utils import _read_xy_chunk
 
-    dirname, expected = all_mds_datadirs
+    dirname, expected = untiled_mds_datadirs
 
     file_metadata = expected
     file_metadata.update({'filename': dirname + '/' + 'T.' +
@@ -490,11 +586,30 @@ def test_read_2D_chunks(all_mds_datadirs, memmap, usedask):
 
     dirname, expected = all_mds_datadirs
 
+    try:
+        tiled = expected['tiled']
+    except KeyError:
+        tiled = False
+
     file_metadata = expected
     file_metadata.update({'filename': dirname + '/' + 'T.' +
                           str(file_metadata['test_iternum']).zfill(10) +
                           '.data', 'vars': ['T'], 'endian': '>'})
     # set the size of dimensions (could be changed in _experiments)
+    if tiled:
+        file_metadata.update({'filename': dirname + '/' + 'T.' +
+                              str(file_metadata['test_iternum']).zfill(10) + '.001.001'
+                              '.data', 'vars': ['T'], 'endian': '>',
+                              'filename_prefix': dirname + '/' + 'T.0000000001'})
+
+        # Check we get the NotImplementedError and continue with our day.
+        with pytest.raises(NotImplementedError):
+            data = read_2D_chunks('T', file_metadata, use_mmap=memmap,
+                          use_dask=usedask, tiled=tiled)
+        
+        return
+
+
     if file_metadata['geometry'] in ['llc']:
         nx = file_metadata['shape'][3]
         file_metadata.update({'nx': file_metadata['shape'][3],
@@ -557,11 +672,26 @@ def test_read_3D_chunks(all_mds_datadirs, memmap, usedask):
 
     dirname, expected = all_mds_datadirs
 
+    try:
+        tiled = expected['tiled']
+    except KeyError:
+        tiled = False
+
+    if tiled and memmap:
+        # Tiled functions don't currently support memmap so no point testing.
+        return
+
     file_metadata = expected
     file_metadata.update({'filename': dirname + '/' + 'T.' +
                           str(file_metadata['test_iternum']).zfill(10) +
                           '.data', 'vars': ['T'], 'endian': '>'})
     # set the size of dimensions (could be changed in _experiments)
+    if tiled:
+        file_metadata.update({'filename': dirname + '/' + 'T.' +
+                              str(file_metadata['test_iternum']).zfill(10) + '.001.001'
+                              '.data', 'vars': ['T'], 'endian': '>',
+                              'filename_prefix': dirname + '/' + 'T.0000000001'})
+
     if file_metadata['geometry'] in ['llc']:
         nx = file_metadata['shape'][3]
         file_metadata.update({'nx': file_metadata['shape'][3],
@@ -601,12 +731,12 @@ def test_read_3D_chunks(all_mds_datadirs, memmap, usedask):
     if file_metadata['geometry'] in ['llc', 'cs']:
         with pytest.raises(ValueError):
             data = read_3D_chunks('T', file_metadata, use_mmap=memmap,
-                                  use_dask=usedask)
+                                  use_dask=usedask, tiled=tiled)
             if usedask:
                 data.compute()
     else:
         data = read_3D_chunks('T', file_metadata, use_mmap=memmap,
-                              use_dask=usedask)
+                              use_dask=usedask, tiled=tiled)
         if usedask:
             assert isinstance(data, dask.array.core.Array)
             data.compute()
@@ -621,7 +751,7 @@ def test_read_3D_chunks(all_mds_datadirs, memmap, usedask):
                           'vars': ['RC'], 'nx': 1, 'ny': 1})
 
     data = read_3D_chunks('RC', file_metadata, use_mmap=memmap,
-                          use_dask=usedask)
+                          use_dask=usedask, tiled=False)
     if usedask:
         assert isinstance(data, dask.array.core.Array)
         data.compute()
@@ -682,10 +812,13 @@ def test_read_all_variables(all_mds_datadirs, memmap, usedask):
     dirname, expected = all_mds_datadirs
 
     file_metadata = expected
+
+    tiled = expected['tiled']
     # test single variable in file
     file_metadata.update({'filename': dirname + '/' + 'T.' +
                           str(file_metadata['test_iternum']).zfill(10) +
                           '.data', 'vars': ['T'], 'endian': '>'})
+
     # set the size of dimensions (could be changed in _experiments)
     if file_metadata['geometry'] in ['llc']:
         nx = file_metadata['shape'][3]
@@ -723,6 +856,14 @@ def test_read_all_variables(all_mds_datadirs, memmap, usedask):
                               [0, 0, 0, 0, 0, 0],
                               'transpose_face': [False, False, False, False,
                                                  False, False]})
+    elif file_metadata['tiled']:
+            file_metadata.update({'filename_prefix': dirname + '/' + 'T.' +
+                                   str(file_metadata['test_iternum']).zfill(10),
+                                  'vars': ['T'], 'endian': '>',
+                                  'has_faces': False, 'dims_vars': [('nz', 'ny', 'nx')],
+                                  'nt': 1, 'nz': 2, 'nx': 60, 'ny': 60})
+
+            file_metadata.pop('filename')
     else:
         file_metadata.update({'nx': file_metadata['shape'][2],
                               'ny': file_metadata['shape'][1],
@@ -739,6 +880,16 @@ def test_read_all_variables(all_mds_datadirs, memmap, usedask):
                                          chunks="3D")
             if usedask:
                 dataset[0].compute()
+    elif tiled:
+        if memmap:
+            with pytest.raises(NotImplementedError):
+                dataset = read_all_variables(file_metadata['vars'], file_metadata,
+                                            use_mmap=memmap, use_dask=usedask,
+                                            chunks="3D", tiled=tiled)
+        else:
+            dataset = read_all_variables(file_metadata['vars'], file_metadata,
+                                         use_mmap=memmap, use_dask=usedask,
+                                         chunks="3D", tiled=tiled)
     else:
         dataset = read_all_variables(file_metadata['vars'], file_metadata,
                                      use_mmap=memmap, use_dask=usedask,
@@ -755,25 +906,31 @@ def test_read_all_variables(all_mds_datadirs, memmap, usedask):
                 assert isinstance(dataset[0], np.ndarray)
 
     # test 2D chunks
-    if file_metadata['geometry'] not in ['cs']:
-        dataset = read_all_variables(file_metadata['vars'], file_metadata,
-                                     use_mmap=memmap, use_dask=usedask,
-                                     chunks="2D")
+    if file_metadata['tiled']:
+        with pytest.raises(NotImplementedError):
+            dataset = read_all_variables(file_metadata['vars'], file_metadata,
+                                         use_mmap=memmap, use_dask=usedask,
+                                         chunks="2D", tiled=tiled)
     else:
-        dataset = read_all_variables(file_metadata['vars'], file_metadata,
-                                     use_mmap=memmap, use_dask=usedask,
-                                     chunks="CS")
-
-    assert isinstance(dataset, list)
-    assert len(dataset) == len(file_metadata['vars'])
-    if usedask:
-        assert isinstance(dataset[0], dask.array.core.Array)
-    else:
-        if memmap:
-            # should be memmap, needs fix
-            assert isinstance(dataset[0], np.ndarray)
+        if file_metadata['geometry'] not in ['cs']:
+            dataset = read_all_variables(file_metadata['vars'], file_metadata,
+                                        use_mmap=memmap, use_dask=usedask,
+                                        chunks="2D")
         else:
-            assert isinstance(dataset[0], np.ndarray)
+            dataset = read_all_variables(file_metadata['vars'], file_metadata,
+                                        use_mmap=memmap, use_dask=usedask,
+                                        chunks="CS")
+
+        assert isinstance(dataset, list)
+        assert len(dataset) == len(file_metadata['vars'])
+        if usedask:
+            assert isinstance(dataset[0], dask.array.core.Array)
+        else:
+            if memmap:
+                # should be memmap, needs fix
+                assert isinstance(dataset[0], np.ndarray)
+            else:
+                assert isinstance(dataset[0], np.ndarray)
 
     # test multiple variables in file
     # those tests are only available for llc experiment:
@@ -789,20 +946,26 @@ def test_read_all_variables(all_mds_datadirs, memmap, usedask):
                               'vars': expected['diagnostics'][1],
                               'dims_vars': dimsvar})
 
-    dataset = read_all_variables(file_metadata['vars'], file_metadata,
-                                 use_mmap=memmap, use_dask=usedask,
-                                 chunks="2D")
+    if not expected['tiled']:
+        dataset = read_all_variables(file_metadata['vars'], file_metadata,
+                                    use_mmap=memmap, use_dask=usedask,
+                                    chunks="2D")
+    elif expected['tiled'] and not memmap:
+        dataset = read_all_variables(file_metadata['vars'], file_metadata,
+                                     use_mmap=memmap, use_dask=usedask,
+                                     chunks="3D", tiled=tiled)
 
-    assert isinstance(dataset, list)
-    assert len(dataset) == len(file_metadata['vars'])
-    if usedask:
-        assert isinstance(dataset[0], dask.array.core.Array)
-    else:
-        if memmap:
-            # should be memmap, needs fix
-            assert isinstance(dataset[0], np.ndarray)
+    if not (expected['tiled'] and memmap):
+        assert isinstance(dataset, list)
+        assert len(dataset) == len(file_metadata['vars'])
+        if usedask:
+            assert isinstance(dataset[0], dask.array.core.Array)
         else:
-            assert isinstance(dataset[0], np.ndarray)
+            if memmap:
+                # should be memmap, needs fix
+                assert isinstance(dataset[0], np.ndarray)
+            else:
+                assert isinstance(dataset[0], np.ndarray)
 
 
 @pytest.mark.parametrize("dtype", ['>d', '>f', '>i'])
@@ -905,10 +1068,10 @@ def test_pad_array(tmpdir, memmap, dtype):
     assert data_padded[1, 1] == 4
 
 
-def test_parse_diagnostics(all_mds_datadirs, layers_mds_datadirs):
+def test_parse_diagnostics(untiled_mds_datadirs, layers_mds_datadirs):
     """Make sure we can parse the available_diagnostics.log file."""
     from xmitgcm.utils import parse_available_diagnostics
-    dirname, expected = all_mds_datadirs
+    dirname, expected = untiled_mds_datadirs
     diagnostics_fname = os.path.join(dirname, 'available_diagnostics.log')
     ad = parse_available_diagnostics(diagnostics_fname)
 
@@ -957,22 +1120,17 @@ def test_get_extra_metadata(domain, nx):
         em = get_extra_metadata(domain='notinlist', nx=nx)
 
 
-@pytest.mark.parametrize("outer", [True, False])
 @pytest.mark.parametrize("usedask", [True, False])
-def test_get_grid_from_input(all_grid_datadirs, usedask, outer):
+def test_get_grid_from_input(all_grid_datadirs, usedask):
     from xmitgcm.utils import get_grid_from_input, get_extra_metadata
     from xmitgcm.utils import read_raw_data
     dirname, expected = all_grid_datadirs
     md = get_extra_metadata(domain=expected['domain'], nx=expected['nx'])
-    dtype = np.dtype('{}{}'.format(expected['endianness'], expected['precision']))
     ds = get_grid_from_input(dirname + '/' + expected['gridfile'],
                              geometry=expected['geometry'],
-                             dtype=np.dtype(expected['precision']),
-                             endian=expected['endianness'],
+                             dtype=np.dtype('d'), endian='>',
                              use_dask=usedask,
-                             extra_metadata=md,
-                             outer=outer)
-
+                             extra_metadata=md)
     # test types
     assert type(ds) == xarray.Dataset
     assert type(ds['XC']) == xarray.core.dataarray.DataArray
@@ -985,19 +1143,9 @@ def test_get_grid_from_input(all_grid_datadirs, usedask, outer):
                           'XG', 'YG', 'DXV', 'DYU', 'RAZ',
                           'DXC', 'DYC', 'RAW', 'RAS', 'DXG', 'DYG']
 
-    outerx_vars = ['DXC', 'RAW', 'DYG'] if outer else []
-    outery_vars = ['DYC', 'RAS', 'DXG'] if outer else []
-    outerxy_vars = ['XG', 'YG', 'RAZ'] if outer else []
-
     for var in expected_variables:
-        expected_shape = list(expected['shape'])
-        if var in outerx_vars or var in outerxy_vars:
-            expected_shape[-1] = expected_shape[-1] + 1
-        if var in outery_vars or var in outerxy_vars:
-            expected_shape[-2] = expected_shape[-2] + 1
-
         assert type(ds[var]) == xarray.core.dataarray.DataArray
-        assert ds[var].values.shape == tuple(expected_shape)
+        assert ds[var].values.shape == expected['shape']
 
     # check we don't leave points behind
     if expected['geometry'] == 'llc':
@@ -1024,98 +1172,37 @@ def test_get_grid_from_input(all_grid_datadirs, usedask, outer):
         ny4 = int(size4 / sizeofd / nvars / nx)
         ny5 = int(size5 / sizeofd / nvars / nx)
 
-        xc1 = read_raw_data(grid1, dtype=dtype, shape=(ny1, nx),
+        xc1 = read_raw_data(grid1, dtype=np.dtype('>d'), shape=(ny1, nx),
                             partial_read=True)
-        xc2 = read_raw_data(grid2, dtype=dtype, shape=(ny2, nx),
+        xc2 = read_raw_data(grid2, dtype=np.dtype('>d'), shape=(ny2, nx),
                             partial_read=True)
-        xc3 = read_raw_data(grid3, dtype=dtype, shape=(ny3, nx),
+        xc3 = read_raw_data(grid3, dtype=np.dtype('>d'), shape=(ny3, nx),
                             partial_read=True)
-        xc4 = read_raw_data(grid4, dtype=dtype, shape=(ny4, nx),
+        xc4 = read_raw_data(grid4, dtype=np.dtype('>d'), shape=(ny4, nx),
                             order='F', partial_read=True)
-        xc5 = read_raw_data(grid5, dtype=dtype, shape=(ny5, nx),
+        xc5 = read_raw_data(grid5, dtype=np.dtype('>d'), shape=(ny5, nx),
                             order='F', partial_read=True)
 
-        yc1 = read_raw_data(grid1, dtype=dtype, shape=(ny1, nx),
+        yc1 = read_raw_data(grid1, dtype=np.dtype('>d'), shape=(ny1, nx),
                             partial_read=True, offset=nx*ny1*sizeofd)
-        yc2 = read_raw_data(grid2, dtype=dtype, shape=(ny2, nx),
+        yc2 = read_raw_data(grid2, dtype=np.dtype('>d'), shape=(ny2, nx),
                             partial_read=True, offset=nx*ny2*sizeofd)
-        yc3 = read_raw_data(grid3, dtype=dtype, shape=(ny3, nx),
+        yc3 = read_raw_data(grid3, dtype=np.dtype('>d'), shape=(ny3, nx),
                             partial_read=True, offset=nx*ny3*sizeofd)
-        yc4 = read_raw_data(grid4, dtype=dtype, shape=(ny4, nx),
+        yc4 = read_raw_data(grid4, dtype=np.dtype('>d'), shape=(ny4, nx),
                             order='F', partial_read=True,
                             offset=nx*ny4*sizeofd)
-        yc5 = read_raw_data(grid5, dtype=dtype, shape=(ny5, nx),
+        yc5 = read_raw_data(grid5, dtype=np.dtype('>d'), shape=(ny5, nx),
                             order='F', partial_read=True,
                             offset=nx*ny5*sizeofd)
 
-        xc = np.concatenate([xc1.flatten(), xc2.flatten(),
-                             xc3.flatten(), xc4.flatten(),
-                             xc5.flatten()])
+        xc = np.concatenate([xc1[:-1, :-1].flatten(), xc2[:-1, :-1].flatten(),
+                             xc3[:-1, :-1].flatten(), xc4[:-1, :-1].flatten(),
+                             xc5[:-1, :-1].flatten()])
 
-        yc = np.concatenate([yc1.flatten(), yc2.flatten(),
-                             yc3.flatten(), yc4.flatten(),
-                             yc5.flatten()])
-
-        xc_from_ds = ds['XC'].values.flatten()
-        yc_from_ds = ds['YC'].values.flatten()
-
-        assert xc.min() == xc_from_ds.min()
-        assert xc.max() == xc_from_ds.max()
-        assert yc.min() == yc_from_ds.min()
-        assert yc.max() == yc_from_ds.max()
-
-    if expected['geometry'] == 'cs':
-        nx = expected['nx'] + 1
-        sizeofd = 8
-
-        grid = expected['gridfile']
-        grid1 = dirname + '/' + grid.replace('<NFACET>', '001')
-        grid2 = dirname + '/' + grid.replace('<NFACET>', '002')
-        grid3 = dirname + '/' + grid.replace('<NFACET>', '003')
-        grid4 = dirname + '/' + grid.replace('<NFACET>', '004')
-        grid5 = dirname + '/' + grid.replace('<NFACET>', '005')
-        grid6 = dirname + '/' + grid.replace('<NFACET>', '006')
-
-
-        xc1 = read_raw_data(grid1, dtype=dtype, shape=(nx, nx),
-                            order='F', partial_read=True)
-        xc2 = read_raw_data(grid2, dtype=dtype, shape=(nx, nx),
-                            order='F', partial_read=True)
-        xc3 = read_raw_data(grid3, dtype=dtype, shape=(nx, nx),
-                            order='F', partial_read=True)
-        xc4 = read_raw_data(grid4, dtype=dtype, shape=(nx, nx),
-                            order='F', partial_read=True)
-        xc5 = read_raw_data(grid5, dtype=dtype, shape=(nx, nx),
-                            order='F', partial_read=True)
-        xc6 = read_raw_data(grid6, dtype=dtype, shape=(nx, nx),
-                            order='F', partial_read=True)
-
-        yc1 = read_raw_data(grid1, dtype=dtype, shape=(nx, nx),
-                            order='F', partial_read=True,
-                            offset=nx * nx * sizeofd)
-        yc2 = read_raw_data(grid2, dtype=dtype, shape=(nx, nx),
-                            order='F', partial_read=True,
-                            offset=nx * nx * sizeofd)
-        yc3 = read_raw_data(grid3, dtype=dtype, shape=(nx, nx),
-                            order='F', partial_read=True,
-                            offset=nx * nx * sizeofd)
-        yc4 = read_raw_data(grid4, dtype=dtype, shape=(nx, nx),
-                            order='F', partial_read=True,
-                            offset=nx * nx * sizeofd)
-        yc5 = read_raw_data(grid5, dtype=dtype, shape=(nx, nx),
-                            order='F', partial_read=True,
-                            offset=nx * nx * sizeofd)
-        yc6 = read_raw_data(grid6, dtype=dtype, shape=(nx, nx),
-                            order='F', partial_read=True,
-                            offset=nx * nx * sizeofd)
-
-        xc = np.concatenate([xc1.flatten(), xc2.flatten(),
-                             xc3.flatten(), xc4.flatten(),
-                             xc5.flatten(), xc6.flatten()])
-
-        yc = np.concatenate([yc1.flatten(), yc2.flatten(),
-                             yc3.flatten(), yc4.flatten(),
-                             yc5.flatten(), yc6.flatten()])
+        yc = np.concatenate([yc1[:-1, :-1].flatten(), yc2[:-1, :-1].flatten(),
+                             yc3[:-1, :-1].flatten(), yc4[:-1, :-1].flatten(),
+                             yc5[:-1, :-1].flatten()])
 
         xc_from_ds = ds['XC'].values.flatten()
         yc_from_ds = ds['YC'].values.flatten()
@@ -1130,11 +1217,9 @@ def test_get_grid_from_input(all_grid_datadirs, usedask, outer):
         with pytest.raises(ValueError):
             ds = get_grid_from_input(dirname + '/' + expected['gridfile'],
                                      geometry=expected['geometry'],
-                                     dtype=np.dtype(expected['precision']),
-                                     endian=expected['endianness'],
+                                     dtype=np.dtype('d'), endian='>',
                                      use_dask=False,
-                                     extra_metadata=None,
-                                     outer=outer)
+                                     extra_metadata=None)
 
 
 @pytest.mark.parametrize("dtype", [np.dtype('d'), np.dtype('f')])
