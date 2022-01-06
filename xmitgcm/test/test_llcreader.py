@@ -1,6 +1,7 @@
 import os
 import re
 import pytest
+import warnings
 from dask.array.core import Array as dsa
 
 llcreader = pytest.importorskip("xmitgcm.llcreader")
@@ -165,7 +166,9 @@ def test_ecco_portal_iterations(llc_global_model):
         iters = [llc_global_model.iter_start, llc_global_model.iter_start + 1]
         llc_global_model.get_dataset(varnames=['Eta'], iters=iters, read_grid=False)
 
-    with pytest.warns(None) as record:
+    with warnings.catch_warnings(record=True) as record:
+        # Make sure only deprecation warnings are triggered
+        warnings.simplefilter("ignore", category=DeprecationWarning)
         llc_global_model.get_dataset(varnames=['Eta'], read_grid=False)
     assert not record
 
@@ -231,7 +234,9 @@ def test_aste_portal_iterations(aste_model):
         iters[1] = iters[1] + 1
         aste_model.get_dataset(varnames=['ETAN'], iters=iters, read_grid=False)
 
-    with pytest.warns(None) as record:
+    with warnings.catch_warnings(record=True) as record:
+        # Make sure only deprecation warnings are triggered
+        warnings.simplefilter("ignore", category=DeprecationWarning)
         iters = aste_model.iters[:2]
         aste_model.get_dataset(varnames=['ETAN'], iters=iters, read_grid=False)
     assert not record
