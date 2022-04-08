@@ -50,6 +50,16 @@ def _get_var_metadata():
     var_metadata = state_variables.copy()
     var_metadata.update(package_state_variables)
     var_metadata.update(available_diags)
+    extra_variables = {
+        f'smooth3Dfld001': {
+            'dims': ['k', 'j', 'i'],
+            'attrs': {
+                'standard_name': 'smooth_fld',
+                'long_name': r'$C\mathbf{z}$',
+            }
+        },
+    }
+    var_metadata.update(extra_variables)
 
     # even the file names from the LLC data differ from standard MITgcm output
     aliases = {'Eta': 'ETAN', 'PhiBot': 'PHIBOT', 'Salt': 'SALT',
@@ -776,14 +786,14 @@ class BaseLLCModel:
             if not set(iters) <= set(self.iters):
                 msg = "Some requested iterations may not exist, you may need to change 'iters'"
                 warnings.warn(msg, RuntimeWarning)
-        
+
         elif self.iter_start is not None and self.iter_step is not None:
             for iter in iters:
                 if (iter - self.iter_start) % self.iter_step:
                     msg = "Some requested iterations may not exist, you may need to change 'iters'"
                     warnings.warn(msg, RuntimeWarning)
                     break
-            
+
 
     def get_dataset(self, varnames=None, iter_start=None, iter_stop=None,
                     iter_step=None, iters=None, k_levels=None, k_chunksize=1,
@@ -838,7 +848,7 @@ class BaseLLCModel:
             if iters is not None:
                 raise ValueError("Only `iters` or the parameters `iter_start`, `iters_stop`, "
                                  "and `iter_step` can be provided. Both were provided")
-            
+
             # Otherwise we can override any missing values
             iter_start = _if_not_none(iter_start, self.iter_start)
             iter_stop = _if_not_none(iter_stop, self.iter_stop)
@@ -849,12 +859,12 @@ class BaseLLCModel:
                                  "and `iter_step` must be defined either by the "
                                  "model class or as argument. Instead got %r "
                                  % iter_params)
-        
+
         # Otherwise try loading from the user set iters
         elif iters is not None:
             pass
 
-        # Now have a go at using the attribute derived iteration parameters 
+        # Now have a go at using the attribute derived iteration parameters
         elif all([a is not None for a in attribute_iter_params]):
             iter_params = attribute_iter_params
 
@@ -867,7 +877,7 @@ class BaseLLCModel:
             raise ValueError("The parameters `iter_start`, `iter_stop`, "
                              "and `iter_step`, or `iters` must be defined either by the "
                              "model class or as argument")
-        
+
         # Check the iter_start and iter_step
         if iters is None:
             self._check_iter_start(iter_params[0])
