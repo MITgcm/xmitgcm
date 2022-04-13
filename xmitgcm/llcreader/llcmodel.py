@@ -37,7 +37,7 @@ def _get_grid_metadata():
 
     return grid_metadata
 
-def _get_var_metadata():
+def _get_var_metadata(extra_variables=None):
     # The LLC run data comes with zero metadata. So we import metadata from
     # the xmitgcm package.
     from ..variables import state_variables, package_state_variables
@@ -50,16 +50,8 @@ def _get_var_metadata():
     var_metadata = state_variables.copy()
     var_metadata.update(package_state_variables)
     var_metadata.update(available_diags)
-    extra_variables = {
-        f'smooth3Dfld001': {
-            'dims': ['k', 'j', 'i'],
-            'attrs': {
-                'standard_name': 'smooth_fld',
-                'long_name': r'$C\mathbf{z}$',
-            }
-        },
-    }
-    var_metadata.update(extra_variables)
+    if extra_variables is not None:
+        var_metadata.update(extra_variables)
 
     # even the file names from the LLC data differ from standard MITgcm output
     aliases = {'Eta': 'ETAN', 'PhiBot': 'PHIBOT', 'Salt': 'SALT',
@@ -72,54 +64,7 @@ def _get_var_metadata():
 
     return var_metadata
 
-_VAR_METADATA = _get_var_metadata()
 
-def _is_vgrid(vname):
-    # check for 1d, vertical grid variables
-    dims = _VAR_METADATA[vname]['dims']
-    return len(dims)==1 and dims[0][0]=='k'
-
-def _get_variable_point(vname, mask_override):
-    # fix for https://github.com/MITgcm/xmitgcm/issues/191
-    if vname in mask_override:
-        return mask_override[vname]
-    dims = _VAR_METADATA[vname]['dims']
-    if 'i' in dims and 'j' in dims:
-        point = 'c'
-    elif 'i_g' in dims and 'j' in dims:
-        point = 'w'
-    elif 'i' in dims and 'j_g' in dims:
-        point = 's'
-    elif 'i_g' in dims and 'j_g' in dims:
-        raise ValueError("Don't have masks for corner points!")
-    else:
-        raise ValueError("Variable `%s` is not a horizontal variable." % vname)
-    return point
-
-def _get_scalars_and_vectors(varnames, type):
-
-    for vname in varnames:
-        if vname not in _VAR_METADATA:
-            raise ValueError("Varname `%s` not found in metadata." % vname)
-
-    if type != 'latlon':
-        return varnames, []
-
-    scalars = []
-    vector_pairs = []
-    for vname in varnames:
-        meta = _VAR_METADATA[vname]
-        try:
-            mate = meta['attrs']['mate']
-            if mate not in varnames:
-                raise ValueError("Vector pairs are required to create "
-                                 "latlon type datasets. Varname `%s` is "
-                                 "missing its vector mate `%s`"
-                                 % vname, mate)
-            vector_pairs.append((vname, mate))
-            varnames.remove(mate)
-        except KeyError:
-            scalars.append(vname)
 
 def _decompress(data, mask, dtype):
     data_blank = np.full_like(mask, np.nan, dtype=dtype)
@@ -604,6 +549,7 @@ class BaseLLCModel:
     varnames = []
     grid_varnames = []
     mask_override = {}
+    var_metadata = None
     domain = 'global'
     pad_before = [0]*_nfacets
     pad_after  = [0]*_nfacets
@@ -641,6 +587,53 @@ class BaseLLCModel:
             return self.dtype
         elif isinstance(self.dtype,dict):
             return np.dtype(self.dtype[varname])
+
+    def _is_vgrid(self, vname):
+        # check for 1d, vertical grid variables
+        dims = self.var_metadata[vname]['dims']
+        return len(dims)==1 and dims[0][0]=='k'
+
+    def _get_variable_point(self, vname, mask_override):
+        # fix for https://github.com/MITgcm/xmitgcm/issues/191
+        if vname in mask_override:
+            return mask_override[vname]
+        dims = self.var_metadata[vname]['dims']
+        if 'i' in dims and 'j' in dims:
+            point = 'c'
+        elif 'i_g' in dims and 'j' in dims:
+            point = 'w'
+        elif 'i' in dims and 'j_g' in dims:
+            point = 's'
+        elif 'i_g' in dims and 'j_g' in dims:
+            raise ValueError("Don't have masks for corner points!")
+        else:
+            raise ValueError("Variable `%s` is not a horizontal variable." % vname)
+        return point
+
+    def _get_scalars_and_vectors(self, varnames, type):
+
+        for vname in varnames:
+            if vname not in self.var_metadata:
+                raise ValueError("Varname `%s` not found in metadata." % vname)
+
+        if type != 'latlon':
+            return varnames, []
+
+        scalars = []
+        vector_pairs = []
+        for vname in varnames:
+            meta = self.var_metadata[vname]
+            try:
+                mate = meta['attrs']['mate']
+                if mate not in varnames:
+                    raise ValueError("Vector pairs are required to create "
+                                     "latlon type datasets. Varname `%s` is "
+                                     "missing its vector mate `%s`"
+                                     % vname, mate)
+                vector_pairs.append((vname, mate))
+                varnames.remove(mate)
+            except KeyError:
+                scalars.append(vname)
 
     def _get_kp1_levels(self,k_levels):
         # determine kp1 levels
@@ -739,7 +732,7 @@ class BaseLLCModel:
         name = '-'.join([varname, token])
         dtype = self._dtype(varname)
 
-        nz = self.nz if _VAR_METADATA[varname]['dims'] != ['k_p1'] else self.nz+1
+        nz = self.nz if self.var_metadata[varname]['dims'] != ['k_p1'] else self.nz+1
         task = (_get_1d_chunk, self.store, varname,
                 list(klevels), nz, dtype)
 
@@ -750,12 +743,12 @@ class BaseLLCModel:
 
     def _get_facet_data(self, varname, iters, klevels, k_chunksize):
         # needs facets to be outer index of nested lists
-        dims = _VAR_METADATA[varname]['dims']
+        dims = self.var_metadata[varname]['dims']
 
         if len(dims)==2:
             klevels = [0,]
 
-        if _is_vgrid(varname):
+        if self._is_vgrid(varname):
             data_facets = self._dask_array_vgrid(varname,klevels,k_chunksize)
         else:
             data_facets = [self._dask_array(nfacet, varname, iters, klevels, k_chunksize)
@@ -797,7 +790,8 @@ class BaseLLCModel:
 
     def get_dataset(self, varnames=None, iter_start=None, iter_stop=None,
                     iter_step=None, iters=None, k_levels=None, k_chunksize=1,
-                    type='faces', read_grid=True, grid_vars_to_coords=True):
+                    type='faces', read_grid=True, grid_vars_to_coords=True,
+                    extra_variables=None):
         """
         Create an xarray Dataset object for this model.
 
@@ -827,6 +821,22 @@ class BaseLLCModel:
             Whether to read the grid info
         grid_vars_to_coords : bool, optional
             Whether to promote grid variables to coordinate status
+        extra_variables : dict, optional
+            Allow to pass variables not listed in the variables.py
+            or in available_diagnostics.log.
+            extra_variables must be a dict containing the variable names as keys with
+            the corresponging values being a dict with the keys being dims and attrs.
+
+            Syntax:
+            extra_variables = dict(varname = dict(dims=list_of_dims, attrs=dict(optional_attrs)))
+            where optional_attrs can contain standard_name, long_name, units as keys
+
+            Example:
+            extra_variables = dict(
+            ADJtheta = dict(dims=['k','j','i'], attrs=dict(
+                    standard_name='Sensitivity_to_theta',
+                    long_name='Sensitivity of cost function to theta', units='[J]/degC'))
+                     )
 
         Returns
         -------
@@ -839,6 +849,7 @@ class BaseLLCModel:
             else:
                 return a
 
+        self.var_metadata = _get_var_metadata(extra_variables=extra_variables)
         user_iter_params = [iter_start, iter_stop, iter_step]
         attribute_iter_params = [self.iter_start, self.iter_stop, self.iter_step]
 
@@ -916,7 +927,7 @@ class BaseLLCModel:
         # do separately for vertical coords on kp1_levels
         grid_facets = {}
         for vname in grid_varnames:
-            my_k_levels = k_levels if _VAR_METADATA[vname]['dims'] !=['k_p1'] else kp1_levels
+            my_k_levels = k_levels if self.var_metadata[vname]['dims'] !=['k_p1'] else kp1_levels
             grid_facets[vname] = self._get_facet_data(vname, None, my_k_levels, k_chunksize)
 
         # transform it into faces or latlon
@@ -924,22 +935,22 @@ class BaseLLCModel:
                              'latlon': _all_facets_to_latlon}
 
         transformer = data_transformers[type]
-        data = transformer(data_facets, _VAR_METADATA, self.nface)
+        data = transformer(data_facets, self.var_metadata, self.nface)
 
         # separate horizontal and vertical grid variables
         hgrid_facets = {key: grid_facets[key]
-                for key in grid_varnames if not _is_vgrid(key)}
+                for key in grid_varnames if not self._is_vgrid(key)}
         vgrid_facets = {key: grid_facets[key]
-                for key in grid_varnames if _is_vgrid(key)}
+                for key in grid_varnames if self._is_vgrid(key)}
 
         # do not transform vertical grid variables
-        data.update(transformer(hgrid_facets, _VAR_METADATA, self.nface))
+        data.update(transformer(hgrid_facets, self.var_metadata, self.nface))
         data.update(vgrid_facets)
 
         variables = {}
         gridlist = ['Zl','Zu'] if read_grid else []
         for vname in varnames+grid_varnames:
-            meta = _VAR_METADATA[vname]
+            meta = self.var_metadata[vname]
             dims = meta['dims']
             if type=='faces':
                 dims = _add_face_to_dims(dims)
@@ -958,9 +969,9 @@ class BaseLLCModel:
         if read_grid and 'RF' in grid_varnames:
             ki = np.array([list(kp1_levels).index(x) for x in k_levels])
             for zv,sl in zip(['Zl','Zu'],[ki,ki+1]):
-                variables[zv] = xr.Variable(_VAR_METADATA[zv]['dims'],
+                variables[zv] = xr.Variable(self.var_metadata[zv]['dims'],
                                             data['RF'][sl],
-                                            _VAR_METADATA[zv]['attrs'])
+                                            self.var_metadata[zv]['attrs'])
 
         ds = ds.update(variables)
 

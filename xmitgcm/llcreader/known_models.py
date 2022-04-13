@@ -267,17 +267,3 @@ class SverdrupASTE270Model(ASTE270Model):
                                    shrunk=True, join_char='/')
 
         super(SverdrupASTE270Model, self).__init__(store)
-
-#class SverdrupSmoothLLC90Model(SmoothLLC90Model):
-#    @_requires_sverdrup
-#    def __init__(self):
-#        from fsspec.implementations.local import LocalFileSystem
-#        fs = LocalFileSystem()
-#        base_path = '/scratch2/shared/aste-release1/diags'
-#        grid_path = '/scratch2/shared/aste-release1/grid'
-#        mask_path = '/scratch2/shared/aste-release1/masks.zarr'
-#        store = stores.NestedStore(fs, base_path=base_path, grid_path=grid_path,
-#                                   mask_path=mask_path,
-#                                   shrunk=True, join_char='/')
-#
-#        super(SverdrupASTE270Model, self).__init__(store)

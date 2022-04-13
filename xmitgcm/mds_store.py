@@ -60,7 +60,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     nx=None, ny=None, nz=None,
                     llc_method="smallchunks", extra_metadata=None,
                     extra_variables=None,
-                    custom_grid_variables={}):
+                    custom_grid_variables=None):
     """Open MITgcm-style mds (.data / .meta) file output as xarray datset.
 
     Parameters
@@ -382,7 +382,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                  nx=None, ny=None, nz=None, llc_method="smallchunks",
                  levels=None, extra_metadata=None,
                  extra_variables=None,
-                 custom_grid_variables={}):
+                 custom_grid_variables=None):
         """
         This is not a user-facing class. See open_mdsdataset for argument
         documentation. The only ones which are distinct are.
@@ -869,17 +869,18 @@ def _get_extra_grid_variables(grid_dir, custom_grid_variables):
        Then return the variable information for each of these"""
     extra_grid = {}
 
-    all_extras = {**extra_grid_variables, **custom_grid_variables}
-    fnames = dict([[val['filename'],key] for key,val in all_extras.items() if 'filename' in val])
+    if custom_grid_variables is not None:
+        extra_grid_variables = extra_grid_variables.update(custom_grid_variables)
+    fnames = dict([[val['filename'],key] for key,val in extra_grid_variables.items() if 'filename' in val])
 
     all_datafiles = listdir_endswith(grid_dir, '.data')
     for f in all_datafiles:
         prefix = os.path.split(f[:-5])[-1]
         # Only consider what we find that matches extra/custom_grid_vars
-        if prefix in all_extras:
-            extra_grid[prefix] = all_extras[prefix]
+        if prefix in extra_grid_variables:
+            extra_grid[prefix] = extra_grid_variables[prefix]
         elif prefix in fnames:
-            extra_grid[fnames[prefix]] = all_extras[fnames[prefix]]
+            extra_grid[fnames[prefix]] = extra_grid_variables[fnames[prefix]]
 
     return extra_grid
 
