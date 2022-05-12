@@ -159,7 +159,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
     ----------
     .. [1] http://cfconventions.org/Data/cf-conventions/cf-conventions-1.7/build/ch04s04.html
     """
-    
+
     # get frame info for history
     frame = inspect.currentframe()
     _, _, _, arg_values = inspect.getargvalues(frame)
@@ -239,6 +239,17 @@ def open_mdsdataset(data_dir, grid_dir=None,
                 datasets = [open_mdsdataset(
                         data_dir, iters=iternum, read_grid=False, **kwargs)
                     for iternum in iters]
+                # drop all data variables not common to the datasets,
+                # this should be done by xr.combine_by_coords, but
+                # with the "overide" option, it does not work properly
+                this_set = set(datasets[0].data_vars)
+                for ds in datasets:
+                    this_set = set(ds.data_vars) & this_set
+                for k, ds in enumerate(datasets):
+                    vars_to_drop = set(ds.data_vars) ^ this_set
+                    if len(vars_to_drop) > 0:
+                        print("dropping variables: ",vars_to_drop)
+                        datasets[k] = ds.drop_vars(vars_to_drop)
                 # now add the grid
                 if read_grid:
                     if 'iters' in kwargs:
@@ -278,7 +289,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
                           nx=nx, ny=ny, nz=nz, llc_method=llc_method,
                           levels=levels, extra_metadata=extra_metadata,
                          extra_variables=extra_variables)
-    
+
     ds = xr.Dataset.load_store(store)
     if swap_dims:
         ds = _swap_dimensions(ds, geometry)
