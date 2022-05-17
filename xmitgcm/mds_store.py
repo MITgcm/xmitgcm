@@ -58,7 +58,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     endian=">", chunks=None,
                     ignore_unknown_vars=False, default_dtype=None,
                     nx=None, ny=None, nz=None,
-                    llc_method="smallchunks", extra_metadata=None, 
+                    llc_method="smallchunks", extra_metadata=None,
                     extra_variables=None):
     """Open MITgcm-style mds (.data / .meta) file output as xarray datset.
 
@@ -242,14 +242,17 @@ def open_mdsdataset(data_dir, grid_dir=None,
                 # drop all data variables not common to the datasets,
                 # this should be done by xr.combine_by_coords, but
                 # with the "overide" option, it does not work properly
-                this_set = set(datasets[0].data_vars)
+                all_data_vars = set(datasets[0].data_vars)
                 for ds in datasets:
-                    this_set = set(ds.data_vars) & this_set
+                    all_data_vars = set(ds.data_vars) & all_data_vars
+                dropped_vars = set()
                 for k, ds in enumerate(datasets):
-                    vars_to_drop = set(ds.data_vars) ^ this_set
+                    vars_to_drop = set(ds.data_vars) ^ all_data_vars
                     if len(vars_to_drop) > 0:
-                        print("dropping variables: ",vars_to_drop)
                         datasets[k] = ds.drop_vars(vars_to_drop)
+                        dropped_vars = set(vars_to_drop) | dropped_vars
+                if len(dropped_vars) > 0:
+                    print("dropped these variables: ",dropped_vars)
                 # now add the grid
                 if read_grid:
                     if 'iters' in kwargs:
