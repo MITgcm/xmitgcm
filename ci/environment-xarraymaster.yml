@@ -10,9 +10,11 @@ dependencies:
   - zarr
   - cftime
   - aiohttp
+  - pytest-cov
+  - codecov
+  - fsspec
+  - cachetools
+  - git
+  - pip
   - pip:
-    - cachetools
     - git+https://github.com/pydata/xarray.git
-    - fsspec
-    - codecov
-    - pytest-cov
