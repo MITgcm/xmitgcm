@@ -3,6 +3,7 @@ import re
 import pytest
 import warnings
 from dask.array.core import Array as dsa
+from dask.array.core import PerformanceWarning
 
 llcreader = pytest.importorskip("xmitgcm.llcreader")
 
@@ -169,6 +170,7 @@ def test_ecco_portal_iterations(llc_global_model):
     with warnings.catch_warnings(record=True) as record:
         # Make sure only deprecation warnings are triggered
         warnings.simplefilter("ignore", category=DeprecationWarning)
+        warnings.simplefilter("ignore", category=PerformanceWarning)
         llc_global_model.get_dataset(varnames=['Eta'], read_grid=False)
     assert not record
 
