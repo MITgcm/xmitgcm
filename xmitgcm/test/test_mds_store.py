@@ -4,6 +4,7 @@ import xarray as xr
 from glob import glob
 from shutil import copyfile
 import py
+import re
 
 _TESTDATA_FILENAME = 'testdata.tar.gz'
 _TESTDATA_ITERS = [39600, ]
@@ -637,5 +638,51 @@ def test_levels_diagnostics(mds_datadirs_with_inputfiles):
         assert ds['Zl'].values[idx] == value
 
         with pytest.warns(UserWarning, match='nz will be ignored'):
-            xmitgcm.open_mdsdataset(dirname, prefix=[diagname], levels=levels, 
+            xmitgcm.open_mdsdataset(dirname, prefix=[diagname], levels=levels,
                                     geometry=expected['geometry'], nz=12)
+
+
+def test_drop_uncommon_diagnostics(llc_mds_datadirs):
+    """Make sure when uncommon diagnostics exist, drop them"""
+
+    dirname, expected = llc_mds_datadirs
+    diag_prefix, expected_diags = expected['diagnostics']
+    iternum = expected['test_iternum']
+
+    # copy meta/data diagnostics pair
+    copyfile(os.path.join(dirname, f"{diag_prefix}.{iternum:010d}.data"),
+             os.path.join(dirname, f"{diag_prefix}.{iternum+1:010d}.data"))
+    copyfile(os.path.join(dirname, f"{diag_prefix}.{iternum:010d}.meta"),
+             os.path.join(dirname, f"{diag_prefix}.{iternum+1:010d}.meta"))
+
+    # modify meta file to "hide" a variable
+    metafname = os.path.join(dirname, f"{diag_prefix}.{iternum+1:010d}.meta")
+    with open(metafname, 'r') as f:
+        meta = f.read()
+
+    # replace nrecords and nFlds with N-1 in the meta file
+    for item in ['nrecords', 'nFlds']:
+
+        regex = r"^(\s+%s = \[\s+)(\d+)(\s?\];\n)" % item
+        matches = re.search(regex, meta, re.MULTILINE)
+        numrecs = int(matches.groups()[1])
+
+        substr = f"\\g<1>{numrecs-1}\\g<3>"
+        meta = re.sub(regex, substr, meta, 1, re.MULTILINE)
+
+    # remove ETAN
+    meta = meta.replace("'ETAN    ' ","")
+
+    # rewrite
+    with open(metafname, 'w') as f:
+        f.write(meta)
+
+    with pytest.warns(UserWarning, match="dropped these variables"):
+        ds = xmitgcm.open_mdsdataset(dirname,
+                                     read_grid=False,
+                                     iters=[iternum, iternum+1],
+                                     prefix=[diag_prefix],
+                                     geometry=expected['geometry'])
+
+    assert 'ETAN' not in ds
+    assert len(ds.data_vars) == numrecs-1

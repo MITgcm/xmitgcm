@@ -242,9 +242,9 @@ def open_mdsdataset(data_dir, grid_dir=None,
                 # drop all data variables not common to the datasets,
                 # this should be done by xr.combine_by_coords, but
                 # with the "overide" option, it does not work properly
-                all_data_vars = set(datasets[0].data_vars)
-                for ds in datasets:
-                    all_data_vars = set(ds.data_vars) & all_data_vars
+                if len(datasets)>0:
+                    all_data_vars = [set(ds.data_vars) for ds in datasets]
+                    all_data_vars = set.intersection(*all_data_vars)
                 dropped_vars = set()
                 for k, ds in enumerate(datasets):
                     vars_to_drop = set(ds.data_vars) ^ all_data_vars
@@ -252,7 +252,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
                         datasets[k] = ds.drop_vars(vars_to_drop)
                         dropped_vars = set(vars_to_drop) | dropped_vars
                 if len(dropped_vars) > 0:
-                    print("dropped these variables: ",dropped_vars)
+                    warnings.warn(f"dropped these variables: {dropped_vars}")
                 # now add the grid
                 if read_grid:
                     if 'iters' in kwargs:
