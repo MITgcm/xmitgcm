@@ -688,6 +688,3 @@ def test_levels_diagnostics(mds_datadirs_with_inputfiles):
         with pytest.warns(UserWarning, match='nz will be ignored'):
             xmitgcm.open_mdsdataset(dirname, prefix=[diagname], levels=levels,
                                     geometry=expected['geometry'], nz=12)
-
-
-
