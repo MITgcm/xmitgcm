@@ -839,7 +839,7 @@ def _guess_layers(data_dir):
     return all_layers
 
 
-def _get_all_grid_variables(geometry, grid_dir=None, layers={}, custom_grid_variables={}):
+def _get_all_grid_variables(geometry, grid_dir=None, layers={}, custom_grid_variables=None):
     """"Put all the relevant grid metadata into one big dictionary."""
     possible_hcoords = {'cartesian': horizontal_coordinates_cartesian,
                         'llc': horizontal_coordinates_llc,
@@ -870,7 +870,8 @@ def _get_extra_grid_variables(grid_dir, custom_grid_variables):
     extra_grid = {}
 
     if custom_grid_variables is not None:
-        extra_grid_variables = extra_grid_variables.update(custom_grid_variables)
+        extra_grid_variables.update(custom_grid_variables)
+
     fnames = dict([[val['filename'],key] for key,val in extra_grid_variables.items() if 'filename' in val])
 
     all_datafiles = listdir_endswith(grid_dir, '.data')
