@@ -946,6 +946,24 @@ def test_parse_diagnostics(all_mds_datadirs, layers_mds_datadirs):
         assert ad[key] == val
 
 
+def test_parse_diagnostics_bad_levels(tmpdir):
+    from xmitgcm.utils import parse_available_diagnostics
+    # Try parsing a 'bad' available_diagnostics.log file
+    bad_diags_path = tmpdir / 'available_diagnostics.log'
+    with open(bad_diags_path, 'x') as bad_diags:
+        bad_diags.writelines(["", "", "", ""])
+        bad_diags.write("    26 |THETA   |*** |       |SMR     MR|degC            |Potential Temperature")
+    
+    ad = parse_available_diagnostics(bad_diags_path)
+    expected_diags = {
+        'THETA': {'dims': ['k', 'j', 'i'],
+                     'attrs': {'units': 'degC',
+                               'long_name': 'Potential Temperature',
+                               'standard_name': 'THETA'}},
+    }
+    for key, val in expected_diags.items():
+        assert ad[key] == val
+
 @pytest.mark.parametrize("domain", ['llc', 'aste', 'cs'])
 @pytest.mark.parametrize("nx", [90, 270])
 def test_get_extra_metadata(domain, nx):

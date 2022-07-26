@@ -492,7 +492,10 @@ def parse_available_diagnostics(fname, layers={}):
                 key = c[1].strip()
                 diag_id = int(c[0].strip())
                 diag_id_lookup[diag_id] = key
-                levs = int(c[2].strip())
+                try:
+                    levs = int(c[2].strip())
+                except ValueError:
+                    levs = np.NaN
                 mate = c[3].strip()
                 if mate:
                     mate = int(mate)
