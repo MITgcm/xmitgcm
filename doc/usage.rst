@@ -281,7 +281,7 @@ To download an example llc dataset, run the following shell commands::
 And to read it, in python::
 
     ds_llc = open_mdsdataset('./global_oce_llc90/', iters=8, geometry='llc')
-    print(ds_llc['S']dims)
+    print(ds_llc['S'].dims)
     >>> ('time', 'k', 'face', 'j', 'i')
 
 xmitgcm is not nearly as comprehensive as gcmfaces_. It does not offer
