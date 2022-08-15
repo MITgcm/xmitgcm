@@ -1267,7 +1267,7 @@ def get_extra_metadata(domain='llc', nx=90):
         all extra_metadata to handle multi-faceted grids
     """
 
-    available_domains = ['llc', 'aste', 'nesba', 'cs']
+    available_domains = ['llc', 'aste', 'nesba', 'aste1080', 'cs']
     if domain not in available_domains:
         raise ValueError('not an available domain')
 
@@ -1302,6 +1302,17 @@ def get_extra_metadata(domain='llc', nx=90):
             'face_offsets': [0],
             'transpose_face': [True]}
 
+    aste1080 = {'has_faces': True, 'ny': int(23*nx/6.), 'nx': nx,
+            'ny_facets': [int(7*nx/6.), 0, nx,
+                          int(nx/2.), int(7*nx/6.)],
+            'pad_before_y': [int(15*nx/18.), 0, 0, 0, 0],
+            'pad_after_y': [0, 0, 0, int(nx/2.), int(15*nx/18.)],
+            'face_facets': [0, 0, 2, 3, 4, 4],
+            'facet_orders': ['C', 'C', 'C', 'F', 'F'],
+            'face_offsets': [0, 1, 0, 0, 0, 1],
+            'transpose_face': [False, False, False,
+                               True, True, True]}
+
     cs = {'has_faces': True, 'ny': nx, 'nx': nx,
           'ny_facets': [nx, nx, nx, nx, nx, nx],
           'face_facets': [0, 1, 2, 3, 4, 5],
@@ -1316,6 +1327,8 @@ def get_extra_metadata(domain='llc', nx=90):
         extra_metadata = aste
     elif domain =='nesba':
         extra_metadata = nesba
+    elif domain == 'aste1080':
+        extra_metadata = aste1080
     elif domain == 'cs':
         extra_metadata = cs
 
@@ -1676,6 +1689,7 @@ def rebuild_llc_facets(da, extra_metadata):
 
     # if present, remove padding from facets
     for kfacet in range(nfacets):
+
         concat_dim, non_concat_dim = find_concat_dim_facet(
             da, kfacet, extra_metadata)
 
