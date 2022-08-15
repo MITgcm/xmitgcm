@@ -1705,7 +1705,7 @@ def llc_facets_3d_spatial_to_compact(facets, dimname, extra_metadata):
         all the data in vector form
     """
 
-    nz = len(facets['facet0'][dimname])
+    nz = len(facets['facet4'][dimname])
     nfacets = len(facets)
     flatdata = np.array([])
 
