@@ -1267,7 +1267,7 @@ def get_extra_metadata(domain='llc', nx=90):
         all extra_metadata to handle multi-faceted grids
     """
 
-    available_domains = ['llc', 'aste', 'cs']
+    available_domains = ['llc', 'aste', 'nesba', 'cs']
     if domain not in available_domains:
         raise ValueError('not an available domain')
 
@@ -1292,6 +1292,16 @@ def get_extra_metadata(domain='llc', nx=90):
             'transpose_face': [False, False, False,
                                True, True, True]}
 
+    nesba = {'has_faces': True, 
+            'ny': 270, 'nx': 270,
+            'ny_facets': [270],
+            'pad_before_y': [0, 0, 0, 0, 0],
+            'pad_after_y': [0, 0, 0, 0, 0],
+            'face_facets': [4],
+            'facet_orders': ['C', 'C', 'C', 'F', 'F'],
+            'face_offsets': [0],
+            'transpose_face': [True]}
+
     cs = {'has_faces': True, 'ny': nx, 'nx': nx,
           'ny_facets': [nx, nx, nx, nx, nx, nx],
           'face_facets': [0, 1, 2, 3, 4, 5],
@@ -1304,6 +1314,8 @@ def get_extra_metadata(domain='llc', nx=90):
         extra_metadata = llc
     elif domain == 'aste':
         extra_metadata = aste
+    elif domain =='nesba':
+        extra_metadata = nesba
     elif domain == 'cs':
         extra_metadata = cs
 
@@ -1587,7 +1599,8 @@ def find_concat_dim_facet(da, facet, extra_metadata):
     # we also need to other horizontal dimension for vector indexing
     all_dims = list(da.dims)
     # discard face
-    all_dims.remove('face')
+    if 'face' in all_dims:
+        all_dims.remove('face')
     # remove the concat_dim to find horizontal non_concat dimension
     all_dims.remove(concat_dim)
     non_concat_dim = all_dims[0]
@@ -1652,10 +1665,10 @@ def rebuild_llc_facets(da, extra_metadata):
             if extra_metadata['face_facets'][kface] == kfacet:
                 if extra_metadata['face_offsets'][kface] == 0:
                     # first face of facet
-                    tmp = da.sel(face=kface)
+                    tmp = da.isel(face=kface)
                 else:
                     # any other face needs to be concatenated
-                    newface = da.sel(face=kface)
+                    newface = da.isel(face=kface)
                     tmp = xr.concat([facets['facet' + str(kfacet)],
                                      newface], dim=concat_dim)
 
@@ -1663,7 +1676,6 @@ def rebuild_llc_facets(da, extra_metadata):
 
     # if present, remove padding from facets
     for kfacet in range(nfacets):
-
         concat_dim, non_concat_dim = find_concat_dim_facet(
             da, kfacet, extra_metadata)
 
@@ -1721,7 +1733,7 @@ def llc_facets_3d_spatial_to_compact(facets, dimname, extra_metadata):
         all the data in vector form
     """
 
-    nz = len(facets['facet0'][dimname])
+    nz = len(facets['facet4'][dimname])
     nfacets = len(facets)
     flatdata = np.array([])
 
