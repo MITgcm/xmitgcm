@@ -21,7 +21,7 @@ Requirements
 ^^^^^^^^^^^^
 
 xmitgcm is compatible with python >=3.7. It requires xarray_
-(>= version 0.11.0) and dask_ (>= version 1.0).
+(>= version 0.14.1) and dask_ (>= version 1.0).
 These packages are most reliably installed via the
 `conda <https://conda.pydata.org/docs/>`_ environment management
 system, which is part of the Anaconda_ python distribution. Assuming you have

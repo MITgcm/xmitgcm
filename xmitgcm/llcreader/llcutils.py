@@ -8,7 +8,7 @@ def load_masks_from_mds(grid_dir):
     import xmitgcm
     ds = xmitgcm.open_mdsdataset(grid_dir, iters=None, geometry='llc')
 
-    points = ['W', 'W', 'S']
+    points = ['C', 'W', 'S']
     masks = [ds['hfac' + point].reset_coords(drop=True).rename('mask' + point)
              for point in points]
     ds_mask = xr.merge(masks)
