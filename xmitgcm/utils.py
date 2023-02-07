@@ -1267,7 +1267,7 @@ def get_extra_metadata(domain='llc', nx=90):
         all extra_metadata to handle multi-faceted grids
     """
 
-    available_domains = ['llc', 'aste', 'nesba', 'aste1080', 'cs']
+    available_domains = ['llc', 'aste', 'nesb', 'aste1080', 'cs']
     if domain not in available_domains:
         raise ValueError('not an available domain')
 
@@ -1292,9 +1292,9 @@ def get_extra_metadata(domain='llc', nx=90):
             'transpose_face': [False, False, False,
                                True, True, True]}
 
-    nesba = {'has_faces': True, 
-            'ny': 270, 'nx': 270,
-            'ny_facets': [270],
+    nesb = {'has_faces': True, 
+            'ny': 170, 'nx': 220,
+            'ny_facets': [170],
             'pad_before_y': [0, 0, 0, 0, 0],
             'pad_after_y': [0, 0, 0, 0, 0],
             'face_facets': [4],
@@ -1325,8 +1325,8 @@ def get_extra_metadata(domain='llc', nx=90):
         extra_metadata = llc
     elif domain == 'aste':
         extra_metadata = aste
-    elif domain =='nesba':
-        extra_metadata = nesba
+    elif domain =='nesb':
+        extra_metadata = nesb
     elif domain == 'aste1080':
         extra_metadata = aste1080
     elif domain == 'cs':
