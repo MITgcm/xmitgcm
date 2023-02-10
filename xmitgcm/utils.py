@@ -1294,9 +1294,9 @@ def get_extra_metadata(domain='llc', nx=90):
 
     nesb = {'has_faces': True, 
             'ny': 170, 'nx': 220,
-            'ny_facets': [170],
-            'pad_before_y': [0, 0, 0, 0, 0],
-            'pad_after_y': [0, 0, 0, 0, 0],
+            'ny_facets': [0,0,0,0,170],
+            'pad_before_y': [0, 0, 0, 0, 2644],
+            'pad_after_y': [0, 0, 0, 0, 1506],
             'face_facets': [4],
             'facet_orders': ['C', 'C', 'C', 'F', 'F'],
             'face_offsets': [0],
