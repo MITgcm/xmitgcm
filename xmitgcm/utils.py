@@ -1105,16 +1105,26 @@ def _read_xy_chunk(variable, file_metadata, rec=0, lev=0, face=0,
 
     # 1. compute offset_variable, init to zero
     offset_vars = 0
-    # loop on variables before the one to read
-    for jvar in np.arange(idx_var):
-        # inspect its dimensions
-        dims = file_metadata['dims_vars'][jvar]
-        # compute the byte size of this variable
+    # if var list is a single element
+    if idx_var == 0:
+        dims = file_metadata['dims_vars']
         nbytes_thisvar = 1*nbytes
         for dim in dims:
             nbytes_thisvar = nbytes_thisvar*file_metadata[dim]
         # update offset from previous variables
         offset_vars = offset_vars+nbytes_thisvar
+
+    # loop on variables before the one to read
+    else:
+        for jvar in np.arange(idx_var):
+            # inspect its dimensions
+            dims = file_metadata['dims_vars'][jvar]
+            # compute the byte size of this variable
+            nbytes_thisvar = 1*nbytes
+            for dim in dims:
+                nbytes_thisvar = nbytes_thisvar*file_metadata[dim]
+            # update offset from previous variables
+            offset_vars = offset_vars+nbytes_thisvar
 
     # 2. get dimensions of desired variable
     dims = file_metadata['dims_vars'][idx_var]
@@ -1292,7 +1302,7 @@ def get_extra_metadata(domain='llc', nx=90):
             'transpose_face': [False, False, False,
                                True, True, True]}
 
-    nesb = {'has_faces': True, 
+    nesb = {'has_faces': False, 
             'ny': 170, 'nx': 220,
             'ny_facets': [0,0,0,0,170],
             'pad_before_y': [0, 0, 0, 0, 2644],
