@@ -1,5 +1,6 @@
 
 import json
+import numpy as np
 import pytest
 import tempfile
 
@@ -25,3 +26,11 @@ def test_var_zarray(var_lat):
     attrs = v['.zarray']
     attrs = json.loads(attrs)
     assert "chunks" in attrs
+
+def test_var_data(var_lat):
+    v = VarZ(var_lat, 'lat')
+
+    data = v['0']
+    data = np.frombuffer(data)
+    assert np.all(data == np.array([10., 11., 12.]))
+
