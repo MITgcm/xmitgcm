@@ -14,7 +14,7 @@ class VarZ():
             # How to guess this?
             return json.dumps({
                 # "_ARRAY_DIMENSIONS": ["lon", "lat", "depth"]
-                "_ARRAY_DIMENSIONS": ["time"]
+                "_ARRAY_DIMENSIONS": ["lat"]
             })
         elif key == ".zarray":
             return json.dumps({
