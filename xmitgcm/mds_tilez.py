@@ -1,8 +1,34 @@
 
 from collections.abc import Container
+from collections import UserDict
+from dataclasses import dataclass
 import json
+import os.path
 
+from fsspec.implementations.reference import ReferenceFileSystem
 import numpy as np
+import xarray as xr
+
+from xmitgcm.utils import parse_meta_file
+
+@dataclass()
+class Chunk():
+    """
+    Handles one chunk of one variable. For instance, it could be:
+    S.0000000000.001.001.data
+    S.0000000000.001.001.meta
+
+    metafilename = "/Users/castelao/work/projects/others/MIT_tiles/data/mitgcm/S.0000000000.001.001.meta"
+    """
+    root: str
+    varname: str
+
+    def __fspath__(self):
+        return os.path.join(self.root, "S.0000000000.001.001.data")
+
+    def from_meta(filename):
+        metadata = parse_meta_file(filename)
+
 
 class VarZ():
     def __init__(self, path: str, varname: str):
