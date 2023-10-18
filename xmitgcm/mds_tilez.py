@@ -20,11 +20,37 @@ class Chunk():
 
     metafilename = "/Users/castelao/work/projects/others/MIT_tiles/data/mitgcm/S.0000000000.001.001.meta"
     """
-    root: str
-    varname: str
+    filename: str
+    metadata: dict
 
     def __fspath__(self):
-        return os.path.join(self.root, "S.0000000000.001.001.data")
+        return os.path.join(self.root, self._fdata)
+
+    @property
+    def varnames(self):
+        try:
+            return self._varnames
+        except:
+            if "fldList" in metadata:
+                self._varnames = metadata['fldList']
+            else:
+                self._varnames = os.path.basename(filename).split('.')[0]
+            return self._varnames
+
+    @property
+    def index(self):
+        idx = []
+        for d in metadata['dimList']:
+            idx.append(str((d[1] - 1) //  (d[2] - d[1]+1)))
+
+        return ".".join(idx)
+
+    @property
+    def labels(self):
+        size = np.prod([(d[2] - d[1] + 1) for d in self.metadata['dimList']])
+        size *= self.metadata['dataprec'].itemsize # f32
+
+        return {f"{v}/{self.index}": [self.filename, i*size, (i+1)*size] for i,v in enumerate(self.varnames)}
 
     def from_meta(filename):
         metadata = parse_meta_file(filename)
