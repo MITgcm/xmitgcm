@@ -69,11 +69,11 @@ class Chunk():
 
     @property
     def shape(self):
-        return tuple(s[0] for s in x.metadata['dimList'])
+        return tuple(s[0] for s in self.metadata['dimList'])
 
     @property
     def chunks(self):
-        return tuple(s[2] for s in x.metadata['dimList'])
+        return tuple(s[2] for s in self.metadata['dimList'])
 
     @property
     def time_step_number(self):
