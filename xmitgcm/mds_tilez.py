@@ -4,6 +4,7 @@ from collections import UserDict
 from dataclasses import dataclass
 import json
 import os.path
+import re
 
 from fsspec.implementations.reference import ReferenceFileSystem
 import numpy as np
@@ -109,7 +110,7 @@ class VarZ():
             return self._zarray()
         else:
             ti, xyi = k.split(".", 1)
-            ts = sorted(v.data.keys())[int(ti)]
+            ts = sorted(self.data.keys())[int(ti)]
             return self.data[ts][xyi]
 
     def __iter__(self):
@@ -137,13 +138,13 @@ class VarZ():
 
     def _zarray(self):
             return json.dumps({
-                "chunks": self.chunks,
+                "chunks": [1] + list(self.chunks),
                 "compressor": None, # fixed
                 "dtype": self.dtype,
                 "fill_value": self.fill_value,
                 "filters": None, # fixed
                 "order": "C", # fixed
-                "shape": self.shape,
+                "shape": [len(self.data.keys())] + list(self.shape),
                 "zarr_format": 2 # fixed
             })
 
@@ -179,3 +180,62 @@ class VarZ():
     @staticmethod
     def from_meta(filename, varname=None):
         return VarZ.from_chunk(Chunk.from_meta(filename))
+
+
+class TileZ(UserDict):
+    def __getitem__(self, key):
+        print(f"TileZ.__getitem__(): {key}")
+
+        if key == ".zgroup":
+            return self._zgroup()
+        for v in self.data:
+            if key.startswith(v):
+                return self.data[v][key]
+
+        return super().__getitem__(key)
+
+    def __contains__(self, item):
+        print(f"TileZ.__contains__(): {item}")
+        if item in (".zgroup"):
+            return True
+        for v in self.data:
+            if item in self.data[v]:
+                return True
+        return False
+
+    def __iter__(self):
+        print(f"TileZ.__iter__()")
+        yield from (".zgroup",)
+        for v in self.data:
+            yield from self.data[v].__iter__()
+
+    def _zgroup(self):
+        return json.dumps({"zarr_format": 2})
+
+    def get(self, key, default=None):
+        print(f"TileZ.get(): {key} / {default}")
+        return self.data.get(key, default)
+        #return super().get(*args)
+
+    def push(self, chunk):
+        for v in chunk.varnames:
+            if v not in self.data:
+                self.data[v] = VarZ.from_chunk(chunk, varname=v)
+            self.data[v].push(chunk)
+
+    def push_from_meta(self, filename):
+        c = Chunk.from_meta(filename)
+        self.push(c)
+
+    def scan(self, path):
+        pattern = re.compile('\w+\.\d+\.meta')
+        filenames = (m for m in os.listdir(path) if pattern.match(m))
+        for mfilename in sorted(filenames):
+            self.push_from_meta(os.path.join(path, mfilename))
+
+    def values(self):
+        print(f"TileZ.values()")
+        yield self._zgroup()
+        for v in self.data:
+            # yield from self.data[v].values()
+            yield from [self.data[v][k] for k in self.data[v]]
