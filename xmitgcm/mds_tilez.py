@@ -217,6 +217,9 @@ class TileZ(UserDict):
         return self.data.get(key, default)
         #return super().get(*args)
 
+    def len(self):
+        return len([v for v in self])
+
     def push(self, chunk):
         for v in chunk.varnames:
             if v not in self.data:
