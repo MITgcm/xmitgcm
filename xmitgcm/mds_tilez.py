@@ -212,6 +212,12 @@ class TileZ(UserDict):
     def _zgroup(self):
         return json.dumps({"zarr_format": 2})
 
+    def as_dataset(self):
+        fs = ReferenceFileSystem(fo=self, target_protocol='file')
+        mapper = fs.get_mapper("")
+        ds = xr.open_zarr(mapper, consolidated=False)
+        return ds
+
     def get(self, key, default=None):
         print(f"TileZ.get(): {key} / {default}")
         return self.data.get(key, default)
