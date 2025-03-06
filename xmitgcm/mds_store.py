@@ -150,6 +150,9 @@ def open_mdsdataset(data_dir, grid_dir=None,
                 standard_name='Sensitivity_to_theta',
                 long_name='Sensitivity of cost function to theta', units='[J]/degC'))
                  )
+    clear_cache: bool, optional
+        Clear the cache of filenames for reading data files. This is useful
+        when the contents of the data directory are changing (e.g. during a model run).
 
 
     Returns
