@@ -32,7 +32,7 @@ from .utils import parse_meta_file, read_mds, parse_available_diagnostics,\
 from .file_utils import listdir, listdir_startswith, listdir_endswith, \
     listdir_startsandendswith, listdir_fnmatch
 
-from .file_utils import clear_cache as futil.clear_cache
+from .file_utils import clear_cache as fu_clear_cache
 
 # Python2/3 compatibility
 if (sys.version_info > (3, 0)):
@@ -190,7 +190,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
         pass
 
     if clear_cache:
-        futil.clear_cache()
+        fu_clear_cache()
 
     # if levels s a slice or a list, a subset of levels is needed
     if levels is not None and nz is not None:
