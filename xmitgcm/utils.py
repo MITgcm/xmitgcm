@@ -1105,26 +1105,16 @@ def _read_xy_chunk(variable, file_metadata, rec=0, lev=0, face=0,
 
     # 1. compute offset_variable, init to zero
     offset_vars = 0
-    # if var list is a single element
-    if idx_var == 0:
-        dims = file_metadata['dims_vars']
+    # loop on variables before the one to read
+    for jvar in np.arange(idx_var):
+        # inspect its dimensions
+        dims = file_metadata['dims_vars'][jvar]
+        # compute the byte size of this variable
         nbytes_thisvar = 1*nbytes
         for dim in dims:
             nbytes_thisvar = nbytes_thisvar*file_metadata[dim]
         # update offset from previous variables
         offset_vars = offset_vars+nbytes_thisvar
-
-    # loop on variables before the one to read
-    else:
-        for jvar in np.arange(idx_var):
-            # inspect its dimensions
-            dims = file_metadata['dims_vars'][jvar]
-            # compute the byte size of this variable
-            nbytes_thisvar = 1*nbytes
-            for dim in dims:
-                nbytes_thisvar = nbytes_thisvar*file_metadata[dim]
-            # update offset from previous variables
-            offset_vars = offset_vars+nbytes_thisvar
 
     # 2. get dimensions of desired variable
     dims = file_metadata['dims_vars'][idx_var]
@@ -1597,8 +1587,7 @@ def find_concat_dim_facet(da, facet, extra_metadata):
     # we also need to other horizontal dimension for vector indexing
     all_dims = list(da.dims)
     # discard face
-    if 'face' in all_dims:
-        all_dims.remove('face')
+    all_dims.remove('face')
     # remove the concat_dim to find horizontal non_concat dimension
     all_dims.remove(concat_dim)
     non_concat_dim = all_dims[0]
@@ -1663,10 +1652,10 @@ def rebuild_llc_facets(da, extra_metadata):
             if extra_metadata['face_facets'][kface] == kfacet:
                 if extra_metadata['face_offsets'][kface] == 0:
                     # first face of facet
-                    tmp = da.isel(face=kface)
+                    tmp = da.sel(face=kface)
                 else:
                     # any other face needs to be concatenated
-                    newface = da.isel(face=kface)
+                    newface = da.sel(face=kface)
                     tmp = xr.concat([facets['facet' + str(kfacet)],
                                      newface], dim=concat_dim)
 
@@ -1732,7 +1721,7 @@ def llc_facets_3d_spatial_to_compact(facets, dimname, extra_metadata):
         all the data in vector form
     """
 
-    nz = len(facets['facet4'][dimname])
+    nz = len(facets['facet0'][dimname])
     nfacets = len(facets)
     flatdata = np.array([])
 
