@@ -636,9 +636,9 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
 
         Parameters
         ----------
-        prefix : string
+        name : string
             The name of the grid variable.
-        iternum : int (optional)
+        iternume : int (optional)
             MITgcm iteration number
 
         Yields
@@ -711,7 +711,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                     # we didn't find any metadata, so we just skip this var
                     continue
                 else:
-                    raise KeyError("Couldn't find metadata for variable %s "
+                    raise KeyError("Couln't find metadata for variable %s "
                                    "and `ignore_unknown_vars`==False." % vname)
 
             # maybe slice and squeeze the data
