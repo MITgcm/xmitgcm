@@ -60,7 +60,10 @@ def parse_meta_file(fname):
     if 'fldList' in flds:
         flds['fldList'] = [re.match("'*(\w+)", g).groups()[0] for g in
                            re.split("'\s+'", flds['fldList'])]
-        assert flds['nrecords'] == len(flds['fldList'])
+        if 'nFlds' in flds:
+            assert int(flds['nFlds']) == len(flds['fldList'])
+        else:
+            assert flds['nrecords'] == len(flds['fldList'])
     return flds
 
 def _get_useful_info_from_meta_file(metafile):
