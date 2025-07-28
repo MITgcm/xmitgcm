@@ -132,7 +132,7 @@ def test_values_and_endianness(all_mds_datadirs):
         # dask arrays that have been concatenated revert to native endianness
         # https://github.com/dask/dask/issues/1647
         if ds[vname].dtype.byteorder=='>':
-            val_le = ds[vname].values.newbyteorder('<')[idx]
+            val_le = ds[vname].values.view(ds[vname].values.dtype.newbyteorder('<'))[idx]
             np.testing.assert_allclose(ds_le[vname].values[idx], val_le)
 
 def test_open_dataset_no_meta(all_mds_datadirs):
