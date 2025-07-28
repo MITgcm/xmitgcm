@@ -138,6 +138,7 @@ def llc_global_model(request):
             else:
                 return llcreader.PleiadesLLC4320Model()
 
+@pytest.mark.skip(reason="ECCO Data path is depracated")
 def test_ecco_portal_faces(llc_global_model):
     # just get three timesteps
     iter_stop = llc_global_model.iter_start + 2 * llc_global_model.iter_step + 1
@@ -175,7 +176,8 @@ def test_ecco_portal_iterations(llc_global_model):
     assert not record
 
 
-@pytest.mark.slow
+#@pytest.mark.slow
+@pytest.mark.skip(reason="ECCO Data path is depracated")
 def test_ecco_portal_load(llc_global_model):
     # an expensive test because it actually loads data
     iter_stop = llc_global_model.iter_start + 2 * llc_global_model.iter_step + 1
@@ -184,6 +186,7 @@ def test_ecco_portal_load(llc_global_model):
     expected = {2160: -1.3054643869400024, 4320: -1.262018084526062}
     assert ds_faces.Eta[0, 0, -1, -1].values.item() == expected[llc_global_model.nx]
 
+@pytest.mark.skip(reason="ECCO Data path is depracated")
 def test_ecco_portal_latlon(llc_global_model):
     iter_stop = llc_global_model.iter_start + 2 * llc_global_model.iter_step + 1
     ds_ll = llc_global_model.get_dataset(iter_stop=iter_stop, type='latlon')
