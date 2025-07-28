@@ -29,20 +29,20 @@ def parse_meta_file(fname):
         Metadata in dictionary form.
     """
     flds = {}
-    basename = re.match('(^.+?)\..+', os.path.basename(fname)).groups()[0]
+    basename = re.match(r'(^.+?)\..+', os.path.basename(fname)).groups()[0]
     flds['basename'] = basename
     with open(fname) as f:
         text = f.read()
     # split into items
     for item in re.split(';', text):
         # remove whitespace at beginning
-        item = re.sub('^\s+', '', item)
-        match = re.match('(\w+) = (\[|\{)(.*)(\]|\})', item, re.DOTALL)
+        item = re.sub(r'^\s+', '', item)
+        match = re.match(r'(\w+) = (\[|\{)(.*)(\]|\})', item, re.DOTALL)
         if match:
             key, _, value, _ = match.groups()
             # remove more whitespace
-            value = re.sub('^\s+', '', value)
-            value = re.sub('\s+$', '', value)
+            value = re.sub(r'^\s+', '', value)
+            value = re.sub(r'\s+$', '', value)
             # print key,':', value
             flds[key] = value
     # now check the needed things are there
@@ -58,8 +58,8 @@ def parse_meta_file(fname):
                        re.split(',', g)] for g in
                        re.split(',\n', flds['dimList'])]
     if 'fldList' in flds:
-        flds['fldList'] = [re.match("'*(\w+)", g).groups()[0] for g in
-                           re.split("'\s+'", flds['fldList'])]
+        flds['fldList'] = [re.match(r"'*(\w+)", g).groups()[0] for g in
+                           re.split(r"'\s+'", flds['fldList'])]
         assert flds['nrecords'] == len(flds['fldList'])
     return flds
 
@@ -486,7 +486,7 @@ def parse_available_diagnostics(fname, layers={}):
     def process_buffer(f):
         for l in f:
             # will automatically skip first four header lines
-            c = re.split('\|', l)
+            c = re.split(r'\|', l)
             if len(c) == 7 and c[0].strip() != 'Num':
                 # parse the line to extract the relevant variables
                 key = c[1].strip()
@@ -882,7 +882,6 @@ def read_2D_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
     or numpy.ndarray or memmap, depending on input args
 
     """
-
     if (file_metadata['nx'] == 1) and (file_metadata['ny'] == 1) and \
        (len(file_metadata['vars']) == 1):
             # vertical coordinate
@@ -1105,26 +1104,17 @@ def _read_xy_chunk(variable, file_metadata, rec=0, lev=0, face=0,
 
     # 1. compute offset_variable, init to zero
     offset_vars = 0
-    # if var list is a single element
-    if idx_var == 0:
-        dims = file_metadata['dims_vars']
+    # add offset in datasets with many vars
+    for jvar in np.arange(idx_var):
+        # inspect its dimensions
+        dims = file_metadata['dims_vars'][jvar]
+        # compute the byte size of this variable
         nbytes_thisvar = 1*nbytes
         for dim in dims:
-            nbytes_thisvar = nbytes_thisvar*file_metadata[dim]
+            if (dim=='nx') or (dim=='ny'):
+                nbytes_thisvar = nbytes_thisvar*file_metadata[dim]
         # update offset from previous variables
         offset_vars = offset_vars+nbytes_thisvar
-
-    # loop on variables before the one to read
-    else:
-        for jvar in np.arange(idx_var):
-            # inspect its dimensions
-            dims = file_metadata['dims_vars'][jvar]
-            # compute the byte size of this variable
-            nbytes_thisvar = 1*nbytes
-            for dim in dims:
-                nbytes_thisvar = nbytes_thisvar*file_metadata[dim]
-            # update offset from previous variables
-            offset_vars = offset_vars+nbytes_thisvar
 
     # 2. get dimensions of desired variable
     dims = file_metadata['dims_vars'][idx_var]
@@ -1151,7 +1141,7 @@ def _read_xy_chunk(variable, file_metadata, rec=0, lev=0, face=0,
 
     # 6. compute offset due to faces
     if file_metadata['has_faces']:
-        # determin which facet the face belong to
+        # determine which facet the face belong to
         facet_origin = file_metadata['face_facets'][face]
         # compute the offset from previous facets
         ny_facets = np.array(file_metadata['ny_facets'])

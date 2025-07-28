@@ -347,7 +347,7 @@ def _swap_dimensions(ds, geometry, drop_old=True):
                 if coord_dim != orig_dim:
                     # dimension should be the same along all other axes, so just
                     # take the first row / column
-                    coord_var = coord_var.isel(**{coord_dim: 0}).drop(coord_dim)
+                    coord_var = coord_var.isel(**{coord_dim: 0}).drop_vars(coord_dim)
             ds[new_dim] = coord_var
             for key in keep_attrs:
                 if key in ds[orig_dim].attrs:
@@ -822,7 +822,7 @@ def _guess_layers(data_dir):
     for fname in layers_files:
         # make sure to exclude filenames such as
         # "layers_surfflux.01.0000000001.meta"
-        if not re.search('\.\d{10}\.', fname):
+        if not re.search(r'\.\d{10}\.', fname):
             # should turn "foo/bar/layers1RHO.meta" into "1RHO"
             layers_suf = os.path.splitext(os.path.basename(fname))[0][6:]
             meta = parse_meta_file(os.path.join(data_dir, fname))
