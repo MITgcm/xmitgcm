@@ -45,6 +45,7 @@ jobs:
       - name: Set up conda environment
         shell: bash -l {0}
         run: |
+          python -m pip install --upgrade pip setuptools
           python -m pip install -e .
           conda list
       - name: Run Tests
@@ -83,6 +84,7 @@ jobs:
     - name: Set up conda environment
       shell: bash -l {0}
       run: |
+        python -m pip install --upgrade pip setuptools
         python -m pip install -e .
         conda list
     - name: Run Tests
