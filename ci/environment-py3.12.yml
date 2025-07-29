@@ -3,6 +3,7 @@ channels:
   - conda-forge
 dependencies:
   - python=3.12
+  - xarray
   - dask
   - numpy
   - pytest
@@ -14,7 +15,3 @@ dependencies:
   - codecov
   - fsspec
   - cachetools
-  - git
-  - pip
-  - pip:
-    - git+https://github.com/pydata/xarray.git
