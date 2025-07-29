@@ -34,7 +34,7 @@ jobs:
         with:
           path: ~/conda_pkgs_dir
           key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('ci/environment.yml') }}
-      - uses: conda-incubator/setup-miniconda@v4
+      - uses: conda-incubator/setup-miniconda@v3
         with:
           miniconda-version: "latest"
           activate-environment: test_env # Defined in ci/environment*.yml
@@ -73,7 +73,7 @@ jobs:
       with:
         path: ~/conda_pkgs_dir
         key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('ci/environment-upstream-dev.yml') }}
-    - uses: conda-incubator/setup-miniconda@v4
+    - uses: conda-incubator/setup-miniconda@v3
       with:
         miniconda-version: "latest"
         activate-environment: test_env # Defined in ci/environment-*.yml
