@@ -18,6 +18,4 @@ coverage:
 ignore:
     - "xmitgcm/test/*"
     - "xmitgcm/__init__.py"
-    - "xmitgcm/_version.py"
     - "setup.py"
-    - "versioneer.py"

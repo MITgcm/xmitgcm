@@ -3,7 +3,7 @@
 authors = [{ name = "xmitgcm Developers", email = "rpa@ldeo.colombia.edu" }]
 name = "xmitgcm"
 requires-python = ">=3.11"
-description = "Read MITgcm mds binary files into xarray"
+description = "Read MITgcm MDS binary files using xarray"
 license = { text = "Apache-2.0" }
 dependencies = [
   "xarray >= 0.14.1",
@@ -32,7 +32,7 @@ Documentation = "https://xmitgcm.readthedocs.io/"
 
 [build-system]
 build-backend = "setuptools.build_meta"
-requires = ["setuptools>=42", "versioneer[toml]"]
+requires = ["setuptools>=42", "setuptools-scm"]
 
 [tool.setuptools]
 packages = ["xmitgcm"]
@@ -48,11 +48,3 @@ testpaths = [
 markers = [
     "slow: slow tests"
     ]
-
-[tool.versioneer]
-VCS = "git"
-style = "pep440"
-versionfile_source = "xmitgcm/_version.py"
-versionfile_build = "xmitgcm/_version.py"
-tag_prefix = "v"
-parentdir_prefix = "xmitgcm-"
