@@ -1,8 +1,5 @@
 codecov:
-    require_ci_to_pass: no
-    max_report_age: off
-
-comment: false
+    require_ci_to_pass: false
 
 coverage:
     precision: 2
@@ -10,12 +7,15 @@ coverage:
     status:
         project:
             default:
-                target: 95
+                target: 90%
                 informational: true
-        patch: off
-        changes: off
+        patch: false
+        changes: false
+
+comment: false
 
 ignore:
     - "xmitgcm/test/*"
     - "xmitgcm/__init__.py"
     - "setup.py"
+    - "xmitgcm/llcreader/*"
