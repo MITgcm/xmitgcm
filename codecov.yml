@@ -12,7 +12,6 @@ coverage:
         informational: true
   ignore:
     - "xmitgcm/test/test_llcreader.py"
-    - "xmitgcm/__init__.py"
     - "setup.py"
     - "xmitgcm/llcreader/*"
 
