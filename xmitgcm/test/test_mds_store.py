@@ -287,7 +287,7 @@ def test_swap_dims(all_mds_datadirs):
                               ['_bounds', '_center', '_interface']]
                 expected_dims += extra_dims
 
-        assert set(ds.dims.keys()) == set(expected_dims)
+        assert set(ds.sizes.keys()) == set(expected_dims)
 
         # make sure swapping works with multiple iters
         ds = xmitgcm.open_mdsdataset(dirname, geometry=expected['geometry'],
@@ -538,7 +538,7 @@ def test_llc_dims(llc_mds_datadirs, method, with_refdate):
     nz, nface, ny, nx = expected['shape']
     nt = 1
 
-    assert ds.dims['face'] == 13
+    assert ds.sizes['face'] == 13
     assert ds.rA.dims == ('face', 'j', 'i')
     assert ds.rA.values.shape == (nface, ny, nx)
     assert ds.U.dims == ('time', 'k', 'face', 'j', 'i_g')
@@ -664,7 +664,7 @@ def test_llc_extra_metadata(llc_mds_datadirs, method):
                                  llc_method=method,
                                  extra_metadata=llc)
 
-    assert ds.dims['face'] == 13
+    assert ds.sizes['face'] == 13
     assert ds.rA.dims == ('face', 'j', 'i')
     assert ds.rA.values.shape == (nface, ny, nx)
     assert ds.U.dims == ('time', 'k', 'face', 'j', 'i_g')
