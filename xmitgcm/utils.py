@@ -197,11 +197,6 @@ def read_mds(fname, iternum=None, use_mmap=None, endian='>', shape=None,
     datafile = fname + istr + '.data'
     metafile = fname + istr + '.meta'
 
-    if use_mmap and use_dask:
-        raise TypeError('nope')
-    elif use_mmap is None:
-        use_mmap = False if use_dask else True
-
     # get metadata
     try:
         metadata = parse_meta_file(metafile)
@@ -295,7 +290,10 @@ def read_mds(fname, iternum=None, use_mmap=None, endian='>', shape=None,
         if ndims == 3:
             out[name] = d[n]
         elif ndims == 2:
-            out[name] = d[n][:, 0, :]
+            if use_mmap:
+                out[name] = d[n].reshape((ny,nx))
+            else:
+                out[name] = d[n][:,0,:]
 
     # --------------- LEGACY --------------------------
     # from legacy code (needs to be phased out)
@@ -495,7 +493,7 @@ def parse_available_diagnostics(fname, layers={}):
                 try:
                     levs = int(c[2].strip())
                 except ValueError:
-                    levs = np.NaN
+                    levs = np.nan
                 mate = c[3].strip()
                 if mate:
                     mate = int(mate)
