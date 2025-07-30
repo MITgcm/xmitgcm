@@ -1,21 +1,19 @@
 codecov:
-    require_ci_to_pass: false
+  config: codecov.yml
+  require_ci_to_pass: false
 
 coverage:
-    precision: 2
-    round: down
-    status:
-        project:
-            default:
-                target: 90%
-                informational: true
-        patch: false
-        changes: false
-
-comment: false
-
-ignore:
-    - "xmitgcm/test/*"
+  precision: 2
+  round: down
+  status:
+    project:
+      default:
+        target: 90%
+        informational: true
+  ignore:
+    - "xmitgcm/test/test_llcreader.py"
     - "xmitgcm/__init__.py"
     - "setup.py"
     - "xmitgcm/llcreader/*"
+
+comment: false
