@@ -2,13 +2,13 @@ name: test_env
 channels:
   - conda-forge
 dependencies:
-  - python=3.12
+  - python=3.13
   - xarray
   - dask
   - numpy
   - pytest
   - future
-  - zarr >=2.15
+  - zarr
   - cftime
   - aiohttp
   - pytest-cov

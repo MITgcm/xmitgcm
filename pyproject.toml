@@ -32,16 +32,13 @@ Documentation = "https://xmitgcm.readthedocs.io/"
 
 [build-system]
 build-backend = "setuptools.build_meta"
-requires = ["setuptools>=42", "setuptools-scm"]
+requires = ["setuptools>=42", "setuptools-scm", "wheel"]
 
 [tool.setuptools]
 packages = ["xmitgcm"]
 
-[tools.pytest.ini_options]
+[tool.pytest.ini_options]
 minversion= "6.0"
-addopts = [
-    "--mypy-pyproject-toml-file=pyproject.toml",
-    ]
 testpaths = [
     "xmitgcm/test",
     ]
