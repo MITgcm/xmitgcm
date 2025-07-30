@@ -452,11 +452,11 @@ def test_drop_uncommon_diagnostics(llc_mds_datadirs):
         numrecs = int(matches.groups()[1])
 
         substr = f"\\g<1>{numrecs-1}\\g<3>"
-        meta = re.sub(regex, substr, meta, 1, re.MULTILINE)
+        meta = re.sub(regex, substr, meta, count=1, flags=re.MULTILINE)
 
     regex = r"^(\s+timeStepNumber = \[\s+)(\d+)(\s?\];\n)"
     substr = f"\\g<1>{iternum+1}\\g<3>"
-    meta = re.sub(regex, substr, meta, 1, re.MULTILINE)
+    meta = re.sub(regex, substr, meta, count=1, flags=re.MULTILINE)
 
     # remove ETAN
     meta = meta.replace("'ETAN    ' ","")
