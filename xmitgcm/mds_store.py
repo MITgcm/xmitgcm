@@ -163,7 +163,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
     # get frame info for history
     frame = inspect.currentframe()
     _, _, _, arg_values = inspect.getargvalues(frame)
-    del arg_values['frame']
+    arg_values = {k: v for k, v in arg_values.items() if k != 'frame'}
     function_name = inspect.getframeinfo(frame)[2]
 
     # auto-detect whether to swap dims
@@ -347,7 +347,7 @@ def _swap_dimensions(ds, geometry, drop_old=True):
                 if coord_dim != orig_dim:
                     # dimension should be the same along all other axes, so just
                     # take the first row / column
-                    coord_var = coord_var.isel(**{coord_dim: 0}).drop(coord_dim)
+                    coord_var = coord_var.isel(**{coord_dim: 0}).drop_vars(coord_dim)
             ds[new_dim] = coord_var
             for key in keep_attrs:
                 if key in ds[orig_dim].attrs:
@@ -636,9 +636,9 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
 
         Parameters
         ----------
-        name : string
+        prefix : string
             The name of the grid variable.
-        iternume : int (optional)
+        iternum : int (optional)
             MITgcm iteration number
 
         Yields
@@ -711,7 +711,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                     # we didn't find any metadata, so we just skip this var
                     continue
                 else:
-                    raise KeyError("Couln't find metadata for variable %s "
+                    raise KeyError("Couldn't find metadata for variable %s "
                                    "and `ignore_unknown_vars`==False." % vname)
 
             # maybe slice and squeeze the data
@@ -822,7 +822,7 @@ def _guess_layers(data_dir):
     for fname in layers_files:
         # make sure to exclude filenames such as
         # "layers_surfflux.01.0000000001.meta"
-        if not re.search('\.\d{10}\.', fname):
+        if not re.search(r'\.\d{10}\.', fname):
             # should turn "foo/bar/layers1RHO.meta" into "1RHO"
             layers_suf = os.path.splitext(os.path.basename(fname))[0][6:]
             meta = parse_meta_file(os.path.join(data_dir, fname))

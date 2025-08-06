@@ -150,7 +150,7 @@ def test_read_mds(all_mds_datadirs):
     assert isinstance(res[prefix], dask.array.core.Array)
 
     # try some options
-    res = read_mds(basename, use_dask=False)
+    res = read_mds(basename, use_dask=False, legacy=False)
     assert isinstance(res, dict)
     assert prefix in res
     assert isinstance(res[prefix], np.memmap)
@@ -165,13 +165,13 @@ def test_read_mds(all_mds_datadirs):
     assert prefix in res
     assert isinstance(res[prefix], dask.array.core.Array)
 
-    res = read_mds(basename, chunks="2D", use_dask=False)
+    res = read_mds(basename, chunks="2D", use_dask=False, legacy=False)
     assert isinstance(res, dict)
     assert prefix in res
     assert isinstance(res[prefix], np.memmap)
 
     res = read_mds(basename, chunks="2D", use_dask=False,
-                   use_mmap=False)
+                   use_mmap=False, legacy=False)
     assert isinstance(res, dict)
     assert prefix in res
     assert isinstance(res[prefix], np.ndarray)
@@ -196,7 +196,7 @@ def test_read_mds(all_mds_datadirs):
 
     # make sure endianness works
     res = read_mds(basename, use_dask=False, use_mmap=False)
-    testval = res[prefix].newbyteorder('<')[0, 0]
+    testval = res[prefix].view(res[prefix].dtype.newbyteorder('<'))[0,0]
     res_endian = read_mds(basename, use_mmap=False,
                           endian='<', use_dask=False)
     val_endian = res_endian[prefix][0, 0]
@@ -211,7 +211,7 @@ def test_read_mds(all_mds_datadirs):
     assert isinstance(res[prefix], dask.array.core.Array)
 
     # try some options
-    res = read_mds(basename, iternum=iternum, use_dask=False)
+    res = read_mds(basename, iternum=iternum, use_dask=False, legacy=False)
     assert isinstance(res, dict)
     assert prefix in res
     assert isinstance(res[prefix], np.memmap)

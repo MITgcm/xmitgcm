@@ -2,12 +2,12 @@ name: test_env
 channels:
   - conda-forge
 dependencies:
-  - python=3.9
+  - python=3.12
   - dask
   - numpy
   - pytest
   - future
-  - zarr
+  - zarr >=2.15
   - cftime
   - aiohttp
   - pytest-cov
@@ -15,6 +15,8 @@ dependencies:
   - fsspec
   - cachetools
   - git
-  - pip
+  - setuptools >=68
+  - wheel
+  - pip >=24
   - pip:
     - git+https://github.com/pydata/xarray.git
