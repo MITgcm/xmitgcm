@@ -23,19 +23,20 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest"]
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.11", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Cache conda
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         env:
           # Increase this value to reset cache if ci/environment.yml has not changed
           CACHE_NUMBER: 0
         with:
           path: ~/conda_pkgs_dir
           key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('ci/environment.yml') }}
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: conda-incubator/setup-miniconda@v3
         with:
+          miniconda-version: "latest"
           activate-environment: test_env # Defined in ci/environment*.yml
           auto-update-conda: false
           python-version: ${{ matrix.python-version }}
@@ -51,11 +52,11 @@ jobs:
         run: |
           py.test --cov=./ --cov-report=xml
       - name: Upload code coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v4
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           file: ./coverage.xml
           flags: unittests
-          env_vars: OS,PYTHON
           name: codecov-umbrella
           fail_ci_if_error: false
 
@@ -63,17 +64,18 @@ jobs:
     name: Build xarray-master
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Cache conda
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       env:
         # Increase this value to reset cache if ci/environment-upstream-dev.yml has not changed
         CACHE_NUMBER: 0
       with:
         path: ~/conda_pkgs_dir
         key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('ci/environment-upstream-dev.yml') }}
-    - uses: conda-incubator/setup-miniconda@v2
+    - uses: conda-incubator/setup-miniconda@v3
       with:
+        miniconda-version: "latest"
         activate-environment: test_env # Defined in ci/environment-*.yml
         auto-update-conda: false
         environment-file: ci/environment-xarraymaster.yml
@@ -88,10 +90,10 @@ jobs:
       run: |
         py.test --cov=./ --cov-report=xml
     - name: Upload code coverage to Codecov
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v4
       with:
+        token: ${{ secrets.CODECOV_TOKEN }}
         file: ./coverage.xml
         flags: unittests
-        env_vars: OS,PYTHON
         name: codecov-umbrella
         fail_ci_if_error: false

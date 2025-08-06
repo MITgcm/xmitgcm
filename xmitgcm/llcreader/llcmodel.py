@@ -319,9 +319,9 @@ def _faces_coords_to_latlon(ds):
     dim_coords = {}
     for vname in coords.coords:
         if vname[0] == 'i':
-            data = np.arange(ifac * coords.dims[vname])
+            data = np.arange(ifac * coords.sizes[vname])
         elif vname[0] == 'j':
-            data = np.arange(jfac * coords.dims[vname])
+            data = np.arange(jfac * coords.sizes[vname])
         else:
             data = coords[vname].data
         var = xr.Variable(ds[vname].dims, data, ds[vname].attrs)

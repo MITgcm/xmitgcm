@@ -132,7 +132,7 @@ def test_values_and_endianness(all_mds_datadirs):
         # dask arrays that have been concatenated revert to native endianness
         # https://github.com/dask/dask/issues/1647
         if ds[vname].dtype.byteorder=='>':
-            val_le = ds[vname].values.newbyteorder('<')[idx]
+            val_le = ds[vname].values.view(ds[vname].values.dtype.newbyteorder('<'))[idx]
             np.testing.assert_allclose(ds_le[vname].values[idx], val_le)
 
 def test_open_dataset_no_meta(all_mds_datadirs):
@@ -287,7 +287,7 @@ def test_swap_dims(all_mds_datadirs):
                               ['_bounds', '_center', '_interface']]
                 expected_dims += extra_dims
 
-        assert set(ds.dims.keys()) == set(expected_dims)
+        assert set(ds.sizes.keys()) == set(expected_dims)
 
         # make sure swapping works with multiple iters
         ds = xmitgcm.open_mdsdataset(dirname, geometry=expected['geometry'],
@@ -452,11 +452,11 @@ def test_drop_uncommon_diagnostics(llc_mds_datadirs):
         numrecs = int(matches.groups()[1])
 
         substr = f"\\g<1>{numrecs-1}\\g<3>"
-        meta = re.sub(regex, substr, meta, 1, re.MULTILINE)
+        meta = re.sub(regex, substr, meta, count=1, flags=re.MULTILINE)
 
     regex = r"^(\s+timeStepNumber = \[\s+)(\d+)(\s?\];\n)"
     substr = f"\\g<1>{iternum+1}\\g<3>"
-    meta = re.sub(regex, substr, meta, 1, re.MULTILINE)
+    meta = re.sub(regex, substr, meta, count=1, flags=re.MULTILINE)
 
     # remove ETAN
     meta = meta.replace("'ETAN    ' ","")
@@ -538,7 +538,7 @@ def test_llc_dims(llc_mds_datadirs, method, with_refdate):
     nz, nface, ny, nx = expected['shape']
     nt = 1
 
-    assert ds.dims['face'] == 13
+    assert ds.sizes['face'] == 13
     assert ds.rA.dims == ('face', 'j', 'i')
     assert ds.rA.values.shape == (nface, ny, nx)
     assert ds.U.dims == ('time', 'k', 'face', 'j', 'i_g')
@@ -664,7 +664,7 @@ def test_llc_extra_metadata(llc_mds_datadirs, method):
                                  llc_method=method,
                                  extra_metadata=llc)
 
-    assert ds.dims['face'] == 13
+    assert ds.sizes['face'] == 13
     assert ds.rA.dims == ('face', 'j', 'i')
     assert ds.rA.values.shape == (nface, ny, nx)
     assert ds.U.dims == ('time', 'k', 'face', 'j', 'i_g')
