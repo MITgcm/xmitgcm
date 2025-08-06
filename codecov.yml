@@ -1,5 +1,4 @@
 codecov:
-  config: codecov.yml
   require_ci_to_pass: false
 
 coverage:
