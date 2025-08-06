@@ -608,6 +608,41 @@ def test_extra_variables(all_mds_datadirs):
             mate = ds[var].attrs['mate']
             assert ds[mate].attrs['mate'] == var
 
+def test_custom_grid_variables(all_mds_datadirs):
+    """Test that open_mdsdataset reads custom grid variables (i.e. no time stamp) correctly"""
+    dirname, expected = all_mds_datadirs
+
+    custom_grid_variables = {
+            "iamgridC" : {
+                "dims" : ["k", "j", "i"], "attrs": {},
+                },
+            "iamgridW" : {
+                "dims" : ["k", "j", "i_g"], "attrs": {},
+                },
+            "iamgridS" : {
+                "dims" : ["k", "j_g", "i"], "attrs": {},
+                },
+            }
+
+    # copy hFac to our new grid variable ...
+    for suffix in ["C", "W", "S"]:
+        for ext in [".meta", ".data"]:
+            fname_in = os.path.join(dirname, f"hFac{suffix}{ext}")
+            fname_out= os.path.join(dirname, f"iamgrid{suffix}{ext}")
+            copyfile(fname_in, fname_out)
+
+    ds = xmitgcm.open_mdsdataset(
+            dirname,
+            read_grid=True,
+            iters=None,
+            geometry=expected["geometry"],
+            prefix=list(custom_grid_variables.keys()),
+            custom_grid_variables=custom_grid_variables)
+
+    for var in custom_grid_variables.keys():
+        assert var in ds
+        assert var in ds.coords
+
 def test_mask_values(all_mds_datadirs):
     """Test that open_mdsdataset generates binary masks with correct values"""
 
