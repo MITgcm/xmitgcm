@@ -1,5 +1,4 @@
 codecov:
-  config: codecov.yml
   require_ci_to_pass: false
 
 coverage:
@@ -11,7 +10,8 @@ coverage:
         target: 90%
         informational: true
   ignore:
-    - "xmitgcm/test/test_llcreader.py"
+    - "xmitgcm/test/*"
+    - "xmitgcm/__init__.py"
     - "setup.py"
     - "xmitgcm/llcreader/*"
 
