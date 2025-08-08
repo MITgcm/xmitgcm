@@ -32,6 +32,8 @@ from .utils import parse_meta_file, read_mds, parse_available_diagnostics,\
 from .file_utils import listdir, listdir_startswith, listdir_endswith, \
     listdir_startsandendswith, listdir_fnmatch
 
+from .file_utils import clear_cache as fu_clear_cache
+
 # Python2/3 compatibility
 if (sys.version_info > (3, 0)):
     stringtypes = [str]
@@ -59,7 +61,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     ignore_unknown_vars=False, default_dtype=None,
                     nx=None, ny=None, nz=None,
                     llc_method="smallchunks", extra_metadata=None,
-                    extra_variables=None):
+                    extra_variables=None, clear_cache=False):
     """Open MITgcm-style mds (.data / .meta) file output as xarray datset.
 
     Parameters
@@ -148,6 +150,9 @@ def open_mdsdataset(data_dir, grid_dir=None,
                 standard_name='Sensitivity_to_theta',
                 long_name='Sensitivity of cost function to theta', units='[J]/degC'))
                  )
+    clear_cache: bool, optional
+        Clear the cache of filenames for reading data files. This is useful
+        when the contents of the data directory are changing (e.g. during a model run).
 
 
     Returns
@@ -183,6 +188,9 @@ def open_mdsdataset(data_dir, grid_dir=None,
         prefix = [prefix]
     else:
         pass
+
+    if clear_cache:
+        fu_clear_cache()
 
     # if levels s a slice or a list, a subset of levels is needed
     if levels is not None and nz is not None:
