@@ -20,11 +20,26 @@ _xc_meta_content = """ simulation = { 'global_oce_latlon' };
  nrecords = [     1 ];
 """
 
+_pk_meta_content = """
+ nDims = [   2 ];
+ dimList = [
+   192,    1,   192,
+    32,    1,   32
+ ];
+ dataprec = [ 'float64' ];
+ nrecords = [   123 ];
+ timeStepNumber = [      72000 ];
+ nFlds = [   11 ];
+ fldList = {
+ 'Uvel    ' 'GuNm1   ' 'Vvel    ' 'GvNm1   ' 'Theta   ' 'GtNm1   ' 'Salt    ' 'GsNm1   ' 'EtaN    ' 'dEtaHdt ' 'EtaH    '
+ };
+"""
 
 def test_parse_meta(tmpdir):
     """Check the parsing of MITgcm .meta into python dictionary."""
 
     from xmitgcm.utils import parse_meta_file
+    print(tmpdir)
     p = tmpdir.join("XC.meta")
     p.write(_xc_meta_content)
     fname = str(p)
@@ -36,6 +51,38 @@ def test_parse_meta(tmpdir):
         'dimList': [[90, 1, 90], [40, 1, 40]],
         'nDims': 2,
         'dataprec': np.dtype('float32')
+    }
+    for k, v in expected.items():
+        assert result[k] == v
+
+
+def test_parse_pickup_meta(tmpdir):
+    """Check the parsing of MITgcm pickup .meta into python dictionary."""
+
+    from xmitgcm.utils import parse_meta_file
+    p = tmpdir.join("pickup.0000000000.meta")
+    p.write(_pk_meta_content)
+    fname = str(p)
+    result = parse_meta_file(fname)
+    expected = {
+        'basename': 'pickup',
+        'nDims': 2,
+        'dimList': [[192, 1, 192], [32, 1, 32]],
+        'dataprec': np.dtype('float64'),
+        'nrecords': 123,
+        'timeStepNumber': '72000',
+        'nFlds': '11',
+        'fldList': ['Uvel',
+                    'GuNm1',
+                    'Vvel',
+                    'GvNm1',
+                    'Theta',
+                    'GtNm1',
+                    'Salt',
+                    'GsNm1',
+                    'EtaN',
+                    'dEtaHdt',
+                    'EtaH']
     }
     for k, v in expected.items():
         assert result[k] == v
