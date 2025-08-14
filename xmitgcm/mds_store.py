@@ -300,7 +300,7 @@ def open_mdsdataset(data_dir, grid_dir=None,
         ds = _set_coords(ds)
 
     if 'time' in ds:
-        ds['time'] = xr.decode_cf(ds[['time']])['time']
+        ds['time'] = xr.decode_cf(ds[['time']], decode_timedelta=True)['time']
 
     # do we need more fancy logic (like open_dataset), or is this enough
     if chunks is not None:
