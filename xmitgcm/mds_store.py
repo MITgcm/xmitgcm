@@ -59,7 +59,8 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     ignore_unknown_vars=False, default_dtype=None,
                     nx=None, ny=None, nz=None,
                     llc_method="smallchunks", extra_metadata=None,
-                    extra_variables=None):
+                    extra_variables=None,
+                    custom_grid_variables=None):
     """Open MITgcm-style mds (.data / .meta) file output as xarray datset.
 
     Parameters
@@ -148,6 +149,8 @@ def open_mdsdataset(data_dir, grid_dir=None,
                 standard_name='Sensitivity_to_theta',
                 long_name='Sensitivity of cost function to theta', units='[J]/degC'))
                  )
+    custom_grid_variables : dict, optional
+        Similar to extra_variables, but these files don't have a time stamp.
 
 
     Returns
@@ -235,7 +238,8 @@ def open_mdsdataset(data_dir, grid_dir=None,
                     default_dtype=default_dtype,
                     nx=nx, ny=ny, nz=nz, llc_method=llc_method,
                     levels=levels, extra_metadata=extra_metadata,
-                    extra_variables=extra_variables)
+                    extra_variables=extra_variables,
+                    custom_grid_variables=custom_grid_variables)
                 datasets = [open_mdsdataset(
                         data_dir, iters=iternum, read_grid=False, **kwargs)
                     for iternum in iters]
@@ -291,7 +295,8 @@ def open_mdsdataset(data_dir, grid_dir=None,
                           default_dtype=default_dtype,
                           nx=nx, ny=ny, nz=nz, llc_method=llc_method,
                           levels=levels, extra_metadata=extra_metadata,
-                         extra_variables=extra_variables)
+                         extra_variables=extra_variables,
+                         custom_grid_variables=custom_grid_variables)
 
     ds = xr.Dataset.load_store(store)
     if swap_dims:
@@ -376,7 +381,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
                  default_dtype=np.dtype('f4'),
                  nx=None, ny=None, nz=None, llc_method="smallchunks",
                  levels=None, extra_metadata=None,
-                 extra_variables=None):
+                 extra_variables=None,
+                 custom_grid_variables=None):
         """
         This is not a user-facing class. See open_mdsdataset for argument
         documentation. The only ones which are distinct are.
@@ -401,6 +407,7 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         self.data_dir = data_dir
         self.grid_dir = grid_dir if (grid_dir is not None) else data_dir
         self.extra_variables = extra_variables
+        self.custom_grid_variables = custom_grid_variables
         self._ignore_unknown_vars = ignore_unknown_vars
 
         # The endianness of the files
@@ -573,7 +580,8 @@ class _MDSDataStore(xr.backends.common.AbstractDataStore):
         # build lookup tables for variable metadata
         self._all_grid_variables = _get_all_grid_variables(self.geometry,
                                                            self.grid_dir,
-                                                           self.layers)
+                                                           self.layers,
+                                                           self.custom_grid_variables)
         self._all_data_variables = _get_all_data_variables(self.data_dir,
                                                            self.grid_dir,
                                                            self.layers,
@@ -831,7 +839,7 @@ def _guess_layers(data_dir):
     return all_layers
 
 
-def _get_all_grid_variables(geometry, grid_dir=None, layers={}):
+def _get_all_grid_variables(geometry, grid_dir=None, layers={}, custom_grid_variables=None):
     """"Put all the relevant grid metadata into one big dictionary."""
     possible_hcoords = {'cartesian': horizontal_coordinates_cartesian,
                         'llc': horizontal_coordinates_llc,
@@ -841,7 +849,7 @@ def _get_all_grid_variables(geometry, grid_dir=None, layers={}):
     hcoords = possible_hcoords[geometry]
 
     # look for extra variables, if they exist in grid_dir
-    extravars = _get_extra_grid_variables(grid_dir) if grid_dir is not None else {}
+    extravars = _get_extra_grid_variables(grid_dir, custom_grid_variables=custom_grid_variables) if grid_dir is not None else {}
 
     allvars = [hcoords, vertical_coordinates, horizontal_grid_variables,
                vertical_grid_variables, volume_grid_variables, mask_variables,
@@ -856,17 +864,20 @@ def _get_all_grid_variables(geometry, grid_dir=None, layers={}):
     return metadata
 
 
-def _get_extra_grid_variables(grid_dir):
+def _get_extra_grid_variables(grid_dir, custom_grid_variables):
     """Scan a directory and return all file prefixes for extra grid files.
        Then return the variable information for each of these"""
     extra_grid = {}
+
+    if custom_grid_variables is not None:
+        extra_grid_variables.update(custom_grid_variables)
 
     fnames = dict([[val['filename'],key] for key,val in extra_grid_variables.items() if 'filename' in val])
 
     all_datafiles = listdir_endswith(grid_dir, '.data')
     for f in all_datafiles:
         prefix = os.path.split(f[:-5])[-1]
-        # Only consider what we find that matches extra_grid_vars
+        # Only consider what we find that matches extra/custom_grid_vars
         if prefix in extra_grid_variables:
             extra_grid[prefix] = extra_grid_variables[prefix]
         elif prefix in fnames:
