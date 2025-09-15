@@ -39,7 +39,6 @@ def test_parse_meta(tmpdir):
     """Check the parsing of MITgcm .meta into python dictionary."""
 
     from xmitgcm.utils import parse_meta_file
-    print(tmpdir)
     p = tmpdir.join("XC.meta")
     p.write(_xc_meta_content)
     fname = str(p)
@@ -71,7 +70,7 @@ def test_parse_pickup_meta(tmpdir):
         'dataprec': np.dtype('float64'),
         'nrecords': 123,
         'timeStepNumber': '72000',
-        'nFlds': '11',
+        'nFlds': 11,
         'fldList': ['Uvel',
                     'GuNm1',
                     'Vvel',
