@@ -61,7 +61,8 @@ def parse_meta_file(fname):
         flds['fldList'] = [re.match(r"'*(\w+)", g).groups()[0] for g in
                            re.split(r"'\s+'", flds['fldList'])]
         if 'nFlds' in flds:
-            assert int(flds['nFlds']) == len(flds['fldList'])
+            flds['nFlds'] = int(flds['nFlds'])
+            assert flds['nFlds'] == len(flds['fldList'])
         else:
             assert flds['nrecords'] == len(flds['fldList'])
     return flds
@@ -83,6 +84,10 @@ def _get_useful_info_from_meta_file(metafile):
     else:
         name = meta['basename']
         fldlist = None
+
+    if 'pickup' in metafile: # if 'nFlds' in meta:
+        # reset UVel to be a single 3D field
+        shape[0]=int( (nrecs-3)/(meta['nFlds']-3) )
 
     return nrecs, shape, name, dtype, fldlist
 
@@ -290,13 +295,22 @@ def read_mds(fname, iternum=None, use_mmap=None, endian='>', shape=None,
     # convert list into dictionary
     out = {}
     for n, name in enumerate(file_metadata['fldList']):
-        if ndims == 3:
-            out[name] = d[n]
-        elif ndims == 2:
-            if use_mmap:
-                out[name] = d[n].reshape((ny,nx))
+        if 'pickup' in file_metadata['basename']: # pickup file
+            if "Eta" in name: # 2D variables
+                if use_mmap:
+                    out[name] = d[n].reshape((ny,nx))
+                else:
+                    out[name] = d[n][:,0,:]
             else:
-                out[name] = d[n][:,0,:]
+                out[name] = d[n]
+        else:
+            if ndims == 2:
+                if use_mmap:
+                    out[name] = d[n].reshape((ny,nx))
+                else:
+                    out[name] = d[n][:,0,:]
+            elif ndims == 3:
+                out[name] = d[n]
 
     # --------------- LEGACY --------------------------
     # from legacy code (needs to be phased out)
@@ -788,16 +802,38 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False,
 
     """
 
+    local_metadata = file_metadata
     out = []
     for variable in variable_list:
+        if 'basename' in local_metadata:
+            if 'pickup' in local_metadata['basename']: # pickup file
+                if "Eta" in variable:
+                    chunks="2D"
+                    local_metadata['nDims'] = 2
+                    local_metadata['nz'] = 1
+                    local_metadata['dimList'] = [
+                            file_metadata['dimList'][0],
+                            file_metadata['dimList'][1]
+                            ]
+                else:
+                    chunks="3D"
+                    nz=(local_metadata['nrecords']-3) / (local_metadata['nFlds']-3)
+                    local_metadata['nDims'] = 3
+                    local_metadata['nz'] = nz
+                    local_metadata['dimList'] = [
+                            file_metadata['dimList'][0],
+                            file_metadata['dimList'][1],
+                            [nz,1,nz]
+                            ]
+
         if chunks == "2D":
-            out.append(read_2D_chunks(variable, file_metadata,
+            out.append(read_2D_chunks(variable, local_metadata,
                                       use_mmap=use_mmap, use_dask=use_dask))
         elif chunks == "3D":
-            out.append(read_3D_chunks(variable, file_metadata,
+            out.append(read_3D_chunks(variable, local_metadata,
                                       use_mmap=use_mmap, use_dask=use_dask))
         elif chunks == "CS":
-            out.append(read_CS_chunks(variable, file_metadata,
+            out.append(read_CS_chunks(variable, local_metadata,
                                       use_mmap=use_mmap, use_dask=use_dask))
 
     return out
