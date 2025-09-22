@@ -951,6 +951,8 @@ class BaseLLCModel:
                 variables[zv] = xr.Variable(_VAR_METADATA[zv]['dims'],
                                             data['RF'][sl],
                                             _VAR_METADATA[zv]['attrs'])
+
+        # Save vars as dataArray instead of Variables, avoid dim mismatch error
         vars_da = {
             name: xr.DataArray(v.data, dims=v.dims, attrs=v.attrs)
             for name, v in variables.items()
