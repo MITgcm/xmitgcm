@@ -20,7 +20,7 @@ _xc_meta_content = """ simulation = { 'global_oce_latlon' };
  nrecords = [     1 ];
 """
 
-_pk_meta_content = """
+_pk_meta_content = """ simulation = { 'global_ocean.32x15' };
  nDims = [   2 ];
  dimList = [
    192,    1,   192,
