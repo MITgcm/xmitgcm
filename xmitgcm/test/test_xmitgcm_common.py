@@ -1,5 +1,6 @@
 import pytest
 import os
+import sys
 import fnmatch
 import tarfile
 import numpy as np
@@ -249,7 +250,10 @@ def untar(data_dir, basename, target_dir):
     if not os.path.exists(datafile):
         raise IOError('Could not find data file %s' % datafile)
     tar = tarfile.open(datafile)
-    tar.extractall(target_dir)
+    if sys.version >= '3.12':
+        tar.extractall(target_dir,filter='data')
+    else:
+        tar.extractall(target_dir)
     tar.close()
     # subdirectory where file should have been untarred.
     # assumes the directory is the same name as the tar file itself.

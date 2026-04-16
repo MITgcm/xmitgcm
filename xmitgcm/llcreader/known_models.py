@@ -193,9 +193,11 @@ class ECCOPortalLLC2160Model(LLC2160Model):
 
     def __init__(self):
         fs = _make_http_filesystem()
-        base_path = 'https://data.nas.nasa.gov/ecco/download_data.php?file=/eccodata/llc_2160/compressed'
-        grid_path = 'https://data.nas.nasa.gov/ecco/download_data.php?file=/eccodata/llc_2160/grid'
+#        base_path = 'https://data.nas.nasa.gov/ecco/download_data.php?file=/eccodata/llc_2160/compressed'
+#        grid_path = 'https://data.nas.nasa.gov/ecco/download_data.php?file=/eccodata/llc_2160/grid'
         mask_path = 'https://storage.googleapis.com/pangeo-ecco/llc/masks/llc_2160_masks.zarr/'
+        base_path = None
+        grid_path = None
         store = stores.NestedStore(fs, base_path=base_path, mask_path=mask_path,
                                    grid_path=grid_path, shrunk=True, join_char='/')
         super(ECCOPortalLLC2160Model, self).__init__(store)
@@ -205,9 +207,11 @@ class ECCOPortalLLC4320Model(LLC4320Model):
 
     def __init__(self):
         fs = _make_http_filesystem()
-        base_path = 'https://data.nas.nasa.gov/ecco/download_data.php?file=/eccodata/llc_4320/compressed'
-        grid_path = 'https://data.nas.nasa.gov/ecco/download_data.php?file=/eccodata/llc_4320/grid'
+#        base_path = 'https://data.nas.nasa.gov/ecco/download_data.php?file=/eccodata/llc_4320/compressed'
+#        grid_path = 'https://data.nas.nasa.gov/ecco/download_data.php?file=/eccodata/llc_4320/grid'
         mask_path = 'https://storage.googleapis.com/pangeo-ecco/llc/masks/llc_4320_masks.zarr/'
+        base_path = None
+        grid_path = None
         store = stores.NestedStore(fs, base_path=base_path, mask_path=mask_path,
                                    grid_path=grid_path, shrunk=True, join_char='/')
         super(ECCOPortalLLC4320Model, self).__init__(store)

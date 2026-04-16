@@ -20,6 +20,20 @@ _xc_meta_content = """ simulation = { 'global_oce_latlon' };
  nrecords = [     1 ];
 """
 
+_pk_meta_content = """ simulation = { 'global_ocean.32x15' };
+ nDims = [   2 ];
+ dimList = [
+   192,    1,   192,
+    32,    1,   32
+ ];
+ dataprec = [ 'float64' ];
+ nrecords = [   123 ];
+ timeStepNumber = [      72000 ];
+ nFlds = [   11 ];
+ fldList = {
+ 'Uvel    ' 'GuNm1   ' 'Vvel    ' 'GvNm1   ' 'Theta   ' 'GtNm1   ' 'Salt    ' 'GsNm1   ' 'EtaN    ' 'dEtaHdt ' 'EtaH    '
+ };
+"""
 
 def test_parse_meta(tmpdir):
     """Check the parsing of MITgcm .meta into python dictionary."""
@@ -36,6 +50,38 @@ def test_parse_meta(tmpdir):
         'dimList': [[90, 1, 90], [40, 1, 40]],
         'nDims': 2,
         'dataprec': np.dtype('float32')
+    }
+    for k, v in expected.items():
+        assert result[k] == v
+
+
+def test_parse_pickup_meta(tmpdir):
+    """Check the parsing of MITgcm pickup .meta into python dictionary."""
+
+    from xmitgcm.utils import parse_meta_file
+    p = tmpdir.join("pickup.0000000000.meta")
+    p.write(_pk_meta_content)
+    fname = str(p)
+    result = parse_meta_file(fname)
+    expected = {
+        'basename': 'pickup',
+        'nDims': 2,
+        'dimList': [[192, 1, 192], [32, 1, 32]],
+        'dataprec': np.dtype('float64'),
+        'nrecords': 123,
+        'timeStepNumber': '72000',
+        'nFlds': 11,
+        'fldList': ['Uvel',
+                    'GuNm1',
+                    'Vvel',
+                    'GvNm1',
+                    'Theta',
+                    'GtNm1',
+                    'Salt',
+                    'GsNm1',
+                    'EtaN',
+                    'dEtaHdt',
+                    'EtaH']
     }
     for k, v in expected.items():
         assert result[k] == v
@@ -150,7 +196,7 @@ def test_read_mds(all_mds_datadirs):
     assert isinstance(res[prefix], dask.array.core.Array)
 
     # try some options
-    res = read_mds(basename, use_dask=False)
+    res = read_mds(basename, use_dask=False, legacy=False)
     assert isinstance(res, dict)
     assert prefix in res
     assert isinstance(res[prefix], np.memmap)
@@ -165,13 +211,13 @@ def test_read_mds(all_mds_datadirs):
     assert prefix in res
     assert isinstance(res[prefix], dask.array.core.Array)
 
-    res = read_mds(basename, chunks="2D", use_dask=False)
+    res = read_mds(basename, chunks="2D", use_dask=False, legacy=False)
     assert isinstance(res, dict)
     assert prefix in res
     assert isinstance(res[prefix], np.memmap)
 
     res = read_mds(basename, chunks="2D", use_dask=False,
-                   use_mmap=False)
+                   use_mmap=False, legacy=False)
     assert isinstance(res, dict)
     assert prefix in res
     assert isinstance(res[prefix], np.ndarray)
@@ -196,7 +242,7 @@ def test_read_mds(all_mds_datadirs):
 
     # make sure endianness works
     res = read_mds(basename, use_dask=False, use_mmap=False)
-    testval = res[prefix].newbyteorder('<')[0, 0]
+    testval = res[prefix].view(res[prefix].dtype.newbyteorder('<'))[0,0]
     res_endian = read_mds(basename, use_mmap=False,
                           endian='<', use_dask=False)
     val_endian = res_endian[prefix][0, 0]
@@ -211,7 +257,7 @@ def test_read_mds(all_mds_datadirs):
     assert isinstance(res[prefix], dask.array.core.Array)
 
     # try some options
-    res = read_mds(basename, iternum=iternum, use_dask=False)
+    res = read_mds(basename, iternum=iternum, use_dask=False, legacy=False)
     assert isinstance(res, dict)
     assert prefix in res
     assert isinstance(res[prefix], np.memmap)

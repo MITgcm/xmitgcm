@@ -319,9 +319,9 @@ def _faces_coords_to_latlon(ds):
     dim_coords = {}
     for vname in coords.coords:
         if vname[0] == 'i':
-            data = np.arange(ifac * coords.dims[vname])
+            data = np.arange(ifac * coords.sizes[vname])
         elif vname[0] == 'j':
-            data = np.arange(jfac * coords.dims[vname])
+            data = np.arange(jfac * coords.sizes[vname])
         else:
             data = coords[vname].data
         var = xr.Variable(ds[vname].dims, data, ds[vname].attrs)
@@ -952,7 +952,12 @@ class BaseLLCModel:
                                             data['RF'][sl],
                                             _VAR_METADATA[zv]['attrs'])
 
-        ds = ds.update(variables)
+        # Save vars as dataArray instead of Variables, avoid dim mismatch error
+        vars_da = {
+            name: xr.DataArray(v.data, dims=v.dims, attrs=v.attrs)
+            for name, v in variables.items()
+        }
+        ds = ds.assign(**vars_da)
 
         if grid_vars_to_coords:
             ds = ds.set_coords(gridlist)

@@ -29,20 +29,20 @@ def parse_meta_file(fname):
         Metadata in dictionary form.
     """
     flds = {}
-    basename = re.match('(^.+?)\..+', os.path.basename(fname)).groups()[0]
+    basename = re.match(r'(^.+?)\..+', os.path.basename(fname)).groups()[0]
     flds['basename'] = basename
     with open(fname) as f:
         text = f.read()
     # split into items
     for item in re.split(';', text):
         # remove whitespace at beginning
-        item = re.sub('^\s+', '', item)
-        match = re.match('(\w+) = (\[|\{)(.*)(\]|\})', item, re.DOTALL)
+        item = re.sub(r'^\s+', '', item)
+        match = re.match(r'(\w+) = (\[|\{)(.*)(\]|\})', item, re.DOTALL)
         if match:
             key, _, value, _ = match.groups()
             # remove more whitespace
-            value = re.sub('^\s+', '', value)
-            value = re.sub('\s+$', '', value)
+            value = re.sub(r'^\s+', '', value)
+            value = re.sub(r'\s+$', '', value)
             # print key,':', value
             flds[key] = value
     # now check the needed things are there
@@ -58,9 +58,13 @@ def parse_meta_file(fname):
                        re.split(',', g)] for g in
                        re.split(',\n', flds['dimList'])]
     if 'fldList' in flds:
-        flds['fldList'] = [re.match("'*(\w+)", g).groups()[0] for g in
-                           re.split("'\s+'", flds['fldList'])]
-        assert flds['nrecords'] == len(flds['fldList'])
+        flds['fldList'] = [re.match(r"'*(\w+)", g).groups()[0] for g in
+                           re.split(r"'\s+'", flds['fldList'])]
+        if 'nFlds' in flds:
+            flds['nFlds'] = int(flds['nFlds'])
+            assert flds['nFlds'] == len(flds['fldList'])
+        else:
+            assert flds['nrecords'] == len(flds['fldList'])
     return flds
 
 def _get_useful_info_from_meta_file(metafile):
@@ -80,6 +84,10 @@ def _get_useful_info_from_meta_file(metafile):
     else:
         name = meta['basename']
         fldlist = None
+
+    if 'pickup' in metafile: # if 'nFlds' in meta:
+        # reset UVel to be a single 3D field
+        shape[0]=int( (nrecs-3)/(meta['nFlds']-3) )
 
     return nrecs, shape, name, dtype, fldlist
 
@@ -197,11 +205,6 @@ def read_mds(fname, iternum=None, use_mmap=None, endian='>', shape=None,
     datafile = fname + istr + '.data'
     metafile = fname + istr + '.meta'
 
-    if use_mmap and use_dask:
-        raise TypeError('nope')
-    elif use_mmap is None:
-        use_mmap = False if use_dask else True
-
     # get metadata
     try:
         metadata = parse_meta_file(metafile)
@@ -292,10 +295,22 @@ def read_mds(fname, iternum=None, use_mmap=None, endian='>', shape=None,
     # convert list into dictionary
     out = {}
     for n, name in enumerate(file_metadata['fldList']):
-        if ndims == 3:
-            out[name] = d[n]
-        elif ndims == 2:
-            out[name] = d[n][:, 0, :]
+        if 'pickup' in file_metadata['basename']: # pickup file
+            if "Eta" in name: # 2D variables
+                if use_mmap:
+                    out[name] = d[n].reshape((ny,nx))
+                else:
+                    out[name] = d[n][:,0,:]
+            else:
+                out[name] = d[n]
+        else:
+            if ndims == 2:
+                if use_mmap:
+                    out[name] = d[n].reshape((ny,nx))
+                else:
+                    out[name] = d[n][:,0,:]
+            elif ndims == 3:
+                out[name] = d[n]
 
     # --------------- LEGACY --------------------------
     # from legacy code (needs to be phased out)
@@ -486,7 +501,7 @@ def parse_available_diagnostics(fname, layers={}):
     def process_buffer(f):
         for l in f:
             # will automatically skip first four header lines
-            c = re.split('\|', l)
+            c = re.split(r'\|', l)
             if len(c) == 7 and c[0].strip() != 'Num':
                 # parse the line to extract the relevant variables
                 key = c[1].strip()
@@ -495,7 +510,7 @@ def parse_available_diagnostics(fname, layers={}):
                 try:
                     levs = int(c[2].strip())
                 except ValueError:
-                    levs = np.NaN
+                    levs = np.nan
                 mate = c[3].strip()
                 if mate:
                     mate = int(mate)
@@ -787,16 +802,38 @@ def read_all_variables(variable_list, file_metadata, use_mmap=False,
 
     """
 
+    local_metadata = file_metadata
     out = []
     for variable in variable_list:
+        if 'basename' in local_metadata:
+            if 'pickup' in local_metadata['basename']: # pickup file
+                if "Eta" in variable:
+                    chunks="2D"
+                    local_metadata['nDims'] = 2
+                    local_metadata['nz'] = 1
+                    local_metadata['dimList'] = [
+                            file_metadata['dimList'][0],
+                            file_metadata['dimList'][1]
+                            ]
+                else:
+                    chunks="3D"
+                    nz=(local_metadata['nrecords']-3) / (local_metadata['nFlds']-3)
+                    local_metadata['nDims'] = 3
+                    local_metadata['nz'] = nz
+                    local_metadata['dimList'] = [
+                            file_metadata['dimList'][0],
+                            file_metadata['dimList'][1],
+                            [nz,1,nz]
+                            ]
+
         if chunks == "2D":
-            out.append(read_2D_chunks(variable, file_metadata,
+            out.append(read_2D_chunks(variable, local_metadata,
                                       use_mmap=use_mmap, use_dask=use_dask))
         elif chunks == "3D":
-            out.append(read_3D_chunks(variable, file_metadata,
+            out.append(read_3D_chunks(variable, local_metadata,
                                       use_mmap=use_mmap, use_dask=use_dask))
         elif chunks == "CS":
-            out.append(read_CS_chunks(variable, file_metadata,
+            out.append(read_CS_chunks(variable, local_metadata,
                                       use_mmap=use_mmap, use_dask=use_dask))
 
     return out
@@ -882,7 +919,6 @@ def read_2D_chunks(variable, file_metadata, use_mmap=False, use_dask=False):
     or numpy.ndarray or memmap, depending on input args
 
     """
-
     if (file_metadata['nx'] == 1) and (file_metadata['ny'] == 1) and \
        (len(file_metadata['vars']) == 1):
             # vertical coordinate
@@ -1105,14 +1141,15 @@ def _read_xy_chunk(variable, file_metadata, rec=0, lev=0, face=0,
 
     # 1. compute offset_variable, init to zero
     offset_vars = 0
-    # loop on variables before the one to read
+    # add offset in datasets with many vars
     for jvar in np.arange(idx_var):
         # inspect its dimensions
         dims = file_metadata['dims_vars'][jvar]
         # compute the byte size of this variable
         nbytes_thisvar = 1*nbytes
         for dim in dims:
-            nbytes_thisvar = nbytes_thisvar*file_metadata[dim]
+            if (dim=='nx') or (dim=='ny'):
+                nbytes_thisvar = nbytes_thisvar*file_metadata[dim]
         # update offset from previous variables
         offset_vars = offset_vars+nbytes_thisvar
 
@@ -1141,7 +1178,7 @@ def _read_xy_chunk(variable, file_metadata, rec=0, lev=0, face=0,
 
     # 6. compute offset due to faces
     if file_metadata['has_faces']:
-        # determin which facet the face belong to
+        # determine which facet the face belong to
         facet_origin = file_metadata['face_facets'][face]
         # compute the offset from previous facets
         ny_facets = np.array(file_metadata['ny_facets'])

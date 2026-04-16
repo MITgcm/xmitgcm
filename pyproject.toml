@@ -1,0 +1,47 @@
+# TODO fully switch to PEP 621: get rid of versioneer
+[project]
+authors = [{ name = "xmitgcm Developers", email = "rpa@ldeo.colombia.edu" }]
+name = "xmitgcm"
+requires-python = ">=3.11"
+description = "Read MITgcm MDS binary files using xarray"
+license = { text = "Apache-2.0" }
+dependencies = [
+  "xarray >= 0.14.1",
+  "dask >= 1.0",
+  "cachetools"
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+dynamic = ['version']
+
+#[project.optional-dependencies]
+#...
+
+[project.urls]
+Homepage = "https://github.com/MITgcm/xmitgcm"
+Documentation = "https://xmitgcm.readthedocs.io/"
+
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=42", "setuptools-scm", "wheel"]
+
+[tool.setuptools]
+packages = ["xmitgcm"]
+
+[tool.pytest.ini_options]
+minversion= "6.0"
+testpaths = [
+    "xmitgcm/test",
+    ]
+markers = [
+    "slow: slow tests"
+    ]
