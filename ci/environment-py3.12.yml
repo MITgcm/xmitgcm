@@ -5,7 +5,7 @@ dependencies:
   - python=3.12
   - xarray
   - dask
-  - numpy <2
+  - numpy
   - pytest
   - future
   - zarr >=3.1.3
