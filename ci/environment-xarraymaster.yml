@@ -20,3 +20,4 @@ dependencies:
   - pip >=24
   - pip:
     - git+https://github.com/pydata/xarray.git
+  - libgfortran5
