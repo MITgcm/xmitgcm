@@ -23,9 +23,17 @@ def _requires_sverdrup(func):
 
 
 def _make_http_filesystem():
+    import os
     import fsspec
-    from fsspec.implementations.http import HTTPFileSystem
-    return HTTPFileSystem()
+
+    if os.getenv("CI", "false") == "true":
+        return fsspec.filesystem(
+            "filecache",
+            target_protocol="https",
+            cache_storage="/tmp/fsspec_cache",
+        )
+
+    return fsspec.filesystem("http")
 
 class LLC90Model(BaseLLCModel):
     nx = 90

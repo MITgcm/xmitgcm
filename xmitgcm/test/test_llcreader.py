@@ -220,7 +220,6 @@ def aste_model(request):
         else:
             return llcreader.SverdrupASTE270Model()
 
-@pytest.mark.network
 def test_aste_portal_faces(aste_model):
     # just get three timesteps
     iters = aste_model.iters[:3]
@@ -238,7 +237,6 @@ def test_aste_portal_faces(aste_model):
             assert len(ds_faces[fld].data.chunks)==1
             assert (len(ds_faces[fld]),)==ds_faces[fld].data.chunks[0]
 
-@pytest.mark.network
 def test_aste_portal_iterations(aste_model):
     with pytest.warns(RuntimeWarning, match=r"Some requested iterations may not exist, you may need to change 'iters'"):
         iters = aste_model.iters[:2]
@@ -254,7 +252,6 @@ def test_aste_portal_iterations(aste_model):
 
 
 @pytest.mark.slow
-@pytest.mark.network
 def test_aste_portal_load(aste_model):
     # an expensive test because it actually loads data
     iters = aste_model.iters[:3]
@@ -267,13 +264,11 @@ def test_aste_portal_load(aste_model):
     expected = 0.641869068145752
     assert ds_faces.ETAN[0, 1, 0, 0].values.item() == expected
 
-@pytest.mark.network
 def test_aste_portal_latlon(aste_model):
     iters = aste_model.iters[:3]
     with pytest.raises(TypeError):
         ds_ll = aste_model.get_dataset(iters=iters,type='latlon')
 
-@pytest.mark.network
 def test_aste_tacc_snapshots(aste_model):
     if not isinstance(aste_model, llcreader.CRIOSTACCPortalASTE270Model):
         pytest.skip("Only testing TACC Portal snapshot variables here")
