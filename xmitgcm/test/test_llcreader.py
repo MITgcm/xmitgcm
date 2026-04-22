@@ -212,8 +212,7 @@ def aste_model(request):
     if request.param == 'aws':
         return llcreader.CRIOSAWSPortalASTE270Model()
     elif request.param == 'tacc':
-        pytest.skip("Network-dependent test disabled in CI")
-        #return llcreader.CRIOSTACCPortalASTE270Model()
+        return llcreader.CRIOSTACCPortalASTE270Model()
     else:
         if not os.path.exists('/scratch2/heimbach'):
             pytest.skip("Not on Sverdrup")
