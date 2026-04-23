@@ -18,3 +18,4 @@ dependencies:
   - setuptools >=68
   - wheel
   - pip >=24
+  - libgfortran5
