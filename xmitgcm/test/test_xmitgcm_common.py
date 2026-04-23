@@ -282,7 +282,7 @@ def file_md5_checksum(fname):
 
 # find the tar archive in the test directory
 # http://stackoverflow.com/questions/29627341/pytest-where-to-store-expected-data
-@pytest.fixture(scope='module', params=_experiments.keys())
+@pytest.fixture(scope='function', params=_experiments.keys())
 def all_mds_datadirs(tmpdir_factory, request):
     return setup_mds_dir(tmpdir_factory, request, _experiments)
 
