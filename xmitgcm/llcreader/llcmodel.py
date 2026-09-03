@@ -395,7 +395,7 @@ def faces_dataset_to_latlon(ds, metric_vector_pairs=[('dxC', 'dyC'), ('dyG', 'dx
         data_vars[vname_v] = xr.Variable(_drop_facedim(ds[vname_v].dims), data_v, ds[vname_v].attrs)
 
 
-    ds_new = ds_new.update(data_vars)
+    ds_new.update(data_vars)
     ds_new = ds_new.set_coords([c for c in coord_vars if c in ds_new])
     return ds_new
 
